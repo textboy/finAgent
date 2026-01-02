@@ -30,7 +30,7 @@
 ## Analyst Team
 * Inputs
     - stockSymbol (ticker)
-    - investmentPeriod (short:within 1 month; medium: within 6 months; long: within 2 years)
+    - investmentPeriod (short:within 1 month; medium: from 1 month to 6 months; long: from 6 months to 2 years)
 * Outputs
     - insights provided by the Analyst Team
 
@@ -64,57 +64,65 @@
 
 ## Analyst Team
 * Fundamentals Analyst
-(1) Call alphavantage API to get stock fundamentals data
-function=OVERVIEW
-input: {stockSymbol}, {apiKey}
-output: company information, financial ratios
+(1) Call yFinance API or alphavantage API to get stock fundamentals data
+yFinance API: yfinance.Ticker.get_fast_info
+input: {stockSymbol}
+output: company information
 
-function=ETF_PROFILE
+alphavantage API: function=ETF_PROFILE
 input: {stockSymbol}, {apiKey}
 output: net assets, expense ratio, and turnover
 
-function=DIVIDENDS
-input: {stockSymbol}, {apiKey}
-output: dividend historical distributions
+yFinance API: function=yfinance.Ticker.get_dividends
+input: {stockSymbol} {period} ("1d" when investmentPeriod=short; "1mo" when investmentPeriod=medium; "6mo" when investmentPeriod=long)
+output: dividends
 
-function=INCOME_STATEMENT
-input: {stockSymbol}, {apiKey}
-output: the annual and quarterly income statements
+yFinance API: yfinance.Ticker.get_income_stmt
+input: {stockSymbol}, {freq} (freq: "quarterly")
+output: the quarterly income statements
 
-function=BALANCE_SHEET
-input: {stockSymbol}, {apiKey}
-output: the annual and quarterly balance sheets
+yFinance API: yfinance.Ticker.get_balance_sheet
+input: {stockSymbol}, {freq} (freq: "quarterly")
+output: the quarterly balance sheets
 
-function=CASH_FLOW
-input: {stockSymbol}, {apiKey}
-output: the annual and quarterly cash flow
+yFinance API: yfinance.Ticker.get_cashflow
+input: {stockSymbol}, {freq} (freq: "quarterly")
+output: the quarterly cash flow
 
-function=EARNINGS_ESTIMATES
-input: {stockSymbol}, {apiKey}
-output: the annual and quarterly earnings (EPS) and revenue estimates
+yFinance API: yfinance.Ticker.get_earnings
+input: {stockSymbol}, {freq} (freq: "quarterly")
+output: the quarterly earnings (EPS)
 
 (2) return the financial summary report based on fundamentals data
-User prompt: "Please summarize the financial data of {stockSymbol} based on: {outputOfOverview},
-{outputOfETFProfile}, {outputOfDividends}, {outputOfIncomeStatement}, {outputOfBalanceSheet}, {outputOfCashFlow}, {outputOfEarningsEstimates}."
+User prompt: "Please summarize the financial data of {stockSymbol} based on the outputs of below MRC tools:
+- {outputOfOverview},
+- {outputOfETFProfile},
+- {outputOfDividends},
+- {outputOfIncomeStatement},
+- {outputOfBalanceSheet},
+- {outputOfCashFlow},
+- {outputOfEarningsEstimates}."
 System prompt: "You are a helpful AI assistant."
 
 * Sentiment Analyst
 (1) Call alphavantage API to get news data
-function=NEWS_SENTIMENT
+alphavantage API: function=NEWS_SENTIMENT
 input: {stockSymbol}, {apiKey}, {time_from}, {time_to}, {sort}, {limit}
 time_from: today - 14 days
 time_to: today
 sort: LATEST
 limit: 30
-output: news data
+output: news sentiment
 
 (2) return the news sentiment analysis report based on news data
-User prompt: "Please sentiment analysis on the news data."
+User prompt: "Please sentiment analysis based on the outputs of below MRC tools:
+- {outputOfNewsSentiment}
+."
 System prompt: "You are a news sentiment researcher tasked with analyzing news and trends."
 
 * Technical Analyst
 (1) Call alphavantage API to get technical indicators
-function=SMA
+alphavantage API: function=SMA
 input: {stockSymbol}, {apiKey}, {interval}, {time_period}, {series_type}
 interval: "30min" when investmentPeriod=short; "daily" when investmentPeriod=medium; "weekly" when investmentPeriod=long
 time_period: e.g. 30, 60
@@ -122,7 +130,7 @@ series_type: close
 output: simple moving average indicators
 Prepare close_50_sm (time_period=50), close_200_sma (time_period=200)
 
-function=EMA
+alphavantage API: function=EMA
 input: {stockSymbol}, {apiKey}, {interval}, {time_period}, {series_type}
 interval: "30min" when investmentPeriod=short; "daily" when investmentPeriod=medium; "weekly" when investmentPeriod=long
 time_period: e.g. 30, 60
@@ -130,34 +138,41 @@ series_type: close
 output: exponential moving average indicators
 Prepare close_10_ema (time_period=10)
 
-Calculate MACD
+alphavantage API: Calculate MACD
 call Yahoo Finance API
 data['MACD'] = data['EMA12'] - data['EMA26']
 
-Calculate MACD Signal
+alphavantage API: Calculate MACD Signal
 data['Signal_Line'] = data['MACD'].ewm(span=9, adjust=False).mean()
 
-function=RSI
+alphavantage API: function=RSI
 input: {stockSymbol}, {apiKey}, {interval}, {time_period}, {series_type}
 output: relative strength index indicators
 
-function=BBANDS
+alphavantage API: function=BBANDS
 input: {stockSymbol}, {apiKey}, {interval}, {time_period}, {series_type}
 output: bollinger bands indicators
 
-Calculate VWAP (Volume Weighted Average Price)
-call Yahoo Finance API
+alphavantage API: Calculate VWAP (Volume Weighted Average Price)
 data['cum_price_volume'] = (data['Close'] * data['Volume']).cumsum()
 data['cum_volume'] = data['Volume'].cumsum()
 data['VWAP'] = data['cum_price_volume'] / data['cum_volume']
 
 (2) return the technical analysis report based on technical indicators
-User prompt: "Please return the technical analysis report based on technical indicators."
+User prompt: "Please return the technical analysis report based on the outputs of below MRC tools
+- {outputOfSMA},
+- {outputOfEMA},
+- {outputOfMACD},
+- {outputOfMACDSignal},
+- {outputOfRSI},
+- {outputOfBBANDS},
+- {outputOfVWAP}
+."
 System prompt: "You are a technical indicators researcher."
 
 * Special Analyst
 (1) Call alphavantage API to get insider transactions
-function=INSIDER_TRANSACTIONS
+alphavantage API: function=INSIDER_TRANSACTIONS
 input: {stockSymbol}, {apiKey}
 output: insider transactions of the stock ticker
 
@@ -297,3 +312,34 @@ Multiples agents:
 - Risk Management Agent
 
 Agent framework: LangGraph
+
+# Appendix: MRC
+MRC Server: fastmcp
+
+# Appendix: folder structure under finAgent
+src folder: python source code
+src\agents folder: agents
+src\tools folder: tools
+src\utils folder: utility functions and helper modules
+config folder: configuration files (e.g. .env file)
+test folder: test code
+.requirements.txt: pip install libraries
+setup.cmd: create virtual environment by conda, and install requirement libraries
+mcp-server-setup.cmd: install mcp server (e.g. qdrant) via docker
+finagent.bat: run the code
+
+# Appendix: python and its libraries version
+python==3.12.4
+pandas==2.2.2
+numpy==2.0.1
+yfinance==1.0
+alpha_vantage==3.0.0
+qdrant-client==1.16.0
+langgraph==1.0.0
+langchain-core==1.0.0
+langchain-openai==1.0.0
+pydantic==2.11.7
+python-dotenv==1.1.0
+fastmcp==2.14.1
+click==8.1.7
+openai==2.12.0
