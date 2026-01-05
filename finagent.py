@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from src.workflow import run_workflow
 from src.utils.qdrant_utils import store_entry
 
-load_dotenv()
+load_dotenv(os.path.join('config', '.env'))
 
 @click.command()
 @click.option('--symbol', '-s', default='AAPL', help='Stock symbol (e.g. AAPL)')

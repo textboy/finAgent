@@ -10,7 +10,7 @@ from alpha_vantage.alphaintelligence import AlphaIntelligence
 import yfinance as yf
 import time
 
-load_dotenv()
+load_dotenv(os.path.join('config', '.env'))
 
 ALPHA_VANTAGE_API_KEY = os.getenv('ALPHA_VANTAGE_API_KEY')
 
@@ -26,6 +26,7 @@ class DataFetcher:
 
     def get_company_overview(self, symbol: str) -> Tuple[pd.DataFrame, Dict]:
         # Get company overview.
+        time.sleep(1.2)
         data, meta = self.fd.get_company_overview(symbol=symbol)
         return data, meta
 
@@ -47,27 +48,24 @@ class DataFetcher:
         meta = {'source': 'yfinance'}
         return data, meta
 
-    def get_earnings(self, symbol: str) -> Tuple[pd.DataFrame, Dict]:
+    def get_dividends(self, symbol: str, period: str = "1mo") -> Tuple[pd.DataFrame, Dict]:
         ticker = yf.Ticker(symbol)
-        data = ticker.quarterly_earnings
-        meta = {'source': 'yfinance'}
-        return data, meta
-
-    def get_dividends(self, symbol: str) -> Tuple[pd.DataFrame, Dict]:
-        ticker = yf.Ticker(symbol)
-        dividends = ticker.dividends
-        data = pd.DataFrame(dividends).tail(10) if not dividends.empty else pd.DataFrame()
-        meta = {'source': 'yfinance', 'recent_dividends': len(dividends)}
+        hist = ticker.history(period=period)
+        dividends = hist['Dividends'].dropna()
+        data = pd.DataFrame({'Dividends': dividends})
+        meta = {'source': 'yfinance', 'period': period, 'num_dividends': len(data)}
         return data, meta
 
     def get_etf_profile(self, symbol: str) -> Tuple[pd.DataFrame, Dict]:
         # Note: AlphaVantage may not have direct ETF_PROFILE, using overview for now
+        time.sleep(1.2)
         data, meta = self.fd.get_company_overview(symbol=symbol)
         return data, meta
 
     def get_insider_transactions(self, symbol: str) -> Tuple[pd.DataFrame, Dict]:
-        time.sleep(1.2)
-        data, meta = self.fd.get_insider_transactions(symbol=symbol)
+        ticker = yf.Ticker(symbol)
+        data = ticker.get_insider_transactions()
+        meta = {'source': 'yfinance'}
         return data, meta
 
     def get_news_sentiment(self, symbol: str, days_back: int = 14, limit: int = 30) -> Tuple[pd.DataFrame, Dict]:

@@ -1,4 +1,5 @@
 import os
+import requests
 from dotenv import load_dotenv
 from datetime import datetime
 from typing import Dict, Any, List, Optional
@@ -6,10 +7,12 @@ from qdrant_client import QdrantClient, models
 from qdrant_client.http.models import Distance, VectorParams, Filter, FieldCondition, MatchValue, OrderBy
 from langchain_openai import OpenAIEmbeddings
 
-load_dotenv()
+load_dotenv(os.path.join('config', '.env'))
+print(f'Qdrant URL: {os.getenv("QDRANT_URL")}')
 
 openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
 openrouter_base = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+COLL_NAME = 'finagent_reports'
 
 embeddings = OpenAIEmbeddings(
     model="openai/text-embedding-3-small",
@@ -21,39 +24,50 @@ EMBED_DIM = 1536
 
 QDRANT_URL = os.getenv("QDRANT_URL")
 QDRANT_PATH = os.getenv("QDRANT_PATH", "./qdrant")
-COLL_NAME = os.getenv("MILVUS_COLL_NAME", "finagent_reports")  # reuse name
+
+try:
+    response = requests.get(f"{QDRANT_URL}/collections/")
+    print("Server response:", response.json())
+except Exception as e:
+    print("Failed to connect to Qdrant:", str(e))
+
 def get_client():
     if QDRANT_URL:
-        return QdrantClient(url=QDRANT_URL)
+        return QdrantClient(url=QDRANT_URL, timeout=10)
     else:
         return QdrantClient(path=QDRANT_PATH)
 
 def init_collection():
     client = get_client()
-    client.recreate_collection(
-        collection_name=COLL_NAME,
-        vectors_config=VectorParams(size=EMBED_DIM, distance=Distance.EUCLID),
-    )
+    if not client.collection_exists(COLL_NAME):
+        # Create the collection if it doesn't exist
+        client.create_collection(
+            collection_name=COLL_NAME,
+            vectors_config=VectorParams(size=EMBED_DIM, distance=Distance.EUCLID),
+        )
+    else:
+        print(f"Collection '{COLL_NAME}' already exists.")
 
 def store_entry(symbol: str, report_type: str, content: str, analysis_datetime: str, metadata: Dict[str, Any] = None):
     init_collection()
-    emb = embeddings.embed_query(content)
-    point = models.PointStruct(
-        id=models.GenerateId(),
-        vector=emb,
-        payload={
-            "symbol": symbol,
-            "report_type": report_type,
-            "content": content,
-            "analysis_datetime": analysis_datetime,
-            "metadata": metadata or {},
-        },
-    )
-    client = get_client()
-    client.upsert(
-        collection_name=COLL_NAME,
-        points=[point],
-    )
+    if content:
+        emb = embeddings.embed_query(content)
+        point = models.PointStruct(
+            id=models.GenerateId(),
+            vector=emb,
+            payload={
+                "symbol": symbol,
+                "report_type": report_type,
+                "content": content,
+                "analysis_datetime": analysis_datetime,
+                "metadata": metadata or {},
+            },
+        )
+        client = get_client()
+        client.upsert(
+            collection_name=COLL_NAME,
+            points=[point],
+        )
 
 def get_last_report(symbol: str) -> Optional[Dict[str, Any]]:
     init_collection()

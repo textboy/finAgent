@@ -4,10 +4,13 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from ..tools.analyst_tools import *
 
-load_dotenv()
+
+DEFAULT_MODEL_NAME = 'x-ai/grok-beta'
+load_dotenv(os.path.join('config', '.env'))
+print(f'Calling model: {os.getenv('MODEL_NAME', DEFAULT_MODEL_NAME)}')
 
 llm = ChatOpenAI(
-    model=os.getenv('MODEL_NAME', 'x-ai/grok-beta'),
+    model=os.getenv('MODEL_NAME', DEFAULT_MODEL_NAME),
     api_key=os.getenv('OPENROUTER_API_KEY'),
     base_url=os.getenv('OPENROUTER_BASE_URL'),
     temperature=0.1,
@@ -31,7 +34,6 @@ class FundamentalsAnalyst:
         income_statement = get_income_statement(symbol)
         balance_sheet = get_balance_sheet(symbol)
         cash_flow = get_cash_flow(symbol)
-        earnings = get_earnings(symbol)
         
         user_prompt = f"""Please summarize the financial data of {{symbol}} based on the outputs of below MRC tools:
 - {{outputOfOverview}},
@@ -39,16 +41,14 @@ class FundamentalsAnalyst:
 - {{outputOfDividends}},
 - {{outputOfIncomeStatement}},
 - {{outputOfBalanceSheet}},
-- {{outputOfCashFlow}},
-- {{outputOfEarningsEstimates}}.""".format(
+- {{outputOfCashFlow}}.""".format(
             symbol=symbol,
             outputOfOverview=overview,
             outputOfETFProfile=etf_profile,
             outputOfDividends=dividends,
             outputOfIncomeStatement=income_statement,
             outputOfBalanceSheet=balance_sheet,
-            outputOfCashFlow=cash_flow,
-            outputOfEarningsEstimates=earnings
+            outputOfCashFlow=cash_flow
         )
         
         messages = [

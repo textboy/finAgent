@@ -9,31 +9,49 @@ fetcher = DataFetcher()
 def get_company_overview(symbol: str) -> str:
     """Get company overview and financial ratios from AlphaVantage."""
     data, meta = fetcher.get_company_overview(symbol)
+    if data is None:
+        return "No data"
     return f"Data (latest):\\n{pd.concat([data.iloc[0]]).to_string() if not data.empty else 'No data'}\\nFull Data shape: {data.shape}"
 
 def get_income_statement(symbol: str) -> str:
     """Get annual and quarterly income statements."""
     data, meta = fetcher.get_income_statement(symbol)
+    if data is None:
+        return "No data"
     return f"Data shape: {data.shape}\\nLatest: {data.iloc[0].to_dict() if not data.empty else 'No data'}"
 
 def get_balance_sheet(symbol: str) -> str:
     """Get annual and quarterly balance sheets."""
     data, meta = fetcher.get_balance_sheet(symbol)
+    if data is None:
+        return "No data"
     return f"Data shape: {data.shape}\\nLatest: {data.iloc[0].to_dict() if not data.empty else 'No data'}"
 
 def get_cash_flow(symbol: str) -> str:
     """Get annual and quarterly cash flow statements."""
     data, meta = fetcher.get_cash_flow(symbol)
+    if data is None:
+        return "No data"
     return f"Data shape: {data.shape}\\nLatest: {data.iloc[0].to_dict() if not data.empty else 'No data'}"
 
 def get_earnings(symbol: str) -> str:
     """Get earnings data."""
     data, meta = fetcher.get_earnings(symbol)
+    if data is None:
+        return "No data"
     return f"Data shape: {data.shape}\\nLatest: {data.iloc[0].to_dict() if not data.empty else 'No data'}"
 
-def get_dividends(symbol: str) -> str:
+def get_dividends(symbol: str, investmentPeriod: str = "medium") -> str:
     """Get dividend historical distributions."""
-    data, meta = fetcher.get_dividends(symbol)
+    period_map = {
+        "short": "1d",
+        "medium": "1wk",
+        "long": "1mo"
+    }
+    period = period_map[investmentPeriod]
+    data, meta = fetcher.get_dividends(symbol, period)
+    if data is None:
+        return "No data"
     return f"Data shape: {data.shape}\\nRecent: {data.tail(5).to_dict() if not data.empty else 'No data'}"
 
 def get_etf_profile(symbol: str) -> str:
@@ -43,26 +61,60 @@ def get_etf_profile(symbol: str) -> str:
 def get_news_sentiment(symbol: str, days_back: int = 14) -> str:
     """Get news sentiment for the stock."""
     data, meta = fetcher.get_news_sentiment(symbol, days_back)
+    if data is None or meta is None:
+        return "No data"
     return f"Sentiment score: {meta.get('sentiment_score_definition', 'N/A')}\\nData shape: {data.shape}"
 
-def get_sma(symbol: str, interval: str, time_period: int) -> str:
+def get_sma(symbol: str, investmentPeriod: str, time_period: int) -> str:
     """Get Simple Moving Average."""
+    interval_map = {
+        "short": "30min",
+        "medium": "Daily",
+        "long": "Weekly"
+    }
+    interval = interval_map[investmentPeriod]
     data, meta = fetcher.get_sma(symbol, interval, time_period)
+    if data is None:
+        return "No data"
     return f"Latest SMA: {data['SMA'].iloc[-1] if not data.empty else 'N/A'}\\nShape: {data.shape}"
 
-def get_ema(symbol: str, interval: str, time_period: int) -> str:
+def get_ema(symbol: str, investmentPeriod: str, time_period: int) -> str:
     """Get Exponential Moving Average."""
+    interval_map = {
+        "short": "30min",
+        "medium": "daily",
+        "long": "weekly"
+    }
+    interval = interval_map[investmentPeriod]
     data, meta = fetcher.get_ema(symbol, interval, time_period)
+    if data is None:
+        return "No data"
     return f"Latest EMA: {data['EMA'].iloc[-1] if not data.empty else 'N/A'}\\nShape: {data.shape}"
 
-def get_rsi(symbol: str, interval: str, time_period: int = 14) -> str:
+def get_rsi(symbol: str, investmentPeriod: str, time_period: int = 14) -> str:
     """Get RSI."""
+    interval_map = {
+        "short": "30min",
+        "medium": "daily",
+        "long": "weekly"
+    }
+    interval = interval_map[investmentPeriod]
     data, meta = fetcher.get_rsi(symbol, interval, time_period)
+    if data is None:
+        return "No data"
     return f"Latest RSI: {data['RSI'].iloc[-1] if not data.empty else 'N/A'}\\nShape: {data.shape}"
 
-def get_bbands(symbol: str, interval: str, time_period: int = 20) -> str:
+def get_bbands(symbol: str, investmentPeriod: str, time_period: int = 20) -> str:
     """Get Bollinger Bands."""
+    interval_map = {
+        "short": "30min",
+        "medium": "daily",
+        "long": "weekly"
+    }
+    interval = interval_map[investmentPeriod]
     data, meta = fetcher.get_bbands(symbol, interval, time_period)
+    if data is None:
+        return "No data"
     latest = data.iloc[-1]
     return f"Latest BB: Upper {latest.get('Real Upper Band', 'N/A')}, Middle {latest.get('Real Middle Band', 'N/A')}, Lower {latest.get('Real Lower Band', 'N/A')}"
 
@@ -95,6 +147,8 @@ special_tools = [get_close_price]  # insider?
 def get_insider_transactions(symbol: str) -> str:
     """Get insider transactions."""
     data, meta = fetcher.get_insider_transactions(symbol)
+    if data is None:
+        return "No data"
     return f"Data shape: {data.shape}\\nRecent: {data.tail(3).to_dict() if not data.empty else 'No data'}"
 
 special_tools.append(get_insider_transactions)

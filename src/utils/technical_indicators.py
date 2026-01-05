@@ -21,6 +21,8 @@ def calculate_vwap(hist: pd.DataFrame) -> pd.DataFrame:
 
 def get_latest_indicators(hist: pd.DataFrame) -> dict:
     # Get latest values of indicators from hist df.
+    if hist.empty:
+        return {'close': None, 'macd': None, 'macd_signal': None, 'vwap': None}
     latest = hist.iloc[-1]
     return {
         'close': latest['Close'],

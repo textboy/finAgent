@@ -36,7 +36,7 @@
 
 ## Researcher Team
 * Inputs
-    - investmentPeriod (short:within 1 month; medium: within 6 months; long: within 2 years)
+    - investmentPeriod (short:within 1 month; medium: from 1 month to 6 months; long: from 6 months to 2 years)
     - insights provided by the Analyst Team
 * Outputs
     - debate result provided by the Researcher Team
@@ -74,8 +74,9 @@ input: {stockSymbol}, {apiKey}
 output: net assets, expense ratio, and turnover
 
 yFinance API: function=yfinance.Ticker.get_dividends
-input: {stockSymbol} {period} ("1d" when investmentPeriod=short; "1mo" when investmentPeriod=medium; "6mo" when investmentPeriod=long)
+input: {stockSymbol} {period} ("1d" when investmentPeriod=short; "1wk" when investmentPeriod=medium; "1mo" when investmentPeriod=long)
 output: dividends
+valid intervals of period: [1m,2m,5m,15m,30m,60m,90m,1h,4h,1d,5d,1wk,1mo,3mo]
 
 yFinance API: yfinance.Ticker.get_income_stmt
 input: {stockSymbol}, {freq} (freq: "quarterly")
@@ -89,10 +90,6 @@ yFinance API: yfinance.Ticker.get_cashflow
 input: {stockSymbol}, {freq} (freq: "quarterly")
 output: the quarterly cash flow
 
-yFinance API: yfinance.Ticker.get_earnings
-input: {stockSymbol}, {freq} (freq: "quarterly")
-output: the quarterly earnings (EPS)
-
 (2) return the financial summary report based on fundamentals data
 User prompt: "Please summarize the financial data of {stockSymbol} based on the outputs of below MRC tools:
 - {outputOfOverview},
@@ -101,7 +98,6 @@ User prompt: "Please summarize the financial data of {stockSymbol} based on the 
 - {outputOfIncomeStatement},
 - {outputOfBalanceSheet},
 - {outputOfCashFlow},
-- {outputOfEarningsEstimates}."
 System prompt: "You are a helpful AI assistant."
 
 * Sentiment Analyst
@@ -124,15 +120,15 @@ System prompt: "You are a news sentiment researcher tasked with analyzing news a
 (1) Call alphavantage API to get technical indicators
 alphavantage API: function=SMA
 input: {stockSymbol}, {apiKey}, {interval}, {time_period}, {series_type}
-interval: "30min" when investmentPeriod=short; "daily" when investmentPeriod=medium; "weekly" when investmentPeriod=long
+interval: "30min" when investmentPeriod=short; "Daily" when investmentPeriod=medium; "Weekly" when investmentPeriod=long
 time_period: e.g. 30, 60
 series_type: close
 output: simple moving average indicators
 Prepare close_50_sm (time_period=50), close_200_sma (time_period=200)
+valid intervals of interval: [Monthly,Weekly,Daily,60min,30min,15min,5min,1min]
 
 alphavantage API: function=EMA
 input: {stockSymbol}, {apiKey}, {interval}, {time_period}, {series_type}
-interval: "30min" when investmentPeriod=short; "daily" when investmentPeriod=medium; "weekly" when investmentPeriod=long
 time_period: e.g. 30, 60
 series_type: close
 output: exponential moving average indicators
@@ -171,9 +167,9 @@ User prompt: "Please return the technical analysis report based on the outputs o
 System prompt: "You are a technical indicators researcher."
 
 * Special Analyst
-(1) Call alphavantage API to get insider transactions
-alphavantage API: function=INSIDER_TRANSACTIONS
-input: {stockSymbol}, {apiKey}
+(1) Call yFinance API to get insider transactions
+yFinance API: yfinance.Ticker.get_insider_transactions
+input: {stockSymbol}
 output: insider transactions of the stock ticker
 
 ## Researcher Team
@@ -291,12 +287,15 @@ Model: set in .env file
 alphavantage API
 API Key: ALPHA_VANTAGE_API_KEY set in .env file
 API documentation: https://www.alphavantage.co/documentation/#intelligence
+Add sleep 1.2 seconds per request to prevent free API rate limiting
+interval of Technical Analyst: "30min" when investmentPeriod=short; "daily" when investmentPeriod=medium; "weekly" when investmentPeriod=long
 
 Yahoo Finance API
 API documentation: https://ranaroussi.github.io/yfinance/reference/index.html
+period of Fundamentals Analyst: "1d" when investmentPeriod=short; "1wk" when investmentPeriod=medium; "1mo" when investmentPeriod=long
 
 # Appendix: storage
-Vector database: Milvus
+Vector database: Qdrant
 Result file path: set in .env file. Default name: result_<yyyymmdd_HH24MI>.log
 
 # Appendix: agents
