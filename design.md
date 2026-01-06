@@ -75,8 +75,8 @@ output: net assets, expense ratio, and turnover
 
 yFinance API: function=yfinance.Ticker.get_dividends
 input: {stockSymbol} {period} ("1d" when investmentPeriod=short; "1wk" when investmentPeriod=medium; "1mo" when investmentPeriod=long)
-output: dividends
 valid intervals of period: [1m,2m,5m,15m,30m,60m,90m,1h,4h,1d,5d,1wk,1mo,3mo]
+output: dividends
 
 yFinance API: yfinance.Ticker.get_income_stmt
 input: {stockSymbol}, {freq} (freq: "quarterly")
@@ -120,12 +120,12 @@ System prompt: "You are a news sentiment researcher tasked with analyzing news a
 (1) Call alphavantage API to get technical indicators
 alphavantage API: function=SMA
 input: {stockSymbol}, {apiKey}, {interval}, {time_period}, {series_type}
-interval: "30min" when investmentPeriod=short; "Daily" when investmentPeriod=medium; "Weekly" when investmentPeriod=long
+interval: "30min" when investmentPeriod=short; "daily" when investmentPeriod=medium; "weekly" when investmentPeriod=long
+valid intervals of interval: [monthly,weekly,daily,60min,30min,15min,5min,1min]
 time_period: e.g. 30, 60
 series_type: close
 output: simple moving average indicators
 Prepare close_50_sm (time_period=50), close_200_sma (time_period=200)
-valid intervals of interval: [Monthly,Weekly,Daily,60min,30min,15min,5min,1min]
 
 alphavantage API: function=EMA
 input: {stockSymbol}, {apiKey}, {interval}, {time_period}, {series_type}
@@ -281,6 +281,7 @@ User prompt: "compare the last report in memory with the actual closed market pr
 OpenRouter Model
 API Key: OPENROUTER_API_KEY set in .env file
 Model: set in .env file
+Embedding Model: set in .env file
 
 # Appendix: API Information
 

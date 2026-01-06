@@ -16,15 +16,6 @@ llm = ChatOpenAI(
     temperature=0.1,
 )
 
-def get_interval(investment_period: str) -> str:
-    period_lower = investment_period.lower()
-    if 'short' in period_lower:
-        return '30min'
-    elif 'medium' in period_lower:
-        return 'daily'
-    else:
-        return 'weekly'
-
 class FundamentalsAnalyst:
     @staticmethod
     def analyze(symbol: str) -> str:
@@ -73,14 +64,13 @@ class SentimentAnalyst:
 class TechnicalAnalyst:
     @staticmethod
     def analyze(symbol: str, investment_period: str) -> str:
-        interval = get_interval(investment_period)
-        sma50 = get_sma(symbol, interval, 50)
-        sma200 = get_sma(symbol, interval, 200)
-        ema10 = get_ema(symbol, interval, 10)
-        rsi = get_rsi(symbol, interval)
-        bbands = get_bbands(symbol, interval)
-        macd_out = get_macd(symbol, interval)
-        vwap_out = get_vwap(symbol, interval)
+        sma50 = get_sma(symbol, investment_period, 50)
+        sma200 = get_sma(symbol, investment_period, 200)
+        ema10 = get_ema(symbol, investment_period, 10)
+        rsi = get_rsi(symbol, investment_period)
+        bbands = get_bbands(symbol, investment_period)
+        macd_out = get_macd(symbol, investment_period)
+        vwap_out = get_vwap(symbol, investment_period)
         
         user_prompt = f"""Please return the technical analysis report based on the outputs of below MRC tools
 - SMA50: {sma50},

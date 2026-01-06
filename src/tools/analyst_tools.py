@@ -2,10 +2,33 @@ from langchain_core.tools import tool
 from typing import Optional
 import pandas as pd
 from ..utils.data_fetchers import DataFetcher
-from ..utils.technical_indicators import calculate_macd, calculate_vwap, get_latest_indicators
+from ..utils.technical_indicators import calculate_macd, calculate_vwap
 
 fetcher = DataFetcher()
 
+def get_alpha_vantage_interval(investmentPeriod: str) -> str:
+    interval_map = {
+        "short": "30min",
+        "medium": "daily",
+        "long": "weekly"
+    }
+    try:
+        return interval_map[investmentPeriod]
+    except KeyError:
+        print(f"WARNING: The key {investmentPeriod} is not correct in get_alpha_vantage_interval")
+        return "daily"
+
+def get_yf_period(investmentPeriod: str) -> str:
+    interval_map = {
+        "short": "1d",
+        "medium": "1wk",
+        "long": "1mo"
+    }
+    try:
+        return interval_map[investmentPeriod]
+    except KeyError:
+        print(f"WARNING: The key {investmentPeriod} is not correct in get_yf_period")
+        return "1wk"
 def get_company_overview(symbol: str) -> str:
     """Get company overview and financial ratios from AlphaVantage."""
     data, meta = fetcher.get_company_overview(symbol)
@@ -43,13 +66,8 @@ def get_earnings(symbol: str) -> str:
 
 def get_dividends(symbol: str, investmentPeriod: str = "medium") -> str:
     """Get dividend historical distributions."""
-    period_map = {
-        "short": "1d",
-        "medium": "1wk",
-        "long": "1mo"
-    }
-    period = period_map[investmentPeriod]
-    data, meta = fetcher.get_dividends(symbol, period)
+    interval = get_yf_period(investmentPeriod)
+    data, meta = fetcher.get_dividends(symbol, interval)
     if data is None:
         return "No data"
     return f"Data shape: {data.shape}\\nRecent: {data.tail(5).to_dict() if not data.empty else 'No data'}"
@@ -67,12 +85,7 @@ def get_news_sentiment(symbol: str, days_back: int = 14) -> str:
 
 def get_sma(symbol: str, investmentPeriod: str, time_period: int) -> str:
     """Get Simple Moving Average."""
-    interval_map = {
-        "short": "30min",
-        "medium": "Daily",
-        "long": "Weekly"
-    }
-    interval = interval_map[investmentPeriod]
+    interval = get_alpha_vantage_interval(investmentPeriod)
     data, meta = fetcher.get_sma(symbol, interval, time_period)
     if data is None:
         return "No data"
@@ -80,12 +93,7 @@ def get_sma(symbol: str, investmentPeriod: str, time_period: int) -> str:
 
 def get_ema(symbol: str, investmentPeriod: str, time_period: int) -> str:
     """Get Exponential Moving Average."""
-    interval_map = {
-        "short": "30min",
-        "medium": "daily",
-        "long": "weekly"
-    }
-    interval = interval_map[investmentPeriod]
+    interval = get_alpha_vantage_interval(investmentPeriod)
     data, meta = fetcher.get_ema(symbol, interval, time_period)
     if data is None:
         return "No data"
@@ -93,44 +101,36 @@ def get_ema(symbol: str, investmentPeriod: str, time_period: int) -> str:
 
 def get_rsi(symbol: str, investmentPeriod: str, time_period: int = 14) -> str:
     """Get RSI."""
-    interval_map = {
-        "short": "30min",
-        "medium": "daily",
-        "long": "weekly"
-    }
-    interval = interval_map[investmentPeriod]
+    interval = get_alpha_vantage_interval(investmentPeriod)
     data, meta = fetcher.get_rsi(symbol, interval, time_period)
     if data is None:
         return "No data"
     return f"Latest RSI: {data['RSI'].iloc[-1] if not data.empty else 'N/A'}\\nShape: {data.shape}"
 
-def get_bbands(symbol: str, investmentPeriod: str, time_period: int = 20) -> str:
+def get_bbands(symbol: str, investmentPeriod: str = 'medium', time_period: int = 20) -> str:
     """Get Bollinger Bands."""
-    interval_map = {
-        "short": "30min",
-        "medium": "daily",
-        "long": "weekly"
-    }
-    interval = interval_map[investmentPeriod]
+    interval = get_alpha_vantage_interval(investmentPeriod)
     data, meta = fetcher.get_bbands(symbol, interval, time_period)
     if data is None:
         return "No data"
     latest = data.iloc[-1]
     return f"Latest BB: Upper {latest.get('Real Upper Band', 'N/A')}, Middle {latest.get('Real Middle Band', 'N/A')}, Lower {latest.get('Real Lower Band', 'N/A')}"
 
-def get_macd(symbol: str, interval: str = 'daily', period: str = '2y') -> str:
+def get_macd(symbol: str, investmentPeriod: str = 'medium', period: str = '2y') -> str:
     """Calculate MACD using yfinance data."""
+    interval = get_yf_period(investmentPeriod)
     hist = fetcher.get_yf_history(symbol, period=period, interval=interval)
     hist = calculate_macd(hist)
-    latest = get_latest_indicators(hist)['macd']
-    return f"Latest MACD: {latest}, Signal: {get_latest_indicators(hist)['macd_signal']}"
+    # latest = hist.iloc[-1]['macd']
+    return f"Latest MACD: {hist['MACD']}, Signal: {hist['MACD_signal']}"
 
-def get_vwap(symbol: str, interval: str = 'daily', period: str = '2y') -> str:
+def get_vwap(symbol: str, investmentPeriod: str = 'medium', period: str = '2y') -> str:
     """Calculate VWAP using yfinance data."""
+    interval = get_yf_period(investmentPeriod)
     hist = fetcher.get_yf_history(symbol, period=period, interval=interval)
     hist = calculate_vwap(hist)
-    latest = get_latest_indicators(hist)['vwap']
-    return f"Latest VWAP: {latest}"
+    # latest = hist.iloc[-1]['VWAP']
+    return f"Latest VWAP: {hist['VWAP']},"
 
 def get_close_price(symbol: str) -> str:
     """Get latest close price from yfinance."""

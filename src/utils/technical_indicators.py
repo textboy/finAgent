@@ -18,15 +18,3 @@ def calculate_vwap(hist: pd.DataFrame) -> pd.DataFrame:
     typical_price = (hist['High'] + hist['Low'] + hist['Close']) / 3
     hist['VWAP'] = (typical_price * hist['Volume']).cumsum() / hist['Volume'].cumsum()
     return hist
-
-def get_latest_indicators(hist: pd.DataFrame) -> dict:
-    # Get latest values of indicators from hist df.
-    if hist.empty:
-        return {'close': None, 'macd': None, 'macd_signal': None, 'vwap': None}
-    latest = hist.iloc[-1]
-    return {
-        'close': latest['Close'],
-        'macd': latest['MACD'],
-        'macd_signal': latest['MACD_signal'],
-        'vwap': latest['VWAP'],
-    }

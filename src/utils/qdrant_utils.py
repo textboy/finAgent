@@ -7,6 +7,7 @@ from qdrant_client import QdrantClient, models
 from qdrant_client.http.models import Distance, VectorParams, Filter, FieldCondition, MatchValue, OrderBy
 from langchain_openai import OpenAIEmbeddings
 
+DEFAULT_MODEL_NAME = 'openai/text-embedding-3-small'
 load_dotenv(os.path.join('config', '.env'))
 print(f'Qdrant URL: {os.getenv("QDRANT_URL")}')
 
@@ -15,7 +16,7 @@ openrouter_base = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1
 COLL_NAME = 'finagent_reports'
 
 embeddings = OpenAIEmbeddings(
-    model="openai/text-embedding-3-small",
+    model=os.getenv('EMBEDDING_MODEL_NAME', DEFAULT_MODEL_NAME),
     openai_api_key=openrouter_api_key,
     openai_api_base=openrouter_base,
 )
@@ -51,6 +52,7 @@ def init_collection():
 def store_entry(symbol: str, report_type: str, content: str, analysis_datetime: str, metadata: Dict[str, Any] = None):
     init_collection()
     if content:
+        print(f'DEBUG: store_entry content-{content}')
         emb = embeddings.embed_query(content)
         point = models.PointStruct(
             id=models.GenerateId(),
