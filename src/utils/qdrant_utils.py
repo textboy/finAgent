@@ -7,7 +7,7 @@ from qdrant_client import QdrantClient, models
 from qdrant_client.http.models import Distance, VectorParams, Filter, FieldCondition, MatchValue, OrderBy
 from langchain_openai import OpenAIEmbeddings
 
-DEFAULT_MODEL_NAME = 'openai/text-embedding-3-small'
+DEFAULT_EMBEDDING_MODEL_NAME = 'qwen/qwen3-embedding-8b'
 load_dotenv(os.path.join('config', '.env'))
 print(f'Qdrant URL: {os.getenv("QDRANT_URL")}')
 
@@ -16,7 +16,7 @@ openrouter_base = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1
 COLL_NAME = 'finagent_reports'
 
 embeddings = OpenAIEmbeddings(
-    model=os.getenv('EMBEDDING_MODEL_NAME', DEFAULT_MODEL_NAME),
+    model=os.getenv('EMBEDDING_MODEL_NAME', DEFAULT_EMBEDDING_MODEL_NAME),
     openai_api_key=openrouter_api_key,
     openai_api_base=openrouter_base,
 )

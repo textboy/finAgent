@@ -282,6 +282,7 @@ OpenRouter Model
 API Key: OPENROUTER_API_KEY set in .env file
 Model: set in .env file
 Embedding Model: set in .env file
+Note: openai embedding model(e.g. openai/text-embedding-3-small) may hit error "openai.BadRequestError: Error code: 400 - {'error': {'message': 'Model [object Object] does not support embeddings output modality', 'code': 400}}"
 
 # Appendix: API Information
 
