@@ -1,5 +1,5 @@
 @echo off
-echo Starting Qdrant MCP server via Docker (Windows native)...
+echo Starting Qdrant vector DB via Docker (Windows native)...
 docker pull qdrant/qdrant:1.16.0
 docker stop qdrant-finagent 2>nul
 docker rm qdrant-finagent 2>nul

@@ -25,7 +25,14 @@ class FundamentalsAnalyst:
         income_statement = get_income_statement(symbol)
         balance_sheet = get_balance_sheet(symbol)
         cash_flow = get_cash_flow(symbol)
-        
+
+        print(f'DEBUG: overview -- {overview}')
+        print(f'DEBUG: etf_profile -- {etf_profile}')
+        print(f'DEBUG: dividends -- {dividends}')
+        print(f'DEBUG: income_statement -- {income_statement}')
+        print(f'DEBUG: balance_sheet -- {balance_sheet}')
+        print(f'DEBUG: cash_flow -- {cash_flow}')
+
         user_prompt = f"""Please summarize the financial data of {{symbol}} based on the outputs of below MRC tools:
 - {{outputOfOverview}},
 - {{outputOfETFProfile}},
@@ -52,6 +59,7 @@ class SentimentAnalyst:
     @staticmethod
     def analyze(symbol: str) -> str:
         news_sentiment = get_news_sentiment(symbol)
+        print(f'DEBUG: news_sentiment -- {news_sentiment}')
         
         user_prompt = f"Please sentiment analysis based on the outputs of below MRC tools: - {news_sentiment}."
         
@@ -71,7 +79,14 @@ class TechnicalAnalyst:
         bbands = get_bbands(symbol, investment_period)
         macd_out = get_macd(symbol, investment_period)
         vwap_out = get_vwap(symbol, investment_period)
-        
+        print(f'DEBUG: sma50 -- {sma50}')
+        print(f'DEBUG: sma200 -- {sma200}')
+        print(f'DEBUG: ema10 -- {ema10}')
+        print(f'DEBUG: rsi -- {rsi}')
+        print(f'DEBUG: bbands -- {bbands}')
+        print(f'DEBUG: macd -- {macd_out}')
+        print(f'DEBUG: vwap -- {vwap_out}')
+
         user_prompt = f"""Please return the technical analysis report based on the outputs of below MRC tools
 - SMA50: {sma50},
 - SMA200: {sma200},
@@ -92,6 +107,7 @@ class SpecialAnalyst:
     @staticmethod
     def analyze(symbol: str) -> str:
         insider = get_insider_transactions(symbol)
+        print(f'DEBUG: insider -- {insider}')
         
         user_prompt = f"Assess insider transactions and special insights for {symbol}: {insider}"
         

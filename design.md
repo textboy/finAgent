@@ -326,7 +326,8 @@ config folder: configuration files (e.g. .env file)
 test folder: test code
 .requirements.txt: pip install libraries
 setup.cmd: create virtual environment by conda, and install requirement libraries
-mcp-server-setup.cmd: install mcp server (e.g. qdrant) via docker
+mcp-server-setup.cmd: install mcp server
+vector-db-setup.cmd: install vector database
 finagent.bat: run the code
 
 # Appendix: python and its libraries version

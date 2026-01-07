@@ -9,6 +9,7 @@ class TradingAgent:
     def decide(symbol: str, debate_result: str, past_lessons: str = "") -> str:
         close_price_str = get_close_price(symbol)
         close_price = float(close_price_str)
+        print(f'DEBUG: close_price -- {close_price:.2f}')
         
         system_prompt = f"""You are a trading agent analyzing market data to make investment decisions. Based on your analysis, always include the following key information in your analysis:
 1. **PROPOSAL**: **BUY/HOLD/SELL**' to confirm your recommendation.
@@ -38,6 +39,7 @@ Do not forget to utilize lessons from past decisions to learn from your mistakes
 class RiskManagementAgent:
     @staticmethod
     def evaluate(symbol: str, analyst_insights: dict, researcher_results: dict, trader_plan: str, past_lessons: str = "") -> str:
+        print(f'DEBUG: past_lessons -- {past_lessons}')
         insights_summary = f"Analyst insights: fundamentals={analyst_insights['fundamentals'][:500]} sentiment={analyst_insights['sentiment'][:500]} technical={analyst_insights['technical'][:500]}"
         debate = researcher_results['debate']
         
