@@ -6,6 +6,7 @@ from typing import Dict, Any, List, Optional
 from qdrant_client import QdrantClient, models
 from qdrant_client.http.models import Distance, VectorParams, Filter, FieldCondition, MatchValue, OrderBy
 from langchain_openai import OpenAIEmbeddings
+import uuid
 
 DEFAULT_EMBEDDING_MODEL_NAME = 'qwen/qwen3-embedding-8b'
 load_dotenv(os.path.join('config', '.env'))
@@ -21,7 +22,7 @@ embeddings = OpenAIEmbeddings(
     openai_api_base=openrouter_base,
 )
 
-EMBED_DIM = 1536
+EMBED_DIM = 4096
 
 QDRANT_URL = os.getenv("QDRANT_URL")
 QDRANT_PATH = os.getenv("QDRANT_PATH", "./qdrant")
@@ -44,7 +45,12 @@ def init_collection():
         # Create the collection if it doesn't exist
         client.create_collection(
             collection_name=COLL_NAME,
-            vectors_config=VectorParams(size=EMBED_DIM, distance=Distance.EUCLID),
+            vectors_config=VectorParams(size=EMBED_DIM, distance=Distance.COSINE),
+        )
+        client.create_payload_index(
+            collection_name=COLL_NAME,
+            field_name="analysis_datetime",
+            field_schema="datetime"
         )
     else:
         print(f"Collection '{COLL_NAME}' already exists.")
@@ -55,7 +61,7 @@ def store_entry(symbol: str, report_type: str, content: str, analysis_datetime: 
         print(f'DEBUG: store_entry content-{content}')
         emb = embeddings.embed_query(content)
         point = models.PointStruct(
-            id=models.GenerateId(),
+            id=str(uuid.uuid4()),
             vector=emb,
             payload={
                 "symbol": symbol,
@@ -80,15 +86,14 @@ def get_last_report(symbol: str) -> Optional[Dict[str, Any]]:
         ]
     )
     client = get_client()
-    results = client.scroll(
+    hits, _ = client.scroll(
         collection_name=COLL_NAME,
         scroll_filter=filter_,
         limit=1,
         with_payload=True,
         with_vectors=False,
-        order_by=OrderBy(key="analysis_datetime", desc=True),
+        order_by=OrderBy(key="analysis_datetime", direction="desc"),
     )
-    hits, _ = results
     if hits:
         payload = dict(hits[0].payload)
         payload["id"] = hits[0].id
@@ -104,12 +109,11 @@ def get_past_lessons(symbol: str) -> List[str]:
         ]
     )
     client = get_client()
-    results = client.scroll(
+    hits, _ = client.scroll(
         collection_name=COLL_NAME,
         scroll_filter=filter_,
         limit=10,
         with_payload=True,
         with_vectors=False,
     )
-    hits, _ = results
     return [hit.payload["content"] for hit in hits]
