@@ -74,9 +74,9 @@ def researcher_team(analyst_insights: dict, symbol: str, past_lessons: str = "")
     fundamentals = analyst_insights['fundamentals']
     sentiment = analyst_insights['sentiment']
     technical = analyst_insights['technical']
-    print(f'DEBUG: fundamentals -- {fundamentals}')
-    print(f'DEBUG: sentiment -- {sentiment}')
-    print(f'DEBUG: technical -- {technical}')
+    # print(f'DEBUG: fundamentals -- {fundamentals}')
+    # print(f'DEBUG: sentiment -- {sentiment}')
+    # print(f'DEBUG: technical -- {technical}')
 
     memory = past_lessons  # or accumulate debate history
     

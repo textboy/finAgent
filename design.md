@@ -7,7 +7,7 @@
     - Analyzes social media, news using sentiment scoring algorithm
 * Technical Analyst:
     - Uses technical indicators to predict price movements, including MACD, RSI, Bollinger Bands, etc.
-* Special Analyst:
+* Special Analyst (bypass first):
     - Assess the insights of some special topics.
 
 ## Researcher Team
@@ -69,15 +69,6 @@ yFinance API: yfinance.Ticker.get_fast_info
 input: {stockSymbol}
 output: company information
 
-alphavantage API: function=ETF_PROFILE
-input: {stockSymbol}, {apiKey}
-output: net assets, expense ratio, and turnover
-
-yFinance API: function=yfinance.Ticker.get_dividends
-input: {stockSymbol} {period} ("1d" when investmentPeriod=short; "1wk" when investmentPeriod=medium; "1mo" when investmentPeriod=long)
-valid intervals of period: [1m,2m,5m,15m,30m,60m,90m,1h,4h,1d,5d,1wk,1mo,3mo]
-output: dividends
-
 yFinance API: yfinance.Ticker.get_income_stmt
 input: {stockSymbol}, {freq} (freq: "quarterly")
 output: the quarterly income statements
@@ -93,26 +84,57 @@ output: the quarterly cash flow
 (2) return the financial summary report based on fundamentals data
 User prompt: "Please summarize the financial data of {stockSymbol} based on the outputs of below MRC tools:
 - {outputOfOverview},
-- {outputOfETFProfile},
-- {outputOfDividends},
 - {outputOfIncomeStatement},
 - {outputOfBalanceSheet},
 - {outputOfCashFlow},
+For outputOfOverview focus on:
+- Name
+- EBITDA
+- PERatio
+- PEGRatio
+- BookValue
+- DividendPerShare
+- DividendYield
+- EPS
+- RevenuePerShareTTM
+- ProfitMargin
+- DilutedEPSTTM
+- ReturnOnAssetsTTM
+- ReturnOnEquityTTM
+- RevenueTTM
+- QuarterlyEarningsGrowthYOY
+- QuarterlyRevenueGrowthYOY
+- AnalystTargetPrice
+- AnalystRatingStrongBuy
+- AnalystRatingBuy
+- AnalystRatingHold
+- AnalystRatingSell
+- AnalystRatingStrongSell
+- DividendDate
+- ExDividendDate
 System prompt: "You are a helpful AI assistant."
 
 * Sentiment Analyst
 (1) Call alphavantage API to get news data
 alphavantage API: function=NEWS_SENTIMENT
 input: {stockSymbol}, {apiKey}, {time_from}, {time_to}, {sort}, {limit}
-time_from: today - 14 days
+time_from: today - 30 days
 time_to: today
 sort: LATEST
-limit: 30
+limit: 20
 output: news sentiment
 
 (2) return the news sentiment analysis report based on news data
 User prompt: "Please sentiment analysis based on the outputs of below MRC tools:
 - {outputOfNewsSentiment}
+Focus on:
+- title
+- ticker_sentiment:
+    * ticker
+    * relevance_score
+    * ticker_sentiment_score
+    * ticker_sentiment_label
+    Only consider the companies relates to {symbol} (e.g. Alphabet Inc relates to either GOOGL or GOOG)
 ."
 System prompt: "You are a news sentiment researcher tasked with analyzing news and trends."
 
@@ -120,9 +142,9 @@ System prompt: "You are a news sentiment researcher tasked with analyzing news a
 (1) Call alphavantage API to get technical indicators
 alphavantage API: function=SMA
 input: {stockSymbol}, {apiKey}, {interval}, {time_period}, {series_type}
-interval: "30min" when investmentPeriod=short; "daily" when investmentPeriod=medium; "weekly" when investmentPeriod=long
+interval for alphavantage API: "30min" when investmentPeriod=short+; "daily" when investmentPeriod=short; "weekly" when investmentPeriod=medium; "monthly" when investmentPeriod=long
 valid intervals of interval: [monthly,weekly,daily,60min,30min,15min,5min,1min]
-time_period: e.g. 30, 60
+time_period: 36
 series_type: close
 output: simple moving average indicators
 Prepare close_50_sm (time_period=50), close_200_sma (time_period=200)
@@ -134,11 +156,13 @@ series_type: close
 output: exponential moving average indicators
 Prepare close_10_ema (time_period=10)
 
-alphavantage API: Calculate MACD
-call Yahoo Finance API
+yFinance API: Calculate MACD
 data['MACD'] = data['EMA12'] - data['EMA26']
+interval for yFinance API: "30m" when investmentPeriod=short+; "1d" when investmentPeriod=short; "1wk" when investmentPeriod=medium; "1mo" when investmentPeriod=long
+valid intervals of period: [1m,2m,5m,15m,30m,60m,90m,1h,4h,1d,5d,1wk,1mo,3mo]
+period for yFinance API: "3d" when investmentPeriod=short+; "30d" when investmentPeriod=short; "9mo" when investmentPeriod=medium; "3y" when investmentPeriod=long
 
-alphavantage API: Calculate MACD Signal
+yFinance API: Calculate MACD Signal
 data['Signal_Line'] = data['MACD'].ewm(span=9, adjust=False).mean()
 
 alphavantage API: function=RSI
@@ -167,7 +191,11 @@ User prompt: "Please return the technical analysis report based on the outputs o
 System prompt: "You are a technical indicators researcher."
 
 * Special Analyst
-(1) Call yFinance API to get insider transactions
+(1) Call yFinance API to get closed price
+interval: 1d
+period: 5d
+
+(2) Call yFinance API to get insider transactions (bypass first)
 yFinance API: yfinance.Ticker.get_insider_transactions
 input: {stockSymbol}
 output: insider transactions of the stock ticker
@@ -217,6 +245,7 @@ User prompt: "provide debate result based on both bullish analysis and bearish a
 User prompt: "provide trader_plan including:
     - trading signal: BUY/SELL/HOLD
     - trading timing: when/what price to BUY/SELL
+    - forecast period: "2 weeks" when investmentPeriod=short+; "1 month" when investmentPeriod=short; "1 year" when investmentPeriod=medium; "2 years" when investmentPeriod=long
     - reason for trading"
 System prompt: "You are a trading agent analyzing market data to make investment decisions. Based on your analysis, always include the following key information in your analysis:
 1. **PROPOSAL**: **BUY/HOLD/SELL**' to confirm your recommendation.
@@ -254,7 +283,7 @@ Guidelines for Decision-Making:
 
 ## utils
 Calculate close_price
-call Yahoo Finance API to get close_price
+call yFinance API to get close_price
 
 lesson learner
 (1) Store the final report in a vector database as memory with the analysis datetime
@@ -292,7 +321,7 @@ API documentation: https://www.alphavantage.co/documentation/#intelligence
 Add sleep 1.2 seconds per request to prevent free API rate limiting
 interval of Technical Analyst: "30min" when investmentPeriod=short; "daily" when investmentPeriod=medium; "weekly" when investmentPeriod=long
 
-Yahoo Finance API
+yFinance API
 API documentation: https://ranaroussi.github.io/yfinance/reference/index.html
 period of Fundamentals Analyst: "1d" when investmentPeriod=short; "1wk" when investmentPeriod=medium; "1mo" when investmentPeriod=long
 
@@ -305,7 +334,7 @@ Multiples agents:
 - Fundamentals Analyst Agent
 - Sentiment Analyst Agent
 - Technical Analyst Agent
-- Special Analyst Agent
+- Special Analyst Agent (bypass first)
 - Bullish researcher Agent
 - Bearish researcher Agent
 - Debate Agent

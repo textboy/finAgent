@@ -14,18 +14,6 @@ load_dotenv(os.path.join('config', '.env'))
 
 ALPHA_VANTAGE_API_KEY = os.getenv('ALPHA_VANTAGE_API_KEY')
 
-def get_yf_period(investmentPeriod: str) -> str:
-    interval_map = {
-        "short": "1d",
-        "medium": "1wk",
-        "long": "1mo"
-    }
-    try:
-        return interval_map[investmentPeriod]
-    except KeyError:
-        print(f"WARNING: The key {investmentPeriod} is not correct")
-        return "1wk"
-
 class DataFetcher:
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key or ALPHA_VANTAGE_API_KEY
@@ -60,28 +48,13 @@ class DataFetcher:
         meta = {'source': 'yfinance'}
         return data, meta
 
-    def get_dividends(self, symbol: str, period: str) -> Tuple[pd.DataFrame, Dict]:
-        print(f'DEBUG: get_dividends with period {period}')
-        ticker = yf.Ticker(symbol)
-        hist = ticker.history(period=period)
-        dividends = hist['Dividends'].dropna()
-        data = pd.DataFrame({'Dividends': dividends})
-        meta = {'source': 'yfinance', 'period': period, 'num_dividends': len(data)}
-        return data, meta
-
-    def get_etf_profile(self, symbol: str) -> Tuple[pd.DataFrame, Dict]:
-        # Note: AlphaVantage may not have direct ETF_PROFILE, using overview for now
-        time.sleep(1.2)
-        data, meta = self.fd.get_company_overview(symbol=symbol)
-        return data, meta
-
     def get_insider_transactions(self, symbol: str) -> Tuple[pd.DataFrame, Dict]:
         ticker = yf.Ticker(symbol)
         data = ticker.get_insider_transactions()
         meta = {'source': 'yfinance'}
         return data, meta
 
-    def get_news_sentiment(self, symbol: str, days_back: int = 14, limit: int = 30) -> Tuple[pd.DataFrame, Dict]:
+    def get_news_sentiment(self, symbol: str, days_back: int = 30, limit: int = 20) -> Tuple[pd.DataFrame, Dict]:
         time.sleep(1.2)
         time_to = datetime.now()
         time_from = time_to - timedelta(days=days_back)
@@ -120,5 +93,5 @@ class DataFetcher:
         return hist
 
     def get_close_price(self, symbol: str) -> float:
-        hist = self.get_yf_history(symbol, period='5d', interval='1d')
+        hist = self.get_yf_history(symbol, interval='1d', period='5d')
         return hist['Close'].iloc[-1]

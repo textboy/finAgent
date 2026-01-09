@@ -8,35 +8,45 @@ from src.workflow import run_workflow
 from src.utils.qdrant_utils import store_entry
 
 load_dotenv(os.path.join('config', '.env'))
+terminal_width = os.get_terminal_size().columns
 
 @click.command()
 @click.option('--symbol', '-s', default='AAPL', help='Stock symbol (e.g. AAPL)')
-@click.option('--period', '-p', type=click.Choice(['short', 'medium', 'long']), default='medium', help='Investment period')
+@click.option('--period', '-p', type=click.Choice(['short+', 'short', 'medium', 'long']), default='medium', help='Investment period')
 def cli(symbol: str, period: str):
     """Run FinAgent analysis for a stock."""
     print(f"Analyzing {symbol} for {period} term investment...")
-    
+
+    title = f"{'#' * 40}      FinAgent      {'#' * 40}"
+    header_line = '=' * 10
+    header_color = 'yellow'
     state = run_workflow(symbol, period)
     
     # Create results dir
     os.makedirs('results', exist_ok=True)
     timestamp = datetime.now().strftime('%Y%m%d_%H%M')
     result_file = f'results/result_{timestamp}.log'
-    
+
+    # Print title
+    click.secho(title.center(terminal_width), fg=header_color)
     # Print summaries (limit ~500 words)
-    print("\\n=== Analyst Insights ===")
+    click.echo()
+    click.secho(f"{header_line} Analyst Insights {header_line}", fg=header_color, bold=True)
     for key, value in state['analyst_insights'].items():
         print(f"{key.title()}: {value[:500]}...")
     
-    print("\\n=== Researcher Debate ===")
-    print(f"Bull: {state['researcher_results']['bull'][:300]}...")
-    print(f"Bear: {state['researcher_results']['bear'][:300]}...")
-    print(f"Debate: {state['researcher_results']['debate'][:500]}...")
+    click.echo()
+    click.secho(f"{header_line} Researcher Debate {header_line}", fg=header_color, bold=True)
+    print(f"Bull: {state['researcher_results']['bull'][:500]}...")
+    print(f"Bear: {state['researcher_results']['bear'][:500]}...")
+    print(f"Debate: {state['researcher_results']['debate'][:800]}...")
     
-    print("\\n=== Trading Plan ===")
+    click.echo()
+    click.secho(f"{header_line} Trading Plan {header_line}", fg=header_color, bold=True)
     print(state['trader_plan'][:800] + '...')
-    
-    print("\\n=== Risk Management ===")
+
+    click.echo()
+    click.secho(f"{header_line} Risk Management {header_line}", fg=header_color, bold=True)
     print(state['risk_plan'][:800] + '...')
     
     # Save full report to file
@@ -75,7 +85,9 @@ def cli(symbol: str, period: str):
         }
     )
     
-    print(f"\\nFull report saved to {result_file}")
+    click.echo()
+    click.echo()
+    print(f"Full report saved to {result_file}")
     print("Analysis complete. Check results directory.")
 
 if __name__ == '__main__':
