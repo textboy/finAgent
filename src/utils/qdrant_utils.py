@@ -26,12 +26,18 @@ EMBED_DIM = 4096
 
 QDRANT_URL = os.getenv("QDRANT_URL")
 QDRANT_PATH = os.getenv("QDRANT_PATH", "./qdrant")
+qrant_server_health_status = False
 
 try:
-    response = requests.get(f"{QDRANT_URL}/collections/")
-    print("Server response:", response.json())
+    response = requests.get(f"{QDRANT_URL}/health")
+    if response.status_code == 200:
+        qrant_server_health_status = True
+    else:
+        qrant_server_health_status = False
+        print("WARNING: Qdrant server is not started, bypass memory processing.")
 except Exception as e:
-    print("Failed to connect to Qdrant:", str(e))
+    qrant_server_health_status = False
+    print("WARNING: Qdrant server is not started, bypass memory processing.")
 
 def get_client():
     if QDRANT_URL:
@@ -56,64 +62,71 @@ def init_collection():
         print(f"Collection '{COLL_NAME}' already exists.")
 
 def store_entry(symbol: str, report_type: str, content: str, analysis_datetime: str, metadata: Dict[str, Any] = None):
-    init_collection()
-    if content:
-        print(f'DEBUG: store_entry content-{content}')
-        emb = embeddings.embed_query(content)
-        point = models.PointStruct(
-            id=str(uuid.uuid4()),
-            vector=emb,
-            payload={
-                "symbol": symbol,
-                "report_type": report_type,
-                "content": content,
-                "analysis_datetime": analysis_datetime,
-                "metadata": metadata or {},
-            },
-        )
-        client = get_client()
-        client.upsert(
-            collection_name=COLL_NAME,
-            points=[point],
-        )
+    if qrant_server_health_status:
+        init_collection()
+        if content:
+            print(f'DEBUG: store_entry content-{content}')
+            emb = embeddings.embed_query(content)
+            point = models.PointStruct(
+                id=str(uuid.uuid4()),
+                vector=emb,
+                payload={
+                    "symbol": symbol,
+                    "report_type": report_type,
+                    "content": content,
+                    "analysis_datetime": analysis_datetime,
+                    "metadata": metadata or {},
+                },
+            )
+            client = get_client()
+            client.upsert(
+                collection_name=COLL_NAME,
+                points=[point],
+            )
 
 def get_last_report(symbol: str) -> Optional[Dict[str, Any]]:
-    init_collection()
-    filter_ = Filter(
-        must=[
-            FieldCondition(key="symbol", match=MatchValue(value=symbol)),
-            FieldCondition(key="report_type", match=MatchValue(value="report")),
-        ]
-    )
-    client = get_client()
-    hits, _ = client.scroll(
-        collection_name=COLL_NAME,
-        scroll_filter=filter_,
-        limit=1,
-        with_payload=True,
-        with_vectors=False,
-        order_by=OrderBy(key="analysis_datetime", direction="desc"),
-    )
-    if hits:
-        payload = dict(hits[0].payload)
-        payload["id"] = hits[0].id
-        return payload
-    return None
+    if qrant_server_health_status:
+        init_collection()
+        filter_ = Filter(
+            must=[
+                FieldCondition(key="symbol", match=MatchValue(value=symbol)),
+                FieldCondition(key="report_type", match=MatchValue(value="report")),
+            ]
+        )
+        client = get_client()
+        hits, _ = client.scroll(
+            collection_name=COLL_NAME,
+            scroll_filter=filter_,
+            limit=1,
+            with_payload=True,
+            with_vectors=False,
+            order_by=OrderBy(key="analysis_datetime", direction="desc"),
+        )
+        if hits:
+            payload = dict(hits[0].payload)
+            payload["id"] = hits[0].id
+            return payload
+        return None
+    else:
+        return None
 
 def get_past_lessons(symbol: str) -> List[str]:
-    init_collection()
-    filter_ = Filter(
-        must=[
-            FieldCondition(key="symbol", match=MatchValue(value=symbol)),
-            FieldCondition(key="report_type", match=MatchValue(value="lesson")),
-        ]
-    )
-    client = get_client()
-    hits, _ = client.scroll(
-        collection_name=COLL_NAME,
-        scroll_filter=filter_,
-        limit=10,
-        with_payload=True,
-        with_vectors=False,
-    )
-    return [hit.payload["content"] for hit in hits]
+    if qrant_server_health_status:
+        init_collection()
+        filter_ = Filter(
+            must=[
+                FieldCondition(key="symbol", match=MatchValue(value=symbol)),
+                FieldCondition(key="report_type", match=MatchValue(value="lesson")),
+            ]
+        )
+        client = get_client()
+        hits, _ = client.scroll(
+            collection_name=COLL_NAME,
+            scroll_filter=filter_,
+            limit=10,
+            with_payload=True,
+            with_vectors=False,
+        )
+        return [hit.payload["content"] for hit in hits]
+    else:
+        return []

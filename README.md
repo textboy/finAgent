@@ -1,5 +1,65 @@
-# finAgent
-Finance Agent on secondary market
+# FinAgents
+***
+Finance Agents on secondary market
+
+# Flowchart
+FinAgents is a multi-agent trading framework that mirrors the real-world trading firms which takes reference to project TradinAgents. By deploying LLM-powered agents: from fundamental analysts, sentiment experts, and technical analysts, to trader, risk management team, the platform collaboratively evaluates market conditions and informs trading decisions.
+![Flow Design](./design/finAgentFlow.png)
+
+# Installation
+### Environment Setup
+##### windows
+```cmd
+./setup.cmd
+```
+##### linux
+```shell
+(to be provided)
+```
+
+### Vector DB Setup
+##### windows
+```cmd
+./vector-db-setup.cmd
+```
+##### linux
+```shell
+(to be provided)
+```
+
+# Required APIs
+Alpha Vantage API Key is required for the project.
+
+# Configuration
+Copy ./config/.env.example to .env
+Fill in the OpenRouter Key, Alpha Vantage API Key, model name etc. in the .env file.
+
+# CLI Usage
+Sample usage
+```shell
+python finagent.py --symbol GOOG --period short+
+```
+
+Sample output
+```shell
+...
+========== Researcher Debate ==========
+Bull: Hey Bear, let's cut through the noise—you're probably harping on Alphabet's "sky-high valuation," antitrust headaches, or some short-term technical wobble like that VWAP gap or fading MACD momentum. Fair enough, but let's stack up the facts and watch your case crumble. As the Bull Analyst, I'm here to show why GOOG (Alphabet Class C) isn't just a hold—it's a compounding machine with explosive growth ahead, trading at a steal around $310-312 with analyst targets at $328. This is a $3.97T behemoth...
+...
+========== Trading Plan ==========
+### Trader Plan for GOOG
+- **Trading Signal**: BUY
+- **Trading Timing**: Buy on dips above $305 support level; initial entry at or below current levels (~$311) for momentum confirmation above $312 resistance.    
+- **Reason for Trading**: Bull case prevails narrowly (55-45) on superior long-term fundamentals (AI/cloud growth, moats, PEG 1.74 undervaluation) outweighing short-term technical weakness (RSI 43, MACD fade). Diversified revenue and $10T TAM support upside in 3 months, with flawless Q4 execution as catalyst.
+
+1. **PROPOSAL**: **BUY**
+2. **TARGET PRICE**: $325 (USD)
+3. **FORECAST PERIOD**: 3 months
+4. **CONFIDENCE**: 0.60
+5. **RISK SCORE**: 0.55
+6. **LAST CLOSE PRICE**: $311.00
+...
+```
 
 # Disclaimer
 Trading performance may vary based on many factors, including the chosen backbone language models, model temperature, trading periods, the quality of data, and other non-deterministic factors. It is not intended as financial, investment, or trading advice.

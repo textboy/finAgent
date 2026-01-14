@@ -21,7 +21,8 @@
     - Give the timing when the signal is BUY/SELL
 
 ## Risk Management Team
-* Evaluation of risk: Evaluate the risk of the investment, including the potential loss and the probability of loss.
+* Evaluation of risk: includes risky risk analysis, neutral risk analysis, safe risk analysis
+* Evaluation of risk: per analysis, evaluate the risk of the investment, including the potential loss and the probability of loss.
 * Final decision: Based on the risk evaluation, make a final decision on whether approve or reject the trading decision.
 
 
@@ -285,7 +286,7 @@ Guidelines for Decision-Making:
 Calculate close_price
 call yFinance API to get close_price
 
-lesson learner
+lesson learner (bypss if vector DB server is not started)
 (1) Store the final report in a vector database as memory with the analysis datetime
 (2) compare the last report in memory with the actual closed market price based on the analysis datetime, to get the lesson learned
 User prompt: "compare the last report in memory with the actual closed market price based on the analysis datetime, to get the lesson learned"

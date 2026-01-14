@@ -9,6 +9,8 @@ from src.utils.qdrant_utils import store_entry
 
 load_dotenv(os.path.join('config', '.env'))
 terminal_width = os.get_terminal_size().columns
+NORMAL_INFO_SIZE = 800
+MAJOR_INFO_SIZE = 1600
 
 @click.command()
 @click.option('--symbol', '-s', default='AAPL', help='Stock symbol (e.g. AAPL)')
@@ -29,25 +31,25 @@ def cli(symbol: str, period: str):
 
     # Print title
     click.secho(title.center(terminal_width), fg=header_color)
-    # Print summaries (limit ~500 words)
+    # Print summaries
     click.echo()
     click.secho(f"{header_line} Analyst Insights {header_line}", fg=header_color, bold=True)
     for key, value in state['analyst_insights'].items():
-        print(f"{key.title()}: {value[:500]}...")
+        print(f"{key.title()}: {value[:NORMAL_INFO_SIZE]}...")
     
     click.echo()
     click.secho(f"{header_line} Researcher Debate {header_line}", fg=header_color, bold=True)
-    print(f"Bull: {state['researcher_results']['bull'][:500]}...")
-    print(f"Bear: {state['researcher_results']['bear'][:500]}...")
-    print(f"Debate: {state['researcher_results']['debate'][:800]}...")
+    print(f"Bull: {state['researcher_results']['bull'][:NORMAL_INFO_SIZE]}...")
+    print(f"Bear: {state['researcher_results']['bear'][:NORMAL_INFO_SIZE]}...")
+    print(f"Debate: {state['researcher_results']['debate'][:MAJOR_INFO_SIZE]}...")
     
     click.echo()
     click.secho(f"{header_line} Trading Plan {header_line}", fg=header_color, bold=True)
-    print(state['trader_plan'][:800] + '...')
+    print(state['trader_plan'][:MAJOR_INFO_SIZE] + '...')
 
     click.echo()
     click.secho(f"{header_line} Risk Management {header_line}", fg=header_color, bold=True)
-    print(state['risk_plan'][:800] + '...')
+    print(state['risk_plan'][:MAJOR_INFO_SIZE] + '...')
     
     # Save full report to file
     with open(result_file, 'w', encoding='utf-8') as f:
@@ -70,7 +72,7 @@ def cli(symbol: str, period: str):
         f.write("## Risk Management Team\\n")
         f.write(f"{state['risk_plan']}")
     
-    # Store to Milvus
+    # Store to Qdrant
     final_content = state['risk_plan']
     store_entry(
         symbol, 
