@@ -66,6 +66,19 @@ class DataFetcher:
             limit=limit
         )
         return data, meta
+    
+    def get_news_sentiment_by_topic(self, topic: str, days_back: int = 30, limit: int = 20) -> Tuple[pd.DataFrame, Dict]:
+        time.sleep(1.2)
+        time_to = datetime.now()
+        time_from = time_to - timedelta(days=days_back)
+        data, meta = self.ns.get_news_sentiment(
+            topics=topic,
+            time_from=time_from.strftime('%Y%m%dT%H%M'),
+            time_to=time_to.strftime('%Y%m%dT%H%M'),
+            sort='LATEST',
+            limit=limit
+        )
+        return data, meta
 
     def get_sma(self, symbol: str, interval: str, time_period: int) -> Tuple[pd.DataFrame, Dict]:
         time.sleep(1.2)

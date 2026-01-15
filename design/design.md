@@ -31,13 +31,13 @@
 ## Analyst Team
 * Inputs
     - stockSymbol (ticker)
-    - investmentPeriod (short:within 1 month; medium: from 1 month to 6 months; long: from 6 months to 2 years)
+    - investmentPeriod (short+: within 2 week; short:within 1 month; medium: from 1 month to 6 months; long: from 6 months to 2 years)
 * Outputs
     - insights provided by the Analyst Team
 
 ## Researcher Team
 * Inputs
-    - investmentPeriod (short:within 1 month; medium: from 1 month to 6 months; long: from 6 months to 2 years)
+    - investmentPeriod (short+: within 2 week; short:within 1 month; medium: from 1 month to 6 months; long: from 6 months to 2 years)
     - insights provided by the Analyst Team
 * Outputs
     - debate result provided by the Researcher Team
@@ -294,7 +294,7 @@ User prompt: "compare the last report in memory with the actual closed market pr
 
 # UI
 (1) Use CLI to interact with the system
-(2) user input the stock symbol (e.g.GOOG), investment period (i.e.SHORT/MEDIUM/LONG)
+(2) user input the stock symbol (e.g.GOOG), investment period (i.e.SHORT+/SHORT/MEDIUM/LONG)
 (3) system output to the console and the result file
     - financial summary report
     - news sentiment analysis report
@@ -320,11 +320,11 @@ alphavantage API
 API Key: ALPHA_VANTAGE_API_KEY set in .env file
 API documentation: https://www.alphavantage.co/documentation/#intelligence
 Add sleep 1.2 seconds per request to prevent free API rate limiting
-interval of Technical Analyst: "30min" when investmentPeriod=short; "daily" when investmentPeriod=medium; "weekly" when investmentPeriod=long
+interval of Technical Analyst: "30min" when investmentPeriod=short+; "daily" when investmentPeriod=short; "weekly" when investmentPeriod=medium; "monthly" when investmentPeriod=long
 
 yFinance API
 API documentation: https://ranaroussi.github.io/yfinance/reference/index.html
-period of Fundamentals Analyst: "1d" when investmentPeriod=short; "1wk" when investmentPeriod=medium; "1mo" when investmentPeriod=long
+period of Fundamentals Analyst: "30m" when investmentPeriod=short+; "1d" when investmentPeriod=short; "1wk" when investmentPeriod=medium; "1mo" when investmentPeriod=long
 
 # Appendix: storage
 Vector database: Qdrant

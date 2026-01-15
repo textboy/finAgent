@@ -33,7 +33,7 @@ def trading_node(state: AgentState) -> Dict[str, Any]:
     return {"trader_plan": plan}
 
 def risk_node(state: AgentState) -> Dict[str, Any]:
-    plan = RiskManagementAgent.evaluate(state["symbol"], state["analyst_insights"], state["researcher_results"], state["trader_plan"], state["past_lessons"])
+    plan = RiskManagementAgent.evaluate(state["symbol"], state["investment_period"], state["analyst_insights"], state["researcher_results"], state["trader_plan"], state["past_lessons"])
     return {"risk_plan": plan}
 
 def create_workflow():

@@ -32,7 +32,7 @@ class FundamentalsAnalyst:
         # print(f'DEBUG: balance_sheet -- {balance_sheet}')
         # print(f'DEBUG: cash_flow -- {cash_flow}')
 
-        user_prompt = f"""Please summarize the financial data of {{symbol}} based on the outputs of below MRC tools:
+        user_prompt = f"""Summarize the financial data of {{symbol}} based on the outputs of below MRC tools:
 - {{outputOfOverview}},
 - {{outputOfIncomeStatement}},
 - {{outputOfBalanceSheet}},
@@ -78,15 +78,33 @@ class SentimentAnalyst:
     @staticmethod
     def analyze(symbol: str) -> str:
         news_sentiment = get_news_sentiment(symbol)
+        macro_news_sentiment = get_news_sentiment_by_topic("economy_fiscal,economy_monetary,economy_macro")
         # print(f'DEBUG: news_sentiment -- {news_sentiment}')
         
-        user_prompt = f"""Please sentiment analysis based on the outputs of below MRC tools: - {news_sentiment}.
-Focus on:
-- ticker
-- relevance_score
-- ticker_sentiment_score
-- ticker_sentiment_label
-Only consider the companies relates to {symbol} (e.g. Alphabet Inc relates to either GOOGL or GOOG)
+        user_prompt = f"""Sentiment analysis to stock market based on the outputs of below information: 
+1) news_sentiment: {news_sentiment}
+For news_sentiment, only consider the companies relates to {symbol} (e.g. Alphabet Inc relates to either GOOGL or GOOG), and focus on:
+ticker
+relevance_score
+ticker_sentiment_score
+ticker_sentiment_label
+2) macro_news_sentiment: {macro_news_sentiment}
+For macro_news_sentiment, consider the following topics:
+U.S. inflation / CPI (Consumer Price Index)
+U.S. government budget
+U.S. GDP growth
+U.S. unemployment rate
+foreign exchange
+U.S. PMI (Purchasing Managers' Index)
+oil / gold / soybeans
+U.S. breaking news
+international breaking news
+U.S. military actions
+Russia or China military actions
+summit meetings
+relationship between U.S. and Europe
+relationship between U.S. and Russia
+relationship between U.S. and China
 """
 
         messages = [
@@ -120,7 +138,7 @@ class TechnicalAnalyst:
         # print(f'DEBUG: macd -- {macd_out}')
         # print(f'DEBUG: vwap -- {vwap_out}')
 
-        user_prompt = f"""Please return the technical analysis report based on the outputs of below MRC tools
+        user_prompt = f"""Technical analysis based on the outputs of below MRC tools
 - SMA50: {sma50},
 - SMA200: {sma200},
 - EMA10: {ema10},

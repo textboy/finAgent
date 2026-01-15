@@ -12,15 +12,20 @@ from src.utils.data_fetchers import DataFetcher
 
 def main():
     fetcher = DataFetcher()
+    
     symbol = 'AAPL'  # Test with Apple
-    data, meta = fetcher.get_news_sentiment(symbol)
-    print(f"News sentiment data for {symbol}:")
+    # print(f"News sentiment data for {symbol}:")
+    # data, meta = fetcher.get_news_sentiment(symbol)
+    # print(f"Shape: {data.shape}")
+    # print(data['ticker_sentiment'][1])
+    
+    data, meta = fetcher.get_news_sentiment_by_topic("economy_fiscal,economy_monetary,economy_macro")
     print(f"Shape: {data.shape}")
-    print(data['ticker_sentiment'][1])
-    # news_df = pd.DataFrame(data)
-    # print(news_df['ticker_sentiment'][1])
-    print("\nMetadata:")
-    print(meta)
+    print(data.columns)
+    print(data.title.iloc[1])
+    print(data.overall_sentiment_label.iloc[1])
+    print(data.topics.iloc[1])
+
     print("\nTest completed successfully.")
 
 if __name__ == "__main__":

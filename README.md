@@ -39,6 +39,8 @@ Sample usage
 ```shell
 python finagent.py --symbol GOOG --period short+
 ```
+- **symbol**: ticker
+- **period**: *short+* within 2 weeks; *short* from 2 weeks to 1 month; *medium* from 1 month to 1 year; *long* from 1 year to 2 years
 
 Sample output
 ```shell

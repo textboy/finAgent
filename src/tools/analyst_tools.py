@@ -88,6 +88,14 @@ def get_news_sentiment(symbol: str) -> str:
         return "No data"
     return f"{data['ticker_sentiment']}"
 
+def get_news_sentiment_by_topic(topic: str) -> str:
+    """Get news sentiment for the stock."""
+    print(f'DEBUG: get_news_sentiment_by_topic(Alpha Vantage) with topic {topic}')
+    data, meta = fetcher.get_news_sentiment_by_topic(topic)
+    if data is None:
+        return "No data"
+    return f"{data['url']}"
+
 def get_sma(symbol: str, investmentPeriod: str, time_period: int = 36) -> str:
     """Get Simple Moving Average."""
     interval = get_alpha_vantage_interval(investmentPeriod)
