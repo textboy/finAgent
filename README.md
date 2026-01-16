@@ -42,7 +42,7 @@ python finagent.py --symbol GOOG --period short+
 - **symbol**: ticker
 - **period**: *short+* within 2 weeks; *short* from 2 weeks to 1 month; *medium* from 1 month to 1 year; *long* from 1 year to 2 years
 
-Sample output
+Sample output to the console
 ```shell
 ...
 ========== Researcher Debate ==========
@@ -61,6 +61,11 @@ Bull: Hey Bear, let's cut through the noise—you're probably harping on Alphabe
 5. **RISK SCORE**: 0.55
 6. **LAST CLOSE PRICE**: $311.00
 ...
+```
+
+Sample output as report (e.g. Linux terminal)
+```shell
+glow ./results/result_yyyymmdd_nnnn.md
 ```
 
 # Disclaimer
