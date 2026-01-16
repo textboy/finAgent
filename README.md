@@ -14,7 +14,7 @@ FinAgents is a multi-agent trading framework that mirrors the real-world trading
 ```
 ##### linux
 ```shell
-(to be provided)
+./setup.sh
 ```
 
 ### Vector DB Setup
@@ -24,7 +24,7 @@ FinAgents is a multi-agent trading framework that mirrors the real-world trading
 ```
 ##### linux
 ```shell
-(to be provided)
+./vector-db-setup.sh
 ```
 
 # Required APIs
