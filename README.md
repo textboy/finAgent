@@ -35,14 +35,23 @@ Copy ./config/.env.example to .env
 Fill in the OpenRouter Key, Alpha Vantage API Key, model name etc. in the .env file.
 
 # CLI Usage
-Sample usage
-```shell
+**Sample python script to run the project**
+```python
 python finagent.py --symbol GOOG --period short+
+```
+**Sample linux shell script to run the project**
+```shell
+finagent.sh GOOG short+
+```
+**Sample windows bat script to run the project**
+```cmd
+finagent.bat GOOG short+
 ```
 - **symbol**: ticker
 - **period**: *short+* within 2 weeks; *short* from 2 weeks to 1 month; *medium* from 1 month to 1 year; *long* from 1 year to 2 years
 
-Sample output to the console
+
+**Sample output to the console**
 ```shell
 ...
 ========== Researcher Debate ==========
@@ -63,7 +72,7 @@ Bull: Hey Bear, let's cut through the noise—you're probably harping on Alphabe
 ...
 ```
 
-Sample output as report (e.g. Linux terminal)
+**Sample output as report (e.g. Linux terminal)**
 ```shell
 glow ./results/result_yyyymmdd_nnnn.md
 ```
