@@ -1,4 +1,10 @@
-# Flow Design
+---
+name: finAgent
+description: FinAgents is a multi-agent trading framework that mirrors the real-world trading firms which takes reference to project TradinAgents. By deploying LLM-powered agents - from fundamental analysts, sentiment experts, and technical analysts, to trader, risk management team, the platform collaboratively evaluates market conditions and informs trading decisions.
+license: LICENSE has complete terms
+---
+
+# Overview
 
 ## Analyst Team
 * Fundamentals Analyst：
@@ -61,7 +67,7 @@
     - reason for risk evaluation
 
 
-# Logical Design
+# Workflow
 
 ## Analyst Team
 * Fundamentals Analyst
@@ -292,7 +298,7 @@ lesson learner (bypss if vector DB server is not started)
 User prompt: "compare the last report in memory with the actual closed market price based on the analysis datetime, to get the lesson learned"
 (3) Store the lesson learned in a vector database as past_memory_lession_learned with the analysis datetime
 
-# UI
+# Layout Tips
 (1) Use CLI to interact with the system
 (2) user input the stock symbol (e.g.GOOG), investment period (i.e.SHORT+/SHORT/MEDIUM/LONG)
 (3) system output to the console and the result file
@@ -360,7 +366,7 @@ mcp-server-setup.cmd: install mcp server
 vector-db-setup.cmd: install vector database
 finagent.bat: run the code
 
-# Appendix: python and its libraries version
+# Appendix: Library Selection
 python==3.12.4
 pandas==2.2.2
 numpy==2.0.1
