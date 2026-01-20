@@ -25,10 +25,14 @@ class DataFetcher:
         self.ns = AlphaIntelligence(key=self.api_key, output_format='pandas')
 
     def get_company_overview(self, symbol: str) -> Tuple[pd.DataFrame, Dict]:
-        # Get company overview.
+        # Get company overview. Some symbol no company overview, e.g. GLD
         time.sleep(1.2)
-        data, meta = self.fd.get_company_overview(symbol=symbol)
-        return data, meta
+        try:
+            data, meta = self.fd.get_company_overview(symbol=symbol)
+            return data, meta
+        except ValueError as e:
+            print(f"No company overview found for {symbol}, bypassing...")
+            return None, {}
 
     def get_income_statement(self, symbol: str) -> Tuple[pd.DataFrame, Dict]:
         ticker = yf.Ticker(symbol)

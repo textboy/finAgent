@@ -37,7 +37,7 @@ class FundamentalsAnalyst:
 - {{outputOfIncomeStatement}},
 - {{outputOfBalanceSheet}},
 - {{outputOfCashFlow}}.
-For outputOfOverview focus on:
+If outputOfOverview is not None, then focus on:
 - Name
 - EBITDA
 - PERatio
@@ -100,11 +100,9 @@ oil / gold / soybeans
 U.S. breaking news
 international breaking news
 U.S. military actions
-Russia or China military actions
-summit meetings
-relationship between U.S. and Europe
-relationship between U.S. and Russia
-relationship between U.S. and China
+Multinational Summit meetings
+Geopolitics
+Tariffs
 """
 
         messages = [

@@ -49,7 +49,7 @@ def get_company_overview(symbol: str) -> str:
     """Get company overview and financial ratios from AlphaVantage."""
     data, meta = fetcher.get_company_overview(symbol)
     if data is None:
-        return "No data"
+        return None
     return f"Data (latest):\\n{pd.concat([data.iloc[0]]).to_string() if not data.empty else 'No data'}\\nFull Data shape: {data.shape}"
 
 def get_income_statement(symbol: str) -> str:

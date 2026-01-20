@@ -72,7 +72,7 @@ license: LICENSE has complete terms
 ## Analyst Team
 * Fundamentals Analyst
 (1) Call yFinance API or alphavantage API to get stock fundamentals data
-yFinance API: yfinance.Ticker.get_fast_info
+alphavantage API: get_company_overview
 input: {stockSymbol}
 output: company information
 

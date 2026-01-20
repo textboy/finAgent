@@ -1,7 +1,8 @@
 #!/bin/bash
+# sample command: .\finagent.sh GLD short
 
 if [ -z "$1" ]; then
-    echo "Missing stock symbol"
+    echo "Missing stock symbol (e.g., GOOG)"
     exit 1
 elif [ -z "$2" ]; then
     echo "Missing period ('short+' within 2 weeks; 'short' from 2 weeks to 1 month; 'medium' from 1 month to 1 year; 'long' from 1 year to 2 years)"
