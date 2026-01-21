@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-"""
-Test script for get_news_sentiment method in src/utils/data_fetchers.py
-"""
 
 import sys
 import os

@@ -82,28 +82,31 @@ def get_earnings(symbol: str) -> str:
 
 def get_news_sentiment(symbol: str) -> str:
     """Get news sentiment for the stock."""
-    print(f'DEBUG: get_news_sentiment(Alpha Vantage) with symbol {symbol}')
+    print(f'DEBUG: get_news_sentiment(yFinance) with symbol {symbol}')
     data, meta = fetcher.get_news_sentiment(symbol)
     if data is None:
         return "No data"
-    return f"{data['ticker_sentiment']}"
+    return data
 
-def get_news_sentiment_by_topic(topic: str) -> str:
+def get_macro_news_sentiment(topic: str) -> str:
     """Get news sentiment for the stock."""
     print(f'DEBUG: get_news_sentiment_by_topic(Alpha Vantage) with topic {topic}')
-    data, meta = fetcher.get_news_sentiment_by_topic(topic)
+    data, meta = fetcher.get_macro_news_sentiment(topic)
     if data is None:
         return "No data"
     return f"{data['url']}"
 
-def get_sma(symbol: str, investmentPeriod: str, time_period: int = 36) -> str:
+def download_yf_data(symbol: str) -> pd.DataFrame:
+    print(f'DEBUG: Download historical market data from yFinance - symbol {symbol}')
+    data = fetcher.download_yf_data(symbol)
+    return data
+
+def get_sma(data: pd.DataFrame, time_period: int = 36) -> str:
     """Get Simple Moving Average."""
-    interval = get_alpha_vantage_interval(investmentPeriod)
-    print(f'DEBUG: get_sma(Alpha Vantage) interval {interval}, period {time_period}')
-    data, meta = fetcher.get_sma(symbol, interval, time_period)
+    data, meta = fetcher.get_sma(data, time_period)
     if data is None:
         return "No data"
-    return f"Latest SMA: {data['SMA'].iloc[-1] if not data.empty else 'N/A'}\\nShape: {data.shape}"
+    return f"SMA-{time_period}: {data if not data.empty else 'N/A'}\\nShape: {data.shape}"
 
 def get_ema(symbol: str, investmentPeriod: str, time_period: int = 36) -> str:
     """Get Exponential Moving Average."""
@@ -164,7 +167,7 @@ def get_insider_transactions(symbol: str) -> str:
 
 # List of tools for analysts
 fundamentals_tools = [get_company_overview, get_income_statement, get_balance_sheet, get_cash_flow, get_earnings]
-sentiment_tools = [get_news_sentiment]
+sentiment_tools = [get_news_sentiment, get_macro_news_sentiment]
 technical_tools = [get_sma, get_ema, get_rsi, get_bbands, get_macd, get_vwap]
 special_tools = [get_insider_transactions]
 

@@ -78,31 +78,24 @@ class SentimentAnalyst:
     @staticmethod
     def analyze(symbol: str) -> str:
         news_sentiment = get_news_sentiment(symbol)
-        macro_news_sentiment = get_news_sentiment_by_topic("economy_fiscal,economy_monetary,economy_macro")
+        macro_news_sentiment = get_macro_news_sentiment("economy_fiscal,economy_monetary,economy_macro")
         # print(f'DEBUG: news_sentiment -- {news_sentiment}')
+        print(f"DEBUG: macro_news_sentiment -- {macro_news_sentiment}")
         
         user_prompt = f"""Sentiment analysis to stock market based on the outputs of below information: 
 1) news_sentiment: {news_sentiment}
-For news_sentiment, only consider the companies relates to {symbol} (e.g. Alphabet Inc relates to either GOOGL or GOOG), and focus on:
-ticker
-relevance_score
-ticker_sentiment_score
-ticker_sentiment_label
+Summary from the url, and perform sentiment analysis relates to {symbol} (e.g. Alphabet Inc relates to either GOOGL or GOOG).
 2) macro_news_sentiment: {macro_news_sentiment}
-For macro_news_sentiment, consider the following topics:
-U.S. inflation / CPI (Consumer Price Index)
-U.S. government budget
-U.S. GDP growth
-U.S. unemployment rate
-foreign exchange
-U.S. PMI (Purchasing Managers' Index)
-oil / gold / soybeans
+Summary from the url, and perform sentiment analysis base on macro economic and political factors, consider the following topics:
 U.S. breaking news
+foreign exchange (forex)
+oil/gold/soybeans
+Geopolitics/Tariffs
+U.S. inflation/CPI
+U.S. GDP/unemployment/PMI/government budget
 international breaking news
-U.S. military actions
-Multinational Summit meetings
-Geopolitics
-Tariffs
+U.S. military actions/Multinational Summits
+Bonds
 """
 
         messages = [
@@ -114,10 +107,12 @@ Tariffs
 class TechnicalAnalyst:
     @staticmethod
     def analyze(symbol: str, investment_period: str) -> str:
+        # get history closed price
+        data = download_yf_data(symbol)
         for tool in technical_tools:
             if tool.__name__ == 'get_sma':
-                sma50 = tool(symbol, investment_period, 50)
-                sma200 = tool(symbol, investment_period, 200)
+                sma50 = tool(data, 50)
+                sma200 = tool(data, 200)
             elif tool.__name__ == 'get_ema':
                 ema10 = tool(symbol, investment_period, 10)
             elif tool.__name__ == 'get_rsi':

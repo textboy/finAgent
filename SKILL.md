@@ -122,14 +122,11 @@ For outputOfOverview focus on:
 System prompt: "You are a helpful AI assistant."
 
 * Sentiment Analyst
-(1) Call alphavantage API to get news data
-alphavantage API: function=NEWS_SENTIMENT
-input: {stockSymbol}, {apiKey}, {time_from}, {time_to}, {sort}, {limit}
-time_from: today - 30 days
-time_to: today
-sort: LATEST
+(1) Call yFinance API to get news data
+yFinance API: yfinance.Ticker.news
+input: {stockSymbol}, {limit}
 limit: 20
-output: news sentiment
+output: latest 20 news url link
 
 (2) return the news sentiment analysis report based on news data
 User prompt: "Please sentiment analysis based on the outputs of below MRC tools:
@@ -144,6 +141,12 @@ Focus on:
     Only consider the companies relates to {symbol} (e.g. Alphabet Inc relates to either GOOGL or GOOG)
 ."
 System prompt: "You are a news sentiment researcher tasked with analyzing news and trends."
+
+(3) Call alphavantage API to get macro news data
+alphavantage API: function=get_news_sentiment
+topics："economy_fiscal,economy_monetary,economy_macro"
+limit: 20
+output: latest 20 news url link
 
 * Technical Analyst
 (1) Call alphavantage API to get technical indicators

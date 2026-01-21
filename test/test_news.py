@@ -15,16 +15,17 @@ def main():
     
     symbol = 'AAPL'  # Test with Apple
     # print(f"News sentiment data for {symbol}:")
-    # data, meta = fetcher.get_news_sentiment(symbol)
+    # data, meta = fetcher.get_news_sentiment(symbol,1)
     # print(f"Shape: {data.shape}")
-    # print(data['ticker_sentiment'][1])
+    # print(data)
     
-    data, meta = fetcher.get_news_sentiment_by_topic("economy_fiscal,economy_monetary,economy_macro")
-    print(f"Shape: {data.shape}")
-    print(data.columns)
-    print(data.title.iloc[1])
-    print(data.overall_sentiment_label.iloc[1])
-    print(data.topics.iloc[1])
+    data, meta = fetcher.get_macro_news_sentiment("economy_fiscal,economy_monetary,economy_macro")
+    print(data.url)
+    # print(f"Shape: {data.shape}")
+    # print(data.columns)
+    # print(data.title.iloc[1])
+    # print(data.overall_sentiment_label.iloc[1])
+    # print(data.topics.iloc[1])
 
     print("\nTest completed successfully.")
 

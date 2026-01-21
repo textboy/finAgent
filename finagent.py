@@ -6,6 +6,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 from src.workflow import run_workflow
 from src.utils.qdrant_utils import store_entry
+from googletrans import Translator
 
 load_dotenv(os.path.join('config', '.env'))
 terminal_width = os.get_terminal_size().columns
@@ -26,6 +27,7 @@ def cli(symbol: str, period: str):
     # Create results dir
     os.makedirs('results', exist_ok=True)
     timestamp = datetime.now().strftime('%Y%m%d_%H%M')
+    timestampInReport = datetime.now().strftime('%Y-%m-%d %H:%M')
     result_file = f'results/result_{timestamp}.md'
 
     # Print title
@@ -63,7 +65,7 @@ def cli(symbol: str, period: str):
         f.write(f"# <span style='color: #cfa923;'>FinAgent Analysis Report</span> \n")
         f.write(f"Symbol: {symbol}, ")
         f.write(f"Period: {period}, ")
-        f.write(f"Timestamp: {state['timestamp']}\n\n")
+        f.write(f"Timestamp: {timestampInReport}\n\n")
 
         f.write("## <span style='color: #cfa923;'>1. Analyst Insights</span> \n")
         for key, value in state['analyst_insights'].items():

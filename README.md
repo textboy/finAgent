@@ -28,7 +28,7 @@ FinAgents is a multi-agent trading framework that mirrors the real-world trading
 ```
 
 # Required APIs
-Alpha Vantage API Key is required for the project.
+Alpha Vantage API Key is required for the project (standard API rate limit is 25 requests per day)
 
 # Configuration
 Copy ./config/.env.example to .env

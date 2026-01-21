@@ -44,7 +44,10 @@ Target Price Calculation Guidelines:
 - Consider industry average valuations
 - Incorporate market sentiment and news impact
 - Even if market sentiment is overheated, target prices should be based on reasonable valuations.
-- Forecast period is {forecast_period}, shorter timeframes may more focus on short-term technical analysis and sentiment analysis, longer timeframes may more focus on fundamental analysis and long-term technical analysis and macro news sentiment analysis.
+- Forecast period is {forecast_period}, short+ focus on short-term technical analysis and latest news sentiment analysis and breaking macro news sentiment analysis, 
+short focus on short/long-term technical analysis and news sentiment analysis and macro news sentiment analysis,
+medium focus on fundamental analysis and long-term technical analysis and macro news sentiment analysis,
+long focus on fundamental analysis and macro news sentiment analysis.
 
 Do not forget to utilize lessons from past decisions to learn from your mistakes. Here is some reflections from similar situations you traded in and the lessons learned: {past_lessons}"""
         
@@ -83,7 +86,10 @@ Guidelines for Decision-Making:
 2. **Provide Rationale**: Support your recommendation with direct quotes and counterarguments from the debate.
 3. **Refine the Trader's Plan**: Start with the trader's original plan, `{trader_plan}`, and adjust it based on the analysts' insights.
 4. **Learn from Past Mistakes**: Use lessons from `{past_lessons}` to address prior misjudgments and improve the decision you are making now to make sure you don't make a wrong BUY/SELL/HOLD call that loses money.
-5. **Forecast Period**: {forecast_period}, shorter timeframes may more focus on short-term technical analysis and sentiment analysis, longer timeframes may more focus on fundamental analysis and long-term technical analysis and macro news sentiment analysis.
+5. **Forecast Period**: {forecast_period}, short+ focus on short-term technical analysis and latest news sentiment analysis and breaking macro news sentiment analysis, 
+short focus on short/long-term technical analysis and news sentiment analysis and macro news sentiment analysis,
+medium focus on fundamental analysis and long-term technical analysis and macro news sentiment analysis,
+long focus on fundamental analysis and macro news sentiment analysis.
 """
         
         messages = [

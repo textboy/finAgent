@@ -58,20 +58,17 @@ class DataFetcher:
         meta = {'source': 'yfinance'}
         return data, meta
 
-    def get_news_sentiment(self, symbol: str, days_back: int = 30, limit: int = 20) -> Tuple[pd.DataFrame, Dict]:
-        time.sleep(1.2)
-        time_to = datetime.now()
-        time_from = time_to - timedelta(days=days_back)
-        data, meta = self.ns.get_news_sentiment(
-            tickers=symbol,
-            time_from=time_from.strftime('%Y%m%dT%H%M'),
-            time_to=time_to.strftime('%Y%m%dT%H%M'),
-            sort='LATEST',
-            limit=limit
-        )
-        return data, meta
+    def get_news_sentiment(self, symbol: str, limit: int = 20) -> Tuple[pd.DataFrame, Dict]:
+        urlList = []
+        ticker = yf.Ticker(symbol)
+        data = ticker.news[:limit]
+        if data:
+            for item in data:
+                urlList.append(item['content']['canonicalUrl']['url'])
+        meta = {'source': 'yfinance'}
+        return urlList, meta
     
-    def get_news_sentiment_by_topic(self, topic: str, days_back: int = 30, limit: int = 20) -> Tuple[pd.DataFrame, Dict]:
+    def get_macro_news_sentiment(self, topic: str, days_back: int = 30, limit: int = 20) -> Tuple[pd.DataFrame, Dict]:
         time.sleep(1.2)
         time_to = datetime.now()
         time_from = time_to - timedelta(days=days_back)
@@ -84,10 +81,16 @@ class DataFetcher:
         )
         return data, meta
 
-    def get_sma(self, symbol: str, interval: str, time_period: int) -> Tuple[pd.DataFrame, Dict]:
-        time.sleep(1.2)
-        data, meta = self.ti.get_sma(symbol=symbol, interval=interval, time_period=time_period)
-        return data, meta
+    def download_yf_data(self, symbol: str) -> pd.DataFrame:
+        start_date = datetime.now() - timedelta(days=200)
+        start_date_str = start_date.strftime('%Y-%m-%d')
+        data = yf.download(symbol, start=start_date_str)
+        return data
+
+    def get_sma(self, data: pd.DataFrame, time_period: int) -> Tuple[pd.DataFrame, Dict]:
+        sma = data['Close'].rolling(time_period).mean()
+        meta = {'source': 'yfinance'}
+        return sma, meta
 
     def get_ema(self, symbol: str, interval: str, time_period: int) -> Tuple[pd.DataFrame, Dict]:
         time.sleep(1.2)
