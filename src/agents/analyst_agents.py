@@ -80,7 +80,7 @@ class SentimentAnalyst:
         news_sentiment = get_news_sentiment(symbol)
         macro_news_sentiment = get_macro_news_sentiment("economy_fiscal,economy_monetary,economy_macro")
         # print(f'DEBUG: news_sentiment -- {news_sentiment}')
-        print(f"DEBUG: macro_news_sentiment -- {macro_news_sentiment}")
+        # print(f"DEBUG: macro_news_sentiment -- {macro_news_sentiment}")
         
         user_prompt = f"""Sentiment analysis to stock market based on the outputs of below information: 
 1) news_sentiment: {news_sentiment}
@@ -112,13 +112,13 @@ class TechnicalAnalyst:
         for tool in technical_tools:
             if tool.__name__ == 'get_sma':
                 sma50 = tool(data, 50)
-                sma200 = tool(data, 200)
+                sma200 = tool(data, 100)
             elif tool.__name__ == 'get_ema':
-                ema10 = tool(symbol, investment_period, 10)
+                ema10 = tool(data, 10)
             elif tool.__name__ == 'get_rsi':
-                rsi = tool(symbol, investment_period)
+                rsi = tool(data)
             elif tool.__name__ == 'get_bbands':
-                bbands = tool(symbol, investment_period)
+                bbands = tool(data)
             elif tool.__name__ == 'get_macd':
                 macd_out = tool(symbol, investment_period)
             elif tool.__name__ == 'get_vwap':

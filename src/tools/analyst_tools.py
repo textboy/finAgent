@@ -104,34 +104,30 @@ def download_yf_data(symbol: str) -> pd.DataFrame:
 def get_sma(data: pd.DataFrame, time_period: int = 36) -> str:
     """Get Simple Moving Average."""
     data, meta = fetcher.get_sma(data, time_period)
-    if data is None:
+    if data is None or data.empty:
         return "No data"
-    return f"SMA-{time_period}: {data if not data.empty else 'N/A'}\\nShape: {data.shape}"
+    return f"SMA-{time_period}: {data}"
 
-def get_ema(symbol: str, investmentPeriod: str, time_period: int = 36) -> str:
+def get_ema(data: pd.DataFrame, time_period: int = 36) -> str:
     """Get Exponential Moving Average."""
-    interval = get_alpha_vantage_interval(investmentPeriod)
-    data, meta = fetcher.get_ema(symbol, interval, time_period)
-    if data is None:
+    data, meta = fetcher.get_ema(data, time_period)
+    if data is None or data.empty:
         return "No data"
-    return f"Latest EMA: {data['EMA'].iloc[-1] if not data.empty else 'N/A'}\\nShape: {data.shape}"
+    return f"EMA-{time_period}: {data}"
 
-def get_rsi(symbol: str, investmentPeriod: str, time_period: int = 36) -> str:
+def get_rsi(data: pd.DataFrame, time_period: int = 36) -> str:
     """Get RSI."""
-    interval = get_alpha_vantage_interval(investmentPeriod)
-    data, meta = fetcher.get_rsi(symbol, interval, time_period)
-    if data is None:
+    data, meta = fetcher.get_rsi(data, time_period)
+    if data is None or data.empty:
         return "No data"
-    return f"Latest RSI: {data['RSI'].iloc[-1] if not data.empty else 'N/A'}\\nShape: {data.shape}"
+    return f"RSI: {data}"
 
-def get_bbands(symbol: str, investmentPeriod: str, time_period: int = 36) -> str:
+def get_bbands(data: pd.DataFrame, time_period: int = 36) -> str:
     """Get Bollinger Bands."""
-    interval = get_alpha_vantage_interval(investmentPeriod)
-    data, meta = fetcher.get_bbands(symbol, interval, time_period)
-    if data is None:
+    data, meta = fetcher.get_bbands(data, time_period)
+    if data is None or data.empty:
         return "No data"
-    latest = data.iloc[-1]
-    return f"Latest BB: Upper {latest.get('Real Upper Band', 'N/A')}, Middle {latest.get('Real Middle Band', 'N/A')}, Lower {latest.get('Real Lower Band', 'N/A')}"
+    return f"BB: {data}"
 
 def get_macd(symbol: str, investmentPeriod: str) -> str:
     """Calculate MACD using yfinance data."""

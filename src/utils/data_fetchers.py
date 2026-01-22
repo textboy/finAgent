@@ -82,30 +82,42 @@ class DataFetcher:
         return data, meta
 
     def download_yf_data(self, symbol: str) -> pd.DataFrame:
-        start_date = datetime.now() - timedelta(days=200)
+        # download 3 years data
+        start_date = datetime.now() - timedelta(days=1095)
         start_date_str = start_date.strftime('%Y-%m-%d')
         data = yf.download(symbol, start=start_date_str)
         return data
 
-    def get_sma(self, data: pd.DataFrame, time_period: int) -> Tuple[pd.DataFrame, Dict]:
+    def get_sma(self, data: pd.DataFrame, time_period: int = 20) -> Tuple[pd.DataFrame, Dict]:
         sma = data['Close'].rolling(time_period).mean()
+        sma = sma.dropna()
         meta = {'source': 'yfinance'}
         return sma, meta
 
-    def get_ema(self, symbol: str, interval: str, time_period: int) -> Tuple[pd.DataFrame, Dict]:
-        time.sleep(1.2)
-        data, meta = self.ti.get_ema(symbol=symbol, interval=interval, time_period=time_period)
-        return data, meta
+    def get_ema(self, data: pd.DataFrame, time_period: int = 12) -> Tuple[pd.DataFrame, Dict]:
+        ema = data['Close'].ewm(span=time_period, adjust=False).mean()
+        meta = {'source': 'yfinance'}
+        return ema, meta
 
-    def get_rsi(self, symbol: str, interval: str, time_period: int = 14) -> Tuple[pd.DataFrame, Dict]:
-        time.sleep(1.2)
-        data, meta = self.ti.get_rsi(symbol=symbol, interval=interval, time_period=time_period)
-        return data, meta
+    def get_rsi(self, data: pd.DataFrame, time_period: int = 14) -> Tuple[pd.DataFrame, Dict]:
+        delta = data['Close'].diff()
+        gain = (delta.where(delta > 0, 0)).rolling(window=time_period).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(window=time_period).mean()
+        rs = gain / loss
+        rsi = 100 - (100 / (1 + rs))
+        rsi = rsi.dropna()
+        meta = {'source': 'yfinance'}
+        return rsi, meta
 
-    def get_bbands(self, symbol: str, interval: str, time_period: int = 20) -> Tuple[pd.DataFrame, Dict]:
-        time.sleep(1.2)
-        data, meta = self.ti.get_bbands(symbol=symbol, interval=interval, time_period=time_period)
-        return data, meta
+    def get_bbands(self, data: pd.DataFrame, time_period: int = 20) -> Tuple[pd.DataFrame, Dict]:
+        rolling_mean = data['Close'].rolling(window=time_period).mean()
+        rolling_std = data['Close'].rolling(window=time_period).std()
+        upper = rolling_mean + (rolling_std * 2)
+        lower = rolling_mean - (rolling_std * 2)
+        bbands = pd.concat([upper, lower], axis=1)
+        bbands = bbands.dropna()
+        meta = {'source': 'yfinance'}
+        return bbands, meta
 
     def get_yf_history(self, symbol: str, period: str = '2y', interval: str = '1d') -> pd.DataFrame:
         ticker = yf.Ticker(symbol)

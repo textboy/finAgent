@@ -149,41 +149,37 @@ limit: 20
 output: latest 20 news url link
 
 * Technical Analyst
-(1) Call alphavantage API to get technical indicators
-alphavantage API: function=SMA
-input: {stockSymbol}, {apiKey}, {interval}, {time_period}, {series_type}
-interval for alphavantage API: "30min" when investmentPeriod=short+; "daily" when investmentPeriod=short; "weekly" when investmentPeriod=medium; "monthly" when investmentPeriod=long
-valid intervals of interval: [monthly,weekly,daily,60min,30min,15min,5min,1min]
+(1) Call yFinance API to get technical indicators
+SMA
+input: {stockSymbol}, {time_period}
 time_period: 36
-series_type: close
-output: simple moving average indicators
+output: SMA (simple moving average indicators)
 Prepare close_50_sm (time_period=50), close_200_sma (time_period=200)
 
-alphavantage API: function=EMA
-input: {stockSymbol}, {apiKey}, {interval}, {time_period}, {series_type}
+EMA
+input: {stockSymbol}, {time_period}
 time_period: e.g. 30, 60
-series_type: close
-output: exponential moving average indicators
+output: EMA (exponential moving average indicators)
 Prepare close_10_ema (time_period=10)
 
-yFinance API: Calculate MACD
+MACD
 data['MACD'] = data['EMA12'] - data['EMA26']
 interval for yFinance API: "30m" when investmentPeriod=short+; "1d" when investmentPeriod=short; "1wk" when investmentPeriod=medium; "1mo" when investmentPeriod=long
 valid intervals of period: [1m,2m,5m,15m,30m,60m,90m,1h,4h,1d,5d,1wk,1mo,3mo]
 period for yFinance API: "3d" when investmentPeriod=short+; "30d" when investmentPeriod=short; "9mo" when investmentPeriod=medium; "3y" when investmentPeriod=long
 
-yFinance API: Calculate MACD Signal
+MACD
 data['Signal_Line'] = data['MACD'].ewm(span=9, adjust=False).mean()
 
-alphavantage API: function=RSI
-input: {stockSymbol}, {apiKey}, {interval}, {time_period}, {series_type}
+RSI
+input: {stockSymbol}
 output: relative strength index indicators
 
-alphavantage API: function=BBANDS
-input: {stockSymbol}, {apiKey}, {interval}, {time_period}, {series_type}
+BBANDS
+input: {stockSymbol}
 output: bollinger bands indicators
 
-alphavantage API: Calculate VWAP (Volume Weighted Average Price)
+VWAP (Volume Weighted Average Price)
 data['cum_price_volume'] = (data['Close'] * data['Volume']).cumsum()
 data['cum_volume'] = data['Volume'].cumsum()
 data['VWAP'] = data['cum_price_volume'] / data['cum_volume']

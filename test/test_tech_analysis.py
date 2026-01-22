@@ -15,7 +15,15 @@ def test_macd(symbol, investment_period):
     return result
 
 def test_sma(data):
-    result = get_sma(data, 2)
+    result = get_sma(data, 200)
+    return result
+
+def test_ema(data):
+    result = get_ema(data, 5)
+    return result
+
+def test_bbands(data):
+    result = get_bbands(data, 5)
     return result
 
 def main():
@@ -24,8 +32,9 @@ def main():
     # result = test_macd(symbol, investment_period)
 
     data = download_yf_data(symbol)
-    print(data)
     result = test_sma(data)
+    # result = test_ema(data)
+    # result = test_bbands(data)
     print(f"result~: {result}")
 
     print("\nTest completed successfully.")
