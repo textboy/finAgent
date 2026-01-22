@@ -61,7 +61,7 @@ Use this information to deliver a compelling bear argument, refute the bull's cl
 class DebateAgent:
     @staticmethod
     def summarize(bull_analysis: str, bear_analysis: str) -> str:
-        user_prompt = f"provide debate result based on both bullish analysis and bearish analysis.\\nBull: {bull_analysis[:2000]}\\nBear: {bear_analysis[:2000]}"
+        user_prompt = f"provide debate result based on both bullish analysis and bearish analysis.\\nBull: {bull_analysis[:3000]}\\nBear: {bear_analysis[:3000]}"
         
         messages = [
             SystemMessage(content="You are a debate moderator. Summarize the key points from both sides and provide a balanced debate result."),

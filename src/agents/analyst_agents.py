@@ -112,7 +112,7 @@ class TechnicalAnalyst:
         for tool in technical_tools:
             if tool.__name__ == 'get_sma':
                 sma50 = tool(data, 50)
-                sma200 = tool(data, 100)
+                sma100 = tool(data, 100)
             elif tool.__name__ == 'get_ema':
                 ema10 = tool(data, 10)
             elif tool.__name__ == 'get_rsi':
@@ -124,7 +124,7 @@ class TechnicalAnalyst:
             elif tool.__name__ == 'get_vwap':
                 vwap_out = tool(symbol, investment_period)
         # print(f'DEBUG: sma50 -- {sma50}')
-        # print(f'DEBUG: sma200 -- {sma200}')
+        # print(f'DEBUG: sma100 -- {sma100}')
         # print(f'DEBUG: ema10 -- {ema10}')
         # print(f'DEBUG: rsi -- {rsi}')
         # print(f'DEBUG: bbands -- {bbands}')
@@ -133,7 +133,7 @@ class TechnicalAnalyst:
 
         user_prompt = f"""Technical analysis based on the outputs of below MRC tools
 - SMA50: {sma50},
-- SMA200: {sma200},
+- SMA100: {sma100},
 - EMA10: {ema10},
 - MACD: {macd_out},
 - RSI: {rsi},

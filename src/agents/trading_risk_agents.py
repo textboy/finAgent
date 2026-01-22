@@ -5,7 +5,7 @@ from ..utils.qdrant_utils import get_past_lessons
 from .analyst_agents import llm  # reuse
 
 
-INFO_SIZE = 1200
+INFO_SIZE = 1500
 def get_forecast_period(investmentPeriod: str) -> str:
     interval_map = {
         "short+": "within 2 weeks",
