@@ -20,4 +20,4 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 # Run the Python script with the provided arguments
-python finagent.py --symbol $args[0] --period $args[1]
+python finagent_cli.py --symbol $args[0] --period $args[1]

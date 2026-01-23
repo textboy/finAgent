@@ -298,9 +298,9 @@ User prompt: "compare the last report in memory with the actual closed market pr
 (3) Store the lesson learned in a vector database as past_memory_lession_learned with the analysis datetime
 
 # Layout Tips
-(1) Use CLI to interact with the system
-(2) user input the stock symbol (e.g.GOOG), investment period (i.e.SHORT+/SHORT/MEDIUM/LONG)
-(3) system output to the console and the result file
+## (1) Use CLI to interact with the system
+a. user input the stock symbol (e.g.GOOG), investment period (i.e.SHORT+/SHORT/MEDIUM/LONG)
+b. system output to the console and the result file
     - financial summary report
     - news sentiment analysis report
     - technical analysis report
@@ -311,6 +311,49 @@ User prompt: "compare the last report in memory with the actual closed market pr
     - trading plan
     - risk plan
     Note: for each report to the console, limit the output to within 500 words
+
+## (2) Web UI
+### Layout
+#### Top panel (bgcolor:white)
+- **Title**: FinAgent (fgcolor:#050505;bold)
+#### Main panel (bgcolor:white)
+**Input Session**
+- **model**: Input, input model. If model is provided, bypass MODEL_NAME in .env and the default model, if no input, then use MODEL_NAME in .env, if no MODEL_NAME in .env, then use the default model in the code.
+- **Symbol**: Input, mandatory, input of stock symbol
+- **investment period**: Select box, mandatory, input of investment period, value: SHORT+/SHORT/MEDIUM/LONG, default value: SHORT
+- **Submit**: Button, click to verify mandatory elements first, if mandatory elements filled, then execute: finagent.py with paraeters: {symbol}, {investment period}
+**Output Session**
+- **Fundamentals Analysis**: TagPanel, details of Fundamentals Analysis from the report after submitted.
+- **Sentiment Analysis**: TagPanel, details of Sentiment Analysis from the report after submitted.
+- **Technical Analysis**: TagPanel, details of Technical Analysis from the report after submitted.
+- **Research Analysis**: TagPanel, details of Research Analysis from the report after submitted.
+- **Trading Analysis**: TagPanel, details of Trading Analysis from the report after submitted.
+- **Risk Analysis**: TagPanel, details of Risk Analysis from the report after submitted.
+- **Final Evaluation**: TagPanel, final Risk Evaluation in Risk Analysis from the report after submitted.
+- **Report**: textlink, link to the report (open a new window) 
+
+### Style
+- Single-page web
+- red asterisk for mandatory fields
+
+### Libraries
+- React
+- Tailwind
+
+### Others
+- folder: web
+- port: 3001
+- user friendly in web and also fit to mobile OS like iOS screen
+
+### Test
+**backend**
+- python finagent_api.py
+- http://localhost:8000/
+
+**frontend**
+- cd web
+- npm run dev
+- http://localhost:3001
 
 # Appendix: Model
 OpenRouter Model
@@ -380,3 +423,5 @@ python-dotenv==1.1.0
 fastmcp==2.14.1
 click==8.1.7
 openai==2.12.0
+fastapi==0.115.0
+uvicorn[standard]==0.35.0

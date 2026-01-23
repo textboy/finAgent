@@ -14,6 +14,6 @@ else
     # configure your workspace
     cd /app/workspace/finAgent || exit 1
     source finagent/bin/activate
-    python finagent.py --symbol "$1" --period "$2"
+    python finagent_cli.py --symbol "$1" --period "$2"
     deactivate
 fi
