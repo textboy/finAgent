@@ -1,14 +1,7 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@theme {
-  --color-primary: #8b5cf6;
-  --color-primary-dark: #7c3aed;
-  --color-accent: #10b981;
-  --color-bg-dark: #0f172a;
-  --color-card-dark: #1e293b;
-  --color-surface: rgba(30, 41, 59, 0.7);
-  --color-glow: rgba(139, 92, 246, 0.3);
-}
 
 @layer base {
   body {
@@ -22,7 +15,7 @@
   }
   
   h1, h2, h3, h4, h5, h6 {
-    @apply font-semibold tracking-tight text-white;
+    @apply font-semibold tracking-tight text-red-100;
   }
   
   ::selection {

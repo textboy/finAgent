@@ -90,14 +90,8 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-purple-900/50 border border-purple-500/30">
-                  <span className="text-white font-bold text-2xl">F</span>
-                </div>
-                <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl blur opacity-30 -z-10"></div>
-              </div>
               <div>
-                <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-300">
+                <h1 className="text-2xl bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-300">
                   FinAgent
                 </h1>
                 <p className="text-xs text-slate-500 font-mono mt-1">AI-Powered Financial Intelligence</p>
@@ -140,31 +134,28 @@ function App() {
               
               {/* Symbol Input */}
               <div className="lg:col-span-4 space-y-2">
-                <label className="text-sm font-medium text-slate-400 flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-500"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-                  Stock Symbol
-                </label>
-                <div className="relative">
+                <div className="flex items-center gap-4">
+                  <label className="text-sm font-medium text-slate-400 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-500"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                    Symbol
+                  </label>
                   <input 
                     type="text" 
                     value={symbol} 
                     onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-                    className="input-field text-lg font-bold tracking-wide uppercase pl-12"
+                    className="input-field text-sm tracking-wide uppercase pl-12"
                     placeholder="AAPL"
                   />
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-500">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
-                  </div>
                 </div>
               </div>
 
               {/* Period Select */}
               <div className="lg:col-span-4 space-y-2">
-                <label className="text-sm font-medium text-slate-400 flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cyan-500"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                  Time Horizon
-                </label>
-                <div className="relative">
+                <div className="flex items-center gap-4">
+                  <label className="text-sm font-medium text-slate-400 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cyan-500"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    Period
+                  </label>
                   <select 
                     value={period} 
                     onChange={(e) => setPeriod(e.target.value)}
@@ -175,30 +166,29 @@ function App() {
                     <option value="medium">Medium</option>
                     <option value="long">Long</option>
                   </select>
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-cyan-500">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                  </div>
                 </div>
               </div>
 
               {/* Model Input */}
               <div className="lg:col-span-3 space-y-2">
-                <label className="text-sm font-medium text-slate-400 flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500"><path d="M12 2v4"></path><path d="m16.2 7.8 2.9-2.9"></path><path d="M18 12h4"></path><path d="m16.2 16.2 2.9 2.9"></path><path d="M12 18v4"></path><path d="m4.9 19.1 2.9-2.9"></path><path d="M2 12h4"></path><path d="m4.9 4.9 2.9 2.9"></path></svg>
-                  AI Model
-                </label>
-                <input 
-                  type="text" 
-                  value={model} 
-                  onChange={(e) => setModel(e.target.value)}
-                  className="input-field text-sm pl-10"
-                  placeholder="Default"
-                />
+                <div className="flex items-center gap-4">
+                  <label className="text-sm font-medium text-slate-400 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500"><path d="M12 2v4"></path><path d="m16.2 7.8 2.9-2.9"></path><path d="M18 12h4"></path><path d="m16.2 16.2 2.9 2.9"></path><path d="M12 18v4"></path><path d="m4.9 19.1 2.9-2.9"></path><path d="M2 12h4"></path><path d="m4.9 4.9 2.9 2.9"></path></svg>
+                    Model
+                  </label>
+                  <input 
+                    type="text" 
+                    value={model} 
+                    onChange={(e) => setModel(e.target.value)}
+                    className="input-field text-sm pl-10"
+                    placeholder="Default"
+                  />
+                </div>
               </div>
 
               {/* Submit Button */}
-              <div className="lg:col-span-2 flex items-end">
-                <button 
+              <div className="lg:col-span-1 flex items-end">
+                <button
                   onClick={handleSubmit}
                   disabled={loading || !symbol.trim()}
                   className="btn-primary h-[52px] flex items-center justify-center gap-3 text-base font-semibold"
