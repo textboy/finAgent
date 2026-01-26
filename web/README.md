@@ -14,3 +14,33 @@ The React Compiler is not enabled on this template because of its impact on dev 
 ## Expanding the ESLint configuration
 
 If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+
+## Cypress Testing
+
+This project includes Cypress for end-to-end testing of the Tailwind CSS implementation.
+
+### Running Tests
+
+1. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+2. In another terminal, run the tests:
+   ```bash
+   npm run cypress:open
+   ```
+
+   Or run in headless mode:
+   ```bash
+   npm run cypress:run
+   ```
+
+3. To run tests automatically with the dev server:
+   ```bash
+   npm run test:e2e
+   ```
+
+### Test Results
+
+Test results will be displayed in the Cypress Test Runner and logged to the browser console for debugging purposes.

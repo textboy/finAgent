@@ -34,7 +34,24 @@ Alpha Vantage API Key is required for the project (standard API rate limit is 25
 Copy ./config/.env.example to .env
 Fill in the OpenRouter Key, Alpha Vantage API Key, model name etc. in the .env file.
 
-# CLI Usage
+# Execution
+
+## Web UI
+**backend**
+```shell
+python finagent_api.py
+```
+- http://localhost:8000/
+
+**frontend**
+```shell
+cd web
+npm run dev # for development
+# npm start # for production
+```
+- http://localhost:3001
+
+## CLI
 **Sample python script to run the project**
 ```python
 python finagent.py --symbol GOOG --period short+
@@ -49,7 +66,6 @@ finagent.bat GOOG short+
 ```
 - **symbol**: ticker
 - **period**: *short+* within 2 weeks; *short* from 2 weeks to 1 month; *medium* from 1 month to 1 year; *long* from 1 year to 2 years
-
 
 **Sample output to the console**
 ```shell

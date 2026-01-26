@@ -342,18 +342,8 @@ b. system output to the console and the result file
 
 ### Others
 - folder: web
-- port: 3001
+- web port: 3001
 - user friendly in web and also fit to mobile OS like iOS screen
-
-### Test
-**backend**
-- python finagent_api.py
-- http://localhost:8000/
-
-**frontend**
-- cd web
-- npm run dev
-- http://localhost:3001
 
 # Appendix: Model
 OpenRouter Model
