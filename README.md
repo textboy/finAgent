@@ -17,6 +17,12 @@ FinAgents is a multi-agent trading framework that mirrors the real-world trading
 ./setup.sh
 ```
 
+##### frontend
+```shell
+cd web
+npm install
+```
+
 ### Vector DB Setup
 ##### windows
 ```cmd
