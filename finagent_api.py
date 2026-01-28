@@ -15,6 +15,12 @@ import uvicorn
 load_dotenv(os.path.join('config', '.env'))
 SERVER_HOST = os.getenv("SERVER_HOST")
 UVICORN_PORT = os.getenv("UVICORN_PORT")
+print(f"DEBUG: SERVER_HOST:{SERVER_HOST}, UVICORN_PORT:{UVICORN_PORT}")
+try:
+    UVICORN_PORT = int(UVICORN_PORT)
+except (ValueError, TypeError) as e:
+    print(f"Error converting UVICORN_PORT to an integer: {e}")
+    UVICORN_PORT = 8000 
 
 app = FastAPI(title="FinAgent API")
 
