@@ -23,7 +23,10 @@ print(f"Using model: {embeddings.model}")
 EMBED_DIM = 4096
 COLL_NAME = 'finagent_reports'
 symbol = "GOOG"
-QDRANT_URL = os.getenv("QDRANT_URL")
+SERVER_HOST = os.getenv("SERVER_HOST")
+QDRANT_PORT = os.getenv("QDRANT_PORT")
+QDRANT_PATH = os.getenv("QDRANT_PATH", "./qdrant")
+QDRANT_URL = f"http://{SERVER_HOST}/{QDRANT_PORT}"
 QDRANT_PATH = os.getenv("QDRANT_PATH", "./qdrant")
 def get_client():
     if QDRANT_URL:

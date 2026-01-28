@@ -10,7 +10,6 @@ import uuid
 
 DEFAULT_EMBEDDING_MODEL_NAME = 'qwen/qwen3-embedding-8b'
 load_dotenv(os.path.join('config', '.env'))
-print(f'Qdrant URL: {os.getenv("QDRANT_URL")}')
 
 openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
 openrouter_base = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
@@ -24,8 +23,10 @@ embeddings = OpenAIEmbeddings(
 
 EMBED_DIM = 4096
 
-QDRANT_URL = os.getenv("QDRANT_URL")
+SERVER_HOST = os.getenv("SERVER_HOST")
+QDRANT_PORT = os.getenv("QDRANT_PORT")
 QDRANT_PATH = os.getenv("QDRANT_PATH", "./qdrant")
+QDRANT_URL = f"http://{SERVER_HOST}/{QDRANT_PORT}"
 qrant_server_health_status = False
 
 try:

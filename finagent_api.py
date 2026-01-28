@@ -13,6 +13,8 @@ from finagent import main as core_main
 import uvicorn
 
 load_dotenv(os.path.join('config', '.env'))
+SERVER_HOST = os.getenv("SERVER_HOST")
+UVICORN_PORT = os.getenv("UVICORN_PORT")
 
 app = FastAPI(title="FinAgent API")
 
@@ -20,7 +22,7 @@ app.mount("/static", StaticFiles(directory="results"), name="static")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3001", "http://127.0.0.1:3001"],
+    allow_origins=["http://localhost:3001", "http://127.0.0.1:3001", f"http://{SERVER_HOST}:3001"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -71,4 +73,4 @@ async def analyze(req: AnalyzeRequest):
     }
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host=SERVER_HOST, port=UVICORN_PORT)

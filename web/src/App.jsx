@@ -3,6 +3,9 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
 function App() {
+  const serverHost = import.meta.env.VITE_SERVER_HOST;
+  const uvicornPort = import.meta.env.VITE_UVICORN_PORT;
+
   const [model, setModel] = useState('');
   const [symbol, setSymbol] = useState('');
   const [period, setPeriod] = useState('medium');
@@ -28,10 +31,7 @@ function App() {
     setLog(`🚀 Starting analysis for ${symbol.toUpperCase()} (${period})...\n`);
     
     try {
-      console.log(model.trim())
-      console.log(symbol.trim())
-      console.log(period)
-      const response = await fetch('http://0.0.0.0:8000/analyze', {
+      const response = await fetch(`http://${serverHost}:${uvicornPort}/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: model.trim() || undefined, symbol: symbol.trim(), period }),
@@ -44,7 +44,7 @@ function App() {
       const data = await response.json();
       setLog(data.log);
       setResults(data.reports);
-      setReportPath(`http://0.0.0.0:8000${data.report_path}`);
+      setReportPath(`http://${serverHost}:${uvicornPort}${data.report_path}`);
     } catch (err) {
       setLog(prev => prev + `\n❌ Error: ${err.message}\n`);
     } finally {
