@@ -28,6 +28,9 @@ function App() {
     setLog(`🚀 Starting analysis for ${symbol.toUpperCase()} (${period})...\n`);
     
     try {
+      console.log(model.trim())
+      console.log(symbol.trim())
+      console.log(period)
       const response = await fetch('http://0.0.0.0:8000/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
