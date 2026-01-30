@@ -46,7 +46,7 @@ Fill in the OpenRouter Key, Alpha Vantage API Key, model name etc. in the .env f
 **backend**
 ```shell
 python finagent_api.py # for development
-# gunicorn -w 1 -k uvicorn.workers.UvicornWorker finagent_api:app --bind 0.0.0.0:8000 # for production
+# pm2 start "/app/workspace/finAgent/start_backend.sh" --name finagent_be | pm2 save | pm2 startup | pm2 show finagent_be  # for production
 ```
 - http://localhost:8000/
 
@@ -55,9 +55,11 @@ python finagent_api.py # for development
 cd web
 npm run dev # for development
 # npm run build # for production 
-# npm start # for production
+# pm2 start "npm run preview" --name finagent_ui | pm2 save | pm2 startup | pm2 show finagent_ui  # for pre-production
+# nginx for production
 ```
 - http://localhost:3001
+- http://{yourServerIp}:4173  # npm run preview
 
 ## CLI
 **Sample python script to run the project**
