@@ -45,7 +45,8 @@ Fill in the OpenRouter Key, Alpha Vantage API Key, model name etc. in the .env f
 ## Web UI
 **backend**
 ```shell
-python finagent_api.py
+python finagent_api.py # for development
+# gunicorn -w 1 -k uvicorn.workers.UvicornWorker finagent_api:app --bind 0.0.0.0:8000 # for production
 ```
 - http://localhost:8000/
 
