@@ -53,6 +53,7 @@ python finagent_api.py
 ```shell
 cd web
 npm run dev # for development
+# npm run build # for production 
 # npm start # for production
 ```
 - http://localhost:3001
