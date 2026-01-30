@@ -46,7 +46,7 @@ Fill in the OpenRouter Key, Alpha Vantage API Key, model name etc. in the .env f
 **backend**
 ```shell
 python finagent_api.py # for development
-# pm2 start "/app/workspace/finAgent/start_backend.sh" --name finagent_be | pm2 save | pm2 startup | pm2 show finagent_be  # for production
+# pm2 start "/app/workspace/finAgent/start_backend.sh" --name finagent_be | pm2 save | pm2 restart finagent_be | pm2 show finagent_be | pm2 logs finagent_be [--lines 1000]  # for production
 ```
 - http://localhost:8000/
 
