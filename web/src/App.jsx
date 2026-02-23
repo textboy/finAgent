@@ -264,7 +264,7 @@ function App() {
               {panelKeys.map(({ key, label, icon, color }, index) => (
                 <div 
                   key={key} 
-                  className={`glass-panel rounded-2xl overflow-hidden flex flex-col border border-slate-800/50 hover:border-slate-700/50 transition-all duration-500 hover:scale-[1.02] ${key === 'finalEval' ? 'lg:col-span-2' : ''}`}
+                  className={`glass-panel rounded-2xl overflow-hidden flex flex-col border border-slate-800/50 hover:border-slate-700/50 transition-all duration-500 hover:scale-[1.02] final-eval-panel ${key === 'finalEval' ? 'lg:col-span-2' : ''}`}
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
                   <div className={`px-6 py-4 bg-gradient-to-r ${color} flex items-center justify-between`}>
@@ -276,7 +276,7 @@ function App() {
                       {index + 1}/{panelKeys.length}
                     </div>
                   </div>
-                  <div className="p-6 text-slate-300 bg-gradient-to-b from-slate-950/50 to-slate-900/30 flex-1">
+                  <div className={`p-6 ${key === 'finalEval' ? 'text-[#fff]' : 'text-slate-300'} bg-gradient-to-b from-slate-950/50 to-slate-900/30 flex-1`}>
                     {results[key] ? (
                       <ReactMarkdown 
                         remarkPlugins={[remarkGfm]}

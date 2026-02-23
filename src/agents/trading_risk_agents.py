@@ -67,12 +67,25 @@ class RiskManagementAgent:
         insights_summary = f"Analyst insights: fundamentals={analyst_insights['fundamentals'][:INFO_SIZE]} sentiment={analyst_insights['sentiment'][:INFO_SIZE]} technical={analyst_insights['technical'][:INFO_SIZE]}"
         debate = researcher_results['debate']
         
-        user_prompt = f"""provide risk_plan including:
-- risky risk analysis
-- neutral risk analysis
-- safe risk analysis
-- final risk evaluation: APPROVE/REJECT
-- reason for risk evaluation
+        user_prompt = f"""provide
+**Risk Plan**
+- **Risky Risk Analysis**
+- **Neutral Risk Analysis**
+- **Safe Risk Analysis**
+- **Final Risk Evaluation: APPROVE/REJECT**
+- **Reason for Risk Evaluation**
+
+**Refined Trader Plan**
+- **Trading Signal**
+- **Target Price**
+- **Trading Timing**
+- **Forecast Period**
+- **Confidence**
+- **Risk Score**
+- **Last Close Price**
+- **Rationale**
+- **Reason for Trading**
+
 Insights: {insights_summary}
 Debate: {debate}
 Trader plan: {trader_plan}"""
@@ -82,11 +95,11 @@ risk analysts—Risky, Neutral, and Safe. Determine the best course of action fo
 not as a fallback when all sides seem valid. Strive for clarity and decisiveness.
 
 Guidelines for Decision-Making:
-1. **Summarize Key Arguments**: Extract the strongest points from each analyst, focusing on relevance to the context.
-2. **Provide Rationale**: Support your recommendation with direct quotes and counterarguments from the debate.
-3. **Refine the Trader's Plan**: Start with the trader's original plan, `{trader_plan}`, and adjust it based on the analysts' insights.
-4. **Learn from Past Mistakes**: Use lessons from `{past_lessons}` to address prior misjudgments and improve the decision you are making now to make sure you don't make a wrong BUY/SELL/HOLD call that loses money.
-5. **Forecast Period**: {forecast_period}, short+ focus on short-term technical analysis and latest news sentiment analysis and breaking macro news sentiment analysis, 
+1. Summarize Key Arguments: Extract the strongest points from each analyst, focusing on relevance to the context.
+2. Provide Rationale: Support your recommendation with direct quotes and counterarguments from the debate.
+3. Refine the Trader's Plan: Start with the trader's original plan, `{trader_plan}`, and adjust it based on the analysts' insights.
+4. Learn from Past Mistakes: Use lessons from `{past_lessons}` to address prior misjudgments and improve the decision you are making now to make sure you don't make a wrong BUY/SELL/HOLD call that loses money.
+5. Forecast Period: {forecast_period}, short+ focus on short-term technical analysis and latest news sentiment analysis and breaking macro news sentiment analysis, 
 short focus on short/long-term technical analysis and news sentiment analysis and macro news sentiment analysis,
 medium focus on fundamental analysis and long-term technical analysis and macro news sentiment analysis,
 long focus on fundamental analysis and macro news sentiment analysis.
