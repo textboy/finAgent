@@ -13,12 +13,29 @@ function App() {
   const [results, setResults] = useState({});
   const [reportPath, setReportPath] = useState('');
   const [loading, setLoading] = useState(false);
+  const [defaultModel, setDefaultModel] = useState('Default');
   const logEndRef = useRef(null);
 
   // Auto-scroll log
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [log]);
+
+  // Fetch default model on mount
+  useEffect(() => {
+    const fetchDefaultModel = async () => {
+      try {
+        const response = await fetch(`http://${serverHost}:${uvicornPort}/default-model`);
+        if (response.ok) {
+          const data = await response.json();
+          setDefaultModel(data.model);
+        }
+      } catch (err) {
+        console.error('Failed to fetch default model:', err);
+      }
+    };
+    fetchDefaultModel();
+  }, [serverHost, uvicornPort]);
 
   const handleSubmit = async (data) => {
     if (!symbol.trim() || !period.trim()) {
@@ -184,7 +201,7 @@ function App() {
                     value={model} 
                     onChange={(e) => setModel(e.target.value)}
                     className="input-field text-sm pl-10"
-                    placeholder="Default"
+                    placeholder={defaultModel}
                   />
                 </div>
               </div>

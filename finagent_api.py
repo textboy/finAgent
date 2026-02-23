@@ -39,6 +39,10 @@ class AnalyzeRequest(BaseModel):
     period: str
     model: Optional[str] = None
 
+@app.get("/default-model")
+async def get_default_model():
+    return {"model": os.getenv('MODEL_NAME', 'Default')}
+
 @app.post("/analyze")
 async def analyze(req: AnalyzeRequest):
     original_model = os.getenv('MODEL_NAME')
