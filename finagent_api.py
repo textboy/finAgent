@@ -13,6 +13,14 @@ from finagent import main as core_main
 import uvicorn
 
 load_dotenv(os.path.join('config', '.env'))
+SERVER_HOST = os.getenv("SERVER_HOST")
+UVICORN_PORT = os.getenv("UVICORN_PORT")
+print(f"DEBUG: SERVER_HOST:{SERVER_HOST}, UVICORN_PORT:{UVICORN_PORT}")
+try:
+    UVICORN_PORT = int(UVICORN_PORT)
+except (ValueError, TypeError) as e:
+    print(f"Error converting UVICORN_PORT to an integer: {e}")
+    UVICORN_PORT = 8000 
 
 app = FastAPI(title="FinAgent API")
 
@@ -20,7 +28,7 @@ app.mount("/static", StaticFiles(directory="results"), name="static")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3001", "http://127.0.0.1:3001"],
+    allow_origins=["http://localhost:3001", "http://127.0.0.1:3001", f"http://{SERVER_HOST}:3001", f"http://{SERVER_HOST}:4173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -30,6 +38,10 @@ class AnalyzeRequest(BaseModel):
     symbol: str
     period: str
     model: Optional[str] = None
+
+@app.get("/default-model")
+async def get_default_model():
+    return {"model": os.getenv('MODEL_NAME', 'Default')}
 
 @app.post("/analyze")
 async def analyze(req: AnalyzeRequest):
@@ -56,6 +68,14 @@ async def analyze(req: AnalyzeRequest):
     
     def extract_risk():
         return state['risk_plan']
+
+    def extract_final_eval():
+        risk_text = extract_risk()
+        import re
+        match = re.search(r"\*?Refined Trader Plan\*?[:\s]*(.*)", risk_text, re.DOTALL | re.IGNORECASE)
+        if match:
+            return match.group(1).strip()
+        return risk_text  # fallback to full risk plan
     
     reports = {
         "fundamentals": extract_analyst('fundamentals'),
@@ -64,6 +84,7 @@ async def analyze(req: AnalyzeRequest):
         "research": extract_research('debate'),
         "trading": extract_trading(),
         "risk": extract_risk(),
+        "finalEval": extract_final_eval(),
     }
     return {
         "reports": reports,
@@ -71,4 +92,4 @@ async def analyze(req: AnalyzeRequest):
     }
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host=SERVER_HOST, port=UVICORN_PORT)

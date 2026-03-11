@@ -17,6 +17,12 @@ FinAgents is a multi-agent trading framework that mirrors the real-world trading
 ./setup.sh
 ```
 
+##### frontend
+```shell
+cd web
+npm install
+```
+
 ### Vector DB Setup
 ##### windows
 ```cmd
@@ -39,7 +45,8 @@ Fill in the OpenRouter Key, Alpha Vantage API Key, model name etc. in the .env f
 ## Web UI
 **backend**
 ```shell
-python finagent_api.py
+python finagent_api.py # for development
+# pm2 start "/app/workspace/finAgent/start_backend.sh" --name finagent_be | pm2 save | pm2 restart finagent_be | pm2 show finagent_be | pm2 logs finagent_be [--lines 1000]  # for production
 ```
 - http://localhost:8000/
 
@@ -47,9 +54,12 @@ python finagent_api.py
 ```shell
 cd web
 npm run dev # for development
-# npm start # for production
+# npm run build # for production 
+# pm2 start "npm run preview" --name finagent_ui | pm2 save | pm2 startup | pm2 show finagent_ui  # for pre-production
+# nginx for production
 ```
 - http://localhost:3001
+- http://{yourServerIp}:4173  # npm run preview
 
 ## CLI
 **Sample python script to run the project**

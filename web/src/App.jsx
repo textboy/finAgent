@@ -3,6 +3,9 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
 function App() {
+  const serverHost = import.meta.env.VITE_SERVER_HOST;
+  const uvicornPort = import.meta.env.VITE_UVICORN_PORT;
+
   const [model, setModel] = useState('');
   const [symbol, setSymbol] = useState('');
   const [period, setPeriod] = useState('medium');
@@ -10,12 +13,29 @@ function App() {
   const [results, setResults] = useState({});
   const [reportPath, setReportPath] = useState('');
   const [loading, setLoading] = useState(false);
+  const [defaultModel, setDefaultModel] = useState('Default');
   const logEndRef = useRef(null);
 
   // Auto-scroll log
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [log]);
+
+  // Fetch default model on mount
+  useEffect(() => {
+    const fetchDefaultModel = async () => {
+      try {
+        const response = await fetch(`http://${serverHost}:${uvicornPort}/default-model`);
+        if (response.ok) {
+          const data = await response.json();
+          setDefaultModel(data.model);
+        }
+      } catch (err) {
+        console.error('Failed to fetch default model:', err);
+      }
+    };
+    fetchDefaultModel();
+  }, [serverHost, uvicornPort]);
 
   const handleSubmit = async (data) => {
     if (!symbol.trim() || !period.trim()) {
@@ -28,7 +48,7 @@ function App() {
     setLog(`🚀 Starting analysis for ${symbol.toUpperCase()} (${period})...\n`);
     
     try {
-      const response = await fetch('http://localhost:8000/analyze', {
+      const response = await fetch(`http://${serverHost}:${uvicornPort}/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: model.trim() || undefined, symbol: symbol.trim(), period }),
@@ -41,7 +61,7 @@ function App() {
       const data = await response.json();
       setLog(data.log);
       setResults(data.reports);
-      setReportPath(`http://localhost:8000${data.report_path}`);
+      setReportPath(`http://${serverHost}:${uvicornPort}${data.report_path}`);
     } catch (err) {
       setLog(prev => prev + `\n❌ Error: ${err.message}\n`);
     } finally {
@@ -133,7 +153,7 @@ function App() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-6">
               
               {/* Symbol Input */}
-              <div className="lg:col-span-4 space-y-2">
+              <div className="lg:col-span-3 space-y-2">
                 <div className="flex items-center gap-4">
                   <label className="text-sm font-medium text-slate-400 flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-500"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
@@ -150,7 +170,7 @@ function App() {
               </div>
 
               {/* Period Select */}
-              <div className="lg:col-span-4 space-y-2">
+              <div className="lg:col-span-3 space-y-2">
                 <div className="flex items-center gap-4">
                   <label className="text-sm font-medium text-slate-400 flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cyan-500"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
@@ -181,17 +201,17 @@ function App() {
                     value={model} 
                     onChange={(e) => setModel(e.target.value)}
                     className="input-field text-sm pl-10"
-                    placeholder="Default"
+                    placeholder={defaultModel}
                   />
                 </div>
               </div>
 
               {/* Submit Button */}
-              <div className="lg:col-span-1 flex items-end">
+              <div className="lg:col-span-2 lg:ml-8 flex items-end">
                 <button
                   onClick={handleSubmit}
                   disabled={loading || !symbol.trim()}
-                  className="btn-primary h-[52px] flex items-center justify-center gap-3 text-base font-semibold"
+                  className="btn-primary h-[52px] w-full flex items-center justify-center gap-3 text-base font-semibold"
                 >
                   {loading ? (
                     <>
@@ -204,7 +224,6 @@ function App() {
                   ) : (
                     <>
                       <span>Analyze</span>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
                     </>
                   )}
                 </button>
@@ -262,7 +281,7 @@ function App() {
               {panelKeys.map(({ key, label, icon, color }, index) => (
                 <div 
                   key={key} 
-                  className={`glass-panel rounded-2xl overflow-hidden flex flex-col border border-slate-800/50 hover:border-slate-700/50 transition-all duration-500 hover:scale-[1.02] ${key === 'finalEval' ? 'lg:col-span-2' : ''}`}
+                  className={`glass-panel rounded-2xl overflow-hidden flex flex-col border border-slate-800/50 hover:border-slate-700/50 transition-all duration-500 hover:scale-[1.02] final-eval-panel ${key === 'finalEval' ? 'lg:col-span-2' : ''}`}
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
                   <div className={`px-6 py-4 bg-gradient-to-r ${color} flex items-center justify-between`}>
@@ -274,7 +293,7 @@ function App() {
                       {index + 1}/{panelKeys.length}
                     </div>
                   </div>
-                  <div className="p-6 text-slate-300 bg-gradient-to-b from-slate-950/50 to-slate-900/30 flex-1">
+                  <div className={`p-6 ${key === 'finalEval' ? 'text-[#fff]' : 'text-slate-300'} bg-gradient-to-b from-slate-950/50 to-slate-900/30 flex-1`}>
                     {results[key] ? (
                       <ReactMarkdown 
                         remarkPlugins={[remarkGfm]}
