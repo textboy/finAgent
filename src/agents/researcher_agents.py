@@ -36,16 +36,17 @@ Key points to focus on:
 
 class BullishResearcher:
     @staticmethod
-    def analyze(symbol: str, fundamentals_report: str, sentiment_report: str, technical_report: str, memory: str = "") -> str:
-        user_prompt = f"""provide a bullish analysis for {symbol}
+    def analyze(symbol: str, investment_period: str, fundamentals_report: str, sentiment_report: str, technical_report: str, memory: str = "") -> str:
+        user_prompt = f"""provide a bullish analysis for {symbol} with analysis period: {investment_period}
 Resources available:
 Company fundamentals report: {fundamentals_report}
 news sentiment report: {sentiment_report}
 Market research report: {technical_report}
 Report history of the debate: {memory}
 Use this information to deliver a compelling bull argument, refute the bear's concerns, and engage in a dynamic debate that demonstrates the strengths of the bull position. You must also address reflections and learn from lessons and mistakes you made in the past.
+Focus your analysis on the {investment_period} timeframe.
 """
-        
+
         messages = [
             SystemMessage(content=BULL_SYSTEM_PROMPT),
             HumanMessage(content=user_prompt)
@@ -54,16 +55,17 @@ Use this information to deliver a compelling bull argument, refute the bear's co
 
 class BearishResearcher:
     @staticmethod
-    def analyze(symbol: str, fundamentals_report: str, sentiment_report: str, technical_report: str, memory: str = "") -> str:
-        user_prompt = f"""provide a bearish analysis for {symbol}""
+    def analyze(symbol: str, investment_period: str, fundamentals_report: str, sentiment_report: str, technical_report: str, memory: str = "") -> str:
+        user_prompt = f"""provide a bearish analysis for {symbol} with analysis period: {investment_period}
 Resources available:
 Company fundamentals report: {fundamentals_report}
 news sentiment report: {sentiment_report}
 Market research report: {technical_report}
 Report history of the debate: {memory}
 Use this information to deliver a compelling bear argument, refute the bull's claims, and engage in a dynamic debate that demonstrates the risks and weaknesses of investing in the stock. You must also address reflections and learn from lessons and mistakes you made in the past.
+Focus your analysis on the {investment_period} timeframe.
 """
-        
+
         messages = [
             SystemMessage(content=BEAR_SYSTEM_PROMPT),
             HumanMessage(content=user_prompt)
@@ -72,31 +74,30 @@ Use this information to deliver a compelling bear argument, refute the bull's cl
 
 class DebateAgent:
     @staticmethod
-    def summarize(bull_analysis: str, bear_analysis: str) -> str:
-        user_prompt = f"provide debate result based on both bullish analysis and bearish analysis.\\nBull: {bull_analysis[:3000]}\\nBear: {bear_analysis[:3000]}"
-        
+    def summarize(bull_analysis: str, bear_analysis: str, investment_period: str) -> str:
+        user_prompt = f"""provide debate result based on both bullish analysis and bearish analysis for {investment_period} timeframe.
+Bull: {bull_analysis[:3000]}
+Bear: {bear_analysis[:3000]}"""
+
         messages = [
             SystemMessage(content="You are a debate moderator. Summarize the key points from both sides and provide a balanced debate result."),
             HumanMessage(content=user_prompt)
         ]
         return llm.invoke(messages).content
 
-def researcher_team(analyst_insights: dict, symbol: str, past_lessons: str = "") -> dict:
+def researcher_team(analyst_insights: dict, symbol: str, investment_period: str, past_lessons: str = "") -> dict:
     print('DEBUG: researcher_team')
     fundamentals = analyst_insights['fundamentals']
     sentiment = analyst_insights['sentiment']
     technical = analyst_insights['technical']
-    # print(f'DEBUG: fundamentals -- {fundamentals}')
-    # print(f'DEBUG: sentiment -- {sentiment}')
-    # print(f'DEBUG: technical -- {technical}')
 
     memory = past_lessons  # or accumulate debate history
-    
-    bull = BullishResearcher.analyze(symbol, fundamentals, sentiment, technical, memory)
-    bear = BearishResearcher.analyze(symbol, fundamentals, sentiment, technical, memory + f"\\nPrevious bull: {bull[-500:]}")  # simple memory
-    
-    debate = DebateAgent.summarize(bull, bear)
-    
+
+    bull = BullishResearcher.analyze(symbol, investment_period, fundamentals, sentiment, technical, memory)
+    bear = BearishResearcher.analyze(symbol, investment_period, fundamentals, sentiment, technical, memory + f"\\nPrevious bull: {bull[-500:]}")  # simple memory
+
+    debate = DebateAgent.summarize(bull, bear, investment_period)
+
     return {
         'bull': bull,
         'bear': bear,

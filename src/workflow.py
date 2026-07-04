@@ -24,7 +24,7 @@ def analyst_node(state: AgentState) -> Dict[str, Any]:
     return {"analyst_insights": insights}
 
 def researcher_node(state: AgentState) -> Dict[str, Any]:
-    results = researcher_team(state["analyst_insights"], state["symbol"], state["past_lessons"])
+    results = researcher_team(state["analyst_insights"], state["symbol"], state["investment_period"], state["past_lessons"])
     return {"researcher_results": results}
 
 def trading_node(state: AgentState) -> Dict[str, Any]:
