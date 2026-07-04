@@ -161,14 +161,21 @@ class MarketAnalyst:
         except:
             rate_10y = "N/A"
 
+        # Format values for display
+        spy_sma50_str = f"${spy_sma50:.2f}" if isinstance(spy_sma50, float) else "N/A"
+        spy_sma200_str = f"${spy_sma200:.2f}" if isinstance(spy_sma200, float) else "N/A"
+        trend = "Bullish (above SMA-200)" if isinstance(spy_sma200, float) and spy_current > spy_sma200 else "Bearish (below SMA-200)" if isinstance(spy_sma200, float) else "N/A"
+        vix_status = "High Volatility (>30)" if isinstance(vix_current, (int, float)) and vix_current > 30 else "Normal (15-30)" if isinstance(vix_current, (int, float)) and vix_current > 15 else "Low Volatility (<15)"
+        rate_10y_str = f"{rate_10y:.2f}%" if isinstance(rate_10y, float) else str(rate_10y)
+
         return f"""=== MARKET ANALYSIS ===
 
 S&P 500 (SPY):
 - Current Price: ${spy_current:.2f}
 - Period Change: {spy_change:.2f}%
-- SMA-50: ${spy_sma50:.2f if isinstance(spy_sma50, float) else spy_sma50}
-- SMA-200: ${spy_sma200:.2f if isinstance(spy_sma200, float) else spy_sma200}
-- Trend: {"Bullish (above SMA-200)" if isinstance(spy_sma200, float) and spy_current > spy_sma200 else "Bearish (below SMA-200)" if isinstance(spy_sma200, float) else "N/A"}
+- SMA-50: {spy_sma50_str}
+- SMA-200: {spy_sma200_str}
+- Trend: {trend}
 
 NASDAQ (QQQ):
 - Current Price: ${qqq_current:.2f}
@@ -176,7 +183,7 @@ NASDAQ (QQQ):
 
 VIX (Volatility Index):
 - Current Level: {vix_current:.2f}
-- Status: {"High Volatility (>30)" if isinstance(vix_current, (int, float)) and vix_current > 30 else "Normal (15-30)" if isinstance(vix_current, (int, float)) and vix_current > 15 else "Low Volatility (<15)"}
+- Status: {vix_status}
 
 Market Breadth:
 {breadth}
@@ -185,7 +192,7 @@ Sector Performance (1 Month):
 {chr(10).join(sector_perf[:6])}
 
 Interest Rates:
-- 10-Year Treasury Yield: {rate_10y:.2f}% if isinstance(rate_10y, float) else {rate_10y}
+- 10-Year Treasury Yield: {rate_10y_str}
 """
 
 def analyst_team(symbol: str, investment_period: str) -> dict:
