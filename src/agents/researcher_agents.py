@@ -24,15 +24,38 @@ _llm = None
 def get_llm():
     global _llm
     if _llm is None:
-        # Try LLM_API_KEY first, then fall back to OPENROUTER_API_KEY
-        api_key = os.getenv('LLM_API_KEY') or os.getenv('OPENROUTER_API_KEY')
-        print(f"DEBUG: LLM API key type: {type(api_key)}, set: {bool(api_key)}")
-        _llm = ChatOpenAI(
-            model=os.getenv('LLM_BASE_MODEL', DEFAULT_MODEL_NAME),
-            api_key=api_key,
-            base_url=os.getenv('LLM_BASE_URL'),
-            temperature=0.1,
-        )
+        # Try primary LLM first, then fall back to backup
+        primary_key = os.getenv('LLM_API_KEY') or os.getenv('OPENROUTER_API_KEY')
+        backup_key = os.getenv('ZENMUX_API_KEY')
+
+        # Try primary LLM
+        try:
+            print(f"DEBUG: Trying primary LLM: {os.getenv('LLM_BASE_MODEL')} @ {os.getenv('LLM_BASE_URL')}")
+            _llm = ChatOpenAI(
+                model=os.getenv('LLM_BASE_MODEL', DEFAULT_MODEL_NAME),
+                api_key=primary_key,
+                base_url=os.getenv('LLM_BASE_URL'),
+                temperature=0.1,
+            )
+            # Test the connection
+            _llm.invoke([{"role": "user", "content": "hi"}])
+            print(f"DEBUG: Primary LLM OK")
+        except Exception as e:
+            print(f"DEBUG: Primary LLM failed: {e}")
+            print(f"DEBUG: Trying backup LLM: {os.getenv('LLM_BACKUP_MODEL')} @ {os.getenv('LLM_BACKUP_URL')}")
+            try:
+                _llm = ChatOpenAI(
+                    model=os.getenv('LLM_BACKUP_MODEL', DEFAULT_MODEL_NAME),
+                    api_key=backup_key,
+                    base_url=os.getenv('LLM_BACKUP_URL'),
+                    temperature=0.1,
+                )
+                # Test the connection
+                _llm.invoke([{"role": "user", "content": "hi"}])
+                print(f"DEBUG: Backup LLM OK")
+            except Exception as e2:
+                print(f"DEBUG: Backup LLM also failed: {e2}")
+                raise Exception(f"Both LLM providers failed. Primary: {e}, Backup: {e2}")
     return _llm
 
 BULL_SYSTEM_PROMPT = """You are a Bull Analyst advocating for investing in the stock. Your task is to build a strong, evidence-based case emphasizing growth potential, competitive advantages, and positive market indicators. Leverage the provided research and data to address concerns and counter bearish arguments effectively.
