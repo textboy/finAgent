@@ -9,4 +9,9 @@ else
   echo "ERROR: LLM API Key is not set"
   exit 1
 fi
+if [ -n "$BK_LLM_API_KEY" ]; then
+  echo "Backup LLM API Key OK"
+else
+  echo "WARNING: Backup LLM API Key is not set, backup LLM will not be available"
+fi
 exec /app/workspace/finAgent/finagent/bin/gunicorn -w 2 -k uvicorn.workers.UvicornWorker finagent_api:app --bind 0.0.0.0:8000 --timeout 480 --log-level debug
