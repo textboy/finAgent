@@ -8,12 +8,21 @@ load_dotenv(os.path.join('config', '.env'))
 
 DEFAULT_MODEL_NAME = 'x-ai/grok-beta'
 
-llm = ChatOpenAI(
-    model=os.getenv('LLM_BASE_MODEL', DEFAULT_MODEL_NAME),
-    api_key=os.getenv('LLM_API_KEY'),
-    base_url=os.getenv('LLM_BASE_URL'),
-    temperature=0.1,
-)
+# Lazy initialization of LLM to ensure env vars are loaded
+_llm = None
+
+def get_llm():
+    global _llm
+    if _llm is None:
+        # Try LLM_API_KEY first, then fall back to OPENROUTER_API_KEY
+        api_key = os.getenv('LLM_API_KEY') or os.getenv('OPENROUTER_API_KEY')
+        _llm = ChatOpenAI(
+            model=os.getenv('LLM_BASE_MODEL', DEFAULT_MODEL_NAME),
+            api_key=api_key,
+            base_url=os.getenv('LLM_BASE_URL'),
+            temperature=0.1,
+        )
+    return _llm
 
 
 INFO_SIZE = 1500
@@ -68,4 +77,4 @@ long focus on fundamental analysis and macro news sentiment analysis."""
             SystemMessage(content=system_prompt),
             HumanMessage(content=user_prompt)
         ]
-        return llm.invoke(messages).content
+        return get_llm().invoke(messages).content

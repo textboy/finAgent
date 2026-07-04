@@ -18,12 +18,22 @@ def get_period_description(investment_period: str) -> str:
     }
     return period_map.get(investment_period, investment_period)
 
-llm = ChatOpenAI(
-    model=os.getenv('LLM_BASE_MODEL', DEFAULT_MODEL_NAME),
-    api_key=os.getenv('LLM_API_KEY'),
-    base_url=os.getenv('LLM_BASE_URL'),
-    temperature=0.1,
-)
+# Lazy initialization of LLM to ensure env vars are loaded
+_llm = None
+
+def get_llm():
+    global _llm
+    if _llm is None:
+        # Try LLM_API_KEY first, then fall back to OPENROUTER_API_KEY
+        api_key = os.getenv('LLM_API_KEY') or os.getenv('OPENROUTER_API_KEY')
+        print(f"DEBUG: LLM API key type: {type(api_key)}, set: {bool(api_key)}")
+        _llm = ChatOpenAI(
+            model=os.getenv('LLM_BASE_MODEL', DEFAULT_MODEL_NAME),
+            api_key=api_key,
+            base_url=os.getenv('LLM_BASE_URL'),
+            temperature=0.1,
+        )
+    return _llm
 
 BULL_SYSTEM_PROMPT = """You are a Bull Analyst advocating for investing in the stock. Your task is to build a strong, evidence-based case emphasizing growth potential, competitive advantages, and positive market indicators. Leverage the provided research and data to address concerns and counter bearish arguments effectively.
 
@@ -64,7 +74,7 @@ Focus your analysis on the {period_desc} timeframe.
             SystemMessage(content=BULL_SYSTEM_PROMPT),
             HumanMessage(content=user_prompt)
         ]
-        return llm.invoke(messages).content
+        return get_llm().invoke(messages).content
 
 class BearishResearcher:
     @staticmethod
@@ -86,7 +96,7 @@ Focus your analysis on the {period_desc} timeframe.
             SystemMessage(content=BEAR_SYSTEM_PROMPT),
             HumanMessage(content=user_prompt)
         ]
-        return llm.invoke(messages).content
+        return get_llm().invoke(messages).content
 
 class DebateAgent:
     @staticmethod
@@ -100,7 +110,7 @@ Bear: {bear_analysis[:3000]}"""
             SystemMessage(content="You are a debate moderator. Summarize the key points from both sides and provide a balanced debate result."),
             HumanMessage(content=user_prompt)
         ]
-        return llm.invoke(messages).content
+        return get_llm().invoke(messages).content
 
 def researcher_team(analyst_insights: dict, symbol: str, investment_period: str, past_lessons: str = "") -> dict:
     print('DEBUG: researcher_team')
