@@ -27,14 +27,17 @@ SERVER_HOST = os.getenv("SERVER_HOST")
 QDRANT_PORT = os.getenv("QDRANT_PORT")
 QDRANT_PATH = os.getenv("QDRANT_PATH", "./qdrant")
 QDRANT_URL = f"http://{SERVER_HOST}/{QDRANT_PORT}"
+qrant_server_health_status = False
 
-# Qdrant is mandatory - check health on startup
+# Qdrant is optional for testing - will bypass memory if not available
 try:
     response = requests.get(f"{QDRANT_URL}/health", timeout=5)
-    if response.status_code != 200:
-        raise ConnectionError(f"Qdrant server returned status {response.status_code}")
+    if response.status_code == 200:
+        qrant_server_health_status = True
+    else:
+        print("WARNING: Qdrant server is not started, bypassing memory processing.")
 except Exception as e:
-    raise ConnectionError(f"Qdrant server is required but not available at {QDRANT_URL}: {e}")
+    print("WARNING: Qdrant server is not started, bypassing memory processing.")
 
 def get_client():
     if QDRANT_URL:
@@ -60,6 +63,8 @@ def init_collection():
 
 def store_entry(symbol: str, report_type: str, content: str, analysis_datetime: str, metadata: Dict[str, Any] = None):
     """Store an entry in Qdrant with embedding for semantic search."""
+    if not qrant_server_health_status:
+        return
     init_collection()
     if content:
         print(f'DEBUG: store_entry content-{content[:100]}...')
@@ -83,6 +88,8 @@ def store_entry(symbol: str, report_type: str, content: str, analysis_datetime: 
 
 def get_last_report(symbol: str) -> Optional[Dict[str, Any]]:
     """Get the most recent report for a symbol from Qdrant."""
+    if not qrant_server_health_status:
+        return None
     init_collection()
     filter_ = Filter(
         must=[
@@ -107,6 +114,8 @@ def get_last_report(symbol: str) -> Optional[Dict[str, Any]]:
 
 def get_past_lessons(symbol: str) -> List[str]:
     """Get past lessons learned for a symbol from Qdrant."""
+    if not qrant_server_health_status:
+        return []
     init_collection()
     filter_ = Filter(
         must=[
