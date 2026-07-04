@@ -63,6 +63,8 @@ async def analyze(req: AnalyzeRequest):
 
     def extract_final_eval():
         risk_text = extract_risk()
+        if not risk_text or risk_text.strip() == '':
+            return extract_trading()  # fallback to trader_plan when risk is skipped
         import re
         match = re.search(r"\*?Refined Trader Plan\*?[:\s]*(.*)", risk_text, re.DOTALL | re.IGNORECASE)
         if match:

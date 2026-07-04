@@ -1,3 +1,4 @@
+import os
 from typing import TypedDict, Dict, Any
 from langgraph.graph import StateGraph, END
 from datetime import datetime
@@ -36,19 +37,25 @@ def risk_node(state: AgentState) -> Dict[str, Any]:
     return {"risk_plan": plan}
 
 def create_workflow():
+    skip_risk = os.getenv('SKIP_RISK_MANAGEMENT', 'true').lower() == 'true'
+
     workflow = StateGraph(AgentState)
-    
+
     workflow.add_node("analyst", analyst_node)
     workflow.add_node("researcher", researcher_node)
     workflow.add_node("trading", trading_node)
-    workflow.add_node("risk", risk_node)
-    
+
     workflow.set_entry_point("analyst")
     workflow.add_edge("analyst", "researcher")
     workflow.add_edge("researcher", "trading")
-    workflow.add_edge("trading", "risk")
-    workflow.add_edge("risk", END)
-    
+
+    if skip_risk:
+        workflow.add_edge("trading", END)
+    else:
+        workflow.add_node("risk", risk_node)
+        workflow.add_edge("trading", "risk")
+        workflow.add_edge("risk", END)
+
     return workflow.compile()
 
 def run_workflow(symbol: str, investment_period: str) -> AgentState:
