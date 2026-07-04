@@ -9,6 +9,10 @@ import os
 import time
 import json
 from datetime import datetime
+from dotenv import load_dotenv
+
+# Load .env before importing src modules
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', 'config', '.env'))
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
@@ -60,9 +64,17 @@ def test_researcher_team(analyst_insights):
         print("   Set OPENROUTER_API_KEY in config/.env to enable LLM tests")
         return {'bull': '', 'bear': '', 'debate': ''}
 
-    start_time = time.time()
-    result = researcher_team(analyst_insights, TEST_SYMBOL, "")
-    elapsed = time.time() - start_time
+    try:
+        start_time = time.time()
+        result = researcher_team(analyst_insights, TEST_SYMBOL, "")
+        elapsed = time.time() - start_time
+    except Exception as e:
+        error_msg = str(e)
+        if 'html' in error_msg.lower() or '<!' in error_msg:
+            print("⚠️  SKIPPED: LLM API returned HTML (authentication/endpoint issue)")
+            print("   Check OPENROUTER_API_KEY and OPENROUTER_BASE_URL in config/.env")
+            return {'bull': '', 'bear': '', 'debate': ''}
+        raise
 
     print(f"Time: {elapsed:.2f}s")
     print(f"\nKeys returned: {list(result.keys())}")
@@ -91,9 +103,17 @@ def test_trading_agent(researcher_results):
         print("   Set OPENROUTER_API_KEY in config/.env to enable LLM tests")
         return ''
 
-    start_time = time.time()
-    plan = TradingAgent.decide(TEST_SYMBOL, TEST_PERIOD, researcher_results['debate'], "")
-    elapsed = time.time() - start_time
+    try:
+        start_time = time.time()
+        plan = TradingAgent.decide(TEST_SYMBOL, TEST_PERIOD, researcher_results['debate'], "")
+        elapsed = time.time() - start_time
+    except Exception as e:
+        error_msg = str(e)
+        if 'html' in error_msg.lower() or '<!' in error_msg:
+            print("⚠️  SKIPPED: LLM API returned HTML (authentication/endpoint issue)")
+            print("   Check OPENROUTER_API_KEY and OPENROUTER_BASE_URL in config/.env")
+            return ''
+        raise
 
     print(f"Time: {elapsed:.2f}s")
     print(f"\nPlan length: {len(plan)} chars")
@@ -110,9 +130,24 @@ def test_workflow_skip_risk():
     print("TEST 4: Complete Workflow (Risk Skipped)")
     print("="*60)
 
-    start_time = time.time()
-    final_state = run_workflow(TEST_SYMBOL, TEST_PERIOD)
-    elapsed = time.time() - start_time
+    # Check if API key is configured
+    api_key = os.getenv('OPENROUTER_API_KEY', '')
+    if not api_key or api_key == 'your_openrouter_api_key_here':
+        print("⚠️  SKIPPED: OPENROUTER_API_KEY not configured in .env")
+        print("   Set OPENROUTER_API_KEY in config/.env to enable workflow tests")
+        return None
+
+    try:
+        start_time = time.time()
+        final_state = run_workflow(TEST_SYMBOL, TEST_PERIOD)
+        elapsed = time.time() - start_time
+    except Exception as e:
+        error_msg = str(e)
+        if 'html' in error_msg.lower() or '<!' in error_msg:
+            print("⚠️  SKIPPED: LLM API returned HTML (authentication/endpoint issue)")
+            print("   Check OPENROUTER_API_KEY and OPENROUTER_BASE_URL in config/.env")
+            return None
+        raise
 
     print(f"Time: {elapsed:.2f}s")
     print(f"\nFinal state keys: {list(final_state.keys())}")
@@ -141,12 +176,28 @@ def test_workflow_enable_risk():
     print("TEST 5: Complete Workflow (Risk Enabled)")
     print("="*60)
 
+    # Check if API key is configured
+    api_key = os.getenv('OPENROUTER_API_KEY', '')
+    if not api_key or api_key == 'your_openrouter_api_key_here':
+        print("⚠️  SKIPPED: OPENROUTER_API_KEY not configured in .env")
+        print("   Set OPENROUTER_API_KEY in config/.env to enable workflow tests")
+        return None
+
     # Temporarily enable risk
     os.environ['SKIP_RISK_MANAGEMENT'] = 'false'
 
-    start_time = time.time()
-    final_state = run_workflow(TEST_SYMBOL, TEST_PERIOD)
-    elapsed = time.time() - start_time
+    try:
+        start_time = time.time()
+        final_state = run_workflow(TEST_SYMBOL, TEST_PERIOD)
+        elapsed = time.time() - start_time
+    except Exception as e:
+        os.environ['SKIP_RISK_MANAGEMENT'] = 'true'  # Reset
+        error_msg = str(e)
+        if 'html' in error_msg.lower() or '<!' in error_msg:
+            print("⚠️  SKIPPED: LLM API returned HTML (authentication/endpoint issue)")
+            print("   Check OPENROUTER_API_KEY and OPENROUTER_BASE_URL in config/.env")
+            return None
+        raise
 
     # Reset to default
     os.environ['SKIP_RISK_MANAGEMENT'] = 'true'
@@ -180,30 +231,55 @@ def main():
     print(f"# Test Input: {TEST_SYMBOL}, {TEST_PERIOD}")
     print("#"*60)
 
+    tests_passed = 0
+    tests_skipped = 0
+    tests_failed = 0
+
     try:
         # Test 1: Analyst Team
         analyst_insights = test_analyst_team()
+        tests_passed += 1
 
         # Test 2: Researcher Team
         researcher_results = test_researcher_team(analyst_insights)
+        if researcher_results and researcher_results.get('bull'):
+            tests_passed += 1
+        else:
+            tests_skipped += 1
 
         # Test 3: Trading Agent
         trader_plan = test_trading_agent(researcher_results)
+        if trader_plan:
+            tests_passed += 1
+        else:
+            tests_skipped += 1
 
         # Test 4: Complete Workflow (Risk Skipped)
-        test_workflow_skip_risk()
+        result4 = test_workflow_skip_risk()
+        if result4:
+            tests_passed += 1
+        else:
+            tests_skipped += 1
 
         # Test 5: Complete Workflow (Risk Enabled)
-        test_workflow_enable_risk()
+        result5 = test_workflow_enable_risk()
+        if result5:
+            tests_passed += 1
+        else:
+            tests_skipped += 1
 
         print("\n" + "#"*60)
-        print("# ALL TESTS PASSED ✓")
+        print(f"# SUMMARY: {tests_passed} passed, {tests_skipped} skipped, {tests_failed} failed")
+        if tests_skipped > 0:
+            print("# Note: LLM tests skipped - configure OPENROUTER_API_KEY in .env")
         print("#"*60)
 
     except AssertionError as e:
+        tests_failed += 1
         print(f"\n✗ TEST FAILED: {e}")
         sys.exit(1)
     except Exception as e:
+        tests_failed += 1
         print(f"\n✗ ERROR: {e}")
         import traceback
         traceback.print_exc()
