@@ -53,6 +53,13 @@ def test_researcher_team(analyst_insights):
     print("TEST 2: Researcher Team (LLM Processing)")
     print("="*60)
 
+    # Check if API key is configured
+    api_key = os.getenv('OPENROUTER_API_KEY', '')
+    if not api_key or api_key == 'your_openrouter_api_key_here':
+        print("⚠️  SKIPPED: OPENROUTER_API_KEY not configured in .env")
+        print("   Set OPENROUTER_API_KEY in config/.env to enable LLM tests")
+        return {'bull': '', 'bear': '', 'debate': ''}
+
     start_time = time.time()
     result = researcher_team(analyst_insights, TEST_SYMBOL, "")
     elapsed = time.time() - start_time
@@ -76,6 +83,13 @@ def test_trading_agent(researcher_results):
     print("\n" + "="*60)
     print("TEST 3: Trading Agent (LLM Processing)")
     print("="*60)
+
+    # Check if API key is configured
+    api_key = os.getenv('OPENROUTER_API_KEY', '')
+    if not api_key or api_key == 'your_openrouter_api_key_here':
+        print("⚠️  SKIPPED: OPENROUTER_API_KEY not configured in .env")
+        print("   Set OPENROUTER_API_KEY in config/.env to enable LLM tests")
+        return ''
 
     start_time = time.time()
     plan = TradingAgent.decide(TEST_SYMBOL, TEST_PERIOD, researcher_results['debate'], "")
