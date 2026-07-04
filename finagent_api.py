@@ -57,20 +57,7 @@ async def analyze(req: AnalyzeRequest):
 
     def extract_trading():
         return state['trader_plan']
-    
-    def extract_risk():
-        return state['risk_plan']
 
-    def extract_final_eval():
-        risk_text = extract_risk()
-        if not risk_text or risk_text.strip() == '':
-            return extract_trading()  # fallback to trader_plan when risk is skipped
-        import re
-        match = re.search(r"\*?Refined Trader Plan\*?[:\s]*(.*)", risk_text, re.DOTALL | re.IGNORECASE)
-        if match:
-            return match.group(1).strip()
-        return risk_text  # fallback to full risk plan
-    
     reports = {
         "fundamentals": extract_analyst('fundamentals'),
         "sentiment": extract_analyst('sentiment'),
@@ -78,8 +65,6 @@ async def analyze(req: AnalyzeRequest):
         "pastLessons": state.get('past_lessons', ''),
         "research": extract_research('debate'),
         "trading": extract_trading(),
-        "risk": extract_risk(),
-        "finalEval": extract_final_eval(),
     }
     return {
         "reports": reports,
