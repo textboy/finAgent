@@ -1,7 +1,19 @@
+import os
+from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from ..utils.qdrant_utils import get_past_lessons
-from .analyst_agents import llm  # reuse llm
+
+load_dotenv(os.path.join('config', '.env'))
+
+DEFAULT_MODEL_NAME = 'x-ai/grok-beta'
+
+llm = ChatOpenAI(
+    model=os.getenv('MODEL_NAME', DEFAULT_MODEL_NAME),
+    api_key=os.getenv('OPENROUTER_API_KEY'),
+    base_url=os.getenv('OPENROUTER_BASE_URL'),
+    temperature=0.1,
+)
 
 BULL_SYSTEM_PROMPT = """You are a Bull Analyst advocating for investing in the stock. Your task is to build a strong, evidence-based case emphasizing growth potential, competitive advantages, and positive market indicators. Leverage the provided research and data to address concerns and counter bearish arguments effectively.
 
