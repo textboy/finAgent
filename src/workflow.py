@@ -6,7 +6,6 @@ from .agents.researcher_agents import researcher_team
 from .agents.trading_risk_agents import TradingAgent, RiskManagementAgent
 from .utils.qdrant_utils import get_past_lessons
 from .utils.data_fetchers import DataFetcher
-from .agents.analyst_agents import llm  # for lesson
 
 fetcher = DataFetcher()
 
