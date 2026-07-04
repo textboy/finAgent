@@ -29,8 +29,6 @@ except (ValueError, TypeError) as e:
 
 app = FastAPI(title="FinAgent API")
 
-app.mount("/static", StaticFiles(directory="results"), name="static")
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3001", "http://127.0.0.1:3001", f"http://{SERVER_HOST}:3001", f"http://{SERVER_HOST}:4173"],
@@ -38,6 +36,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.mount("/static", StaticFiles(directory="results"), name="static")
 
 class AnalyzeRequest(BaseModel):
     symbol: str
