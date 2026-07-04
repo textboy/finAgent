@@ -8,6 +8,16 @@ load_dotenv(os.path.join('config', '.env'))
 
 DEFAULT_MODEL_NAME = 'x-ai/grok-beta'
 
+def get_period_description(investment_period: str) -> str:
+    """Convert period code to descriptive timeframe."""
+    period_map = {
+        "short+": "Short+ (1-7 days)",
+        "short": "Short (1-4 weeks)",
+        "medium": "Medium (1-6 months)",
+        "long": "Long (6+ months)"
+    }
+    return period_map.get(investment_period, investment_period)
+
 llm = ChatOpenAI(
     model=os.getenv('LLM_BASE_MODEL', DEFAULT_MODEL_NAME),
     api_key=os.getenv('LLM_API_KEY'),
@@ -37,14 +47,15 @@ Key points to focus on:
 class BullishResearcher:
     @staticmethod
     def analyze(symbol: str, investment_period: str, fundamentals_report: str, sentiment_report: str, technical_report: str, memory: str = "") -> str:
-        user_prompt = f"""provide a bullish analysis for {symbol} with analysis period: {investment_period}
+        period_desc = get_period_description(investment_period)
+        user_prompt = f"""provide a bullish analysis for {symbol} with analysis period: {period_desc}
 Resources available:
 Company fundamentals report: {fundamentals_report}
 news sentiment report: {sentiment_report}
 Market research report: {technical_report}
 Report history of the debate: {memory}
 Use this information to deliver a compelling bull argument, refute the bear's concerns, and engage in a dynamic debate that demonstrates the strengths of the bull position. You must also address reflections and learn from lessons and mistakes you made in the past.
-Focus your analysis on the {investment_period} timeframe.
+Focus your analysis on the {period_desc} timeframe.
 """
 
         messages = [
@@ -56,14 +67,15 @@ Focus your analysis on the {investment_period} timeframe.
 class BearishResearcher:
     @staticmethod
     def analyze(symbol: str, investment_period: str, fundamentals_report: str, sentiment_report: str, technical_report: str, memory: str = "") -> str:
-        user_prompt = f"""provide a bearish analysis for {symbol} with analysis period: {investment_period}
+        period_desc = get_period_description(investment_period)
+        user_prompt = f"""provide a bearish analysis for {symbol} with analysis period: {period_desc}
 Resources available:
 Company fundamentals report: {fundamentals_report}
 news sentiment report: {sentiment_report}
 Market research report: {technical_report}
 Report history of the debate: {memory}
 Use this information to deliver a compelling bear argument, refute the bull's claims, and engage in a dynamic debate that demonstrates the risks and weaknesses of investing in the stock. You must also address reflections and learn from lessons and mistakes you made in the past.
-Focus your analysis on the {investment_period} timeframe.
+Focus your analysis on the {period_desc} timeframe.
 """
 
         messages = [
@@ -75,7 +87,8 @@ Focus your analysis on the {investment_period} timeframe.
 class DebateAgent:
     @staticmethod
     def summarize(bull_analysis: str, bear_analysis: str, investment_period: str) -> str:
-        user_prompt = f"""provide debate result based on both bullish analysis and bearish analysis for {investment_period} timeframe.
+        period_desc = get_period_description(investment_period)
+        user_prompt = f"""provide debate result based on both bullish analysis and bearish analysis for {period_desc} timeframe.
 Bull: {bull_analysis[:3000]}
 Bear: {bear_analysis[:3000]}"""
 

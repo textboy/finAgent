@@ -17,18 +17,20 @@ llm = ChatOpenAI(
 
 
 INFO_SIZE = 1500
+
 def get_forecast_period(investmentPeriod: str) -> str:
+    """Convert period code to descriptive timeframe."""
     interval_map = {
-        "short+": "within 2 weeks",
-        "short": "2 weeks to 1 month",
-        "medium": "from 1 month to 1 year",
-        "long": "from 1 year to 2 years"
+        "short+": "Short+ (1-7 days)",
+        "short": "Short (1-4 weeks)",
+        "medium": "Medium (1-6 months)",
+        "long": "Long (6+ months)"
     }
     try:
         return interval_map[investmentPeriod]
     except KeyError:
         print(f"WARNING: The key {investmentPeriod} is not correct")
-        return "1 year"
+        return "Medium (1-6 months)"
 
 class TradingAgent:
     @staticmethod
