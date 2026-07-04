@@ -194,6 +194,28 @@ function App() {
                 </button>
               </div>
             </div>
+
+            {/* Period Description */}
+            <div className="pt-4 border-t border-slate-800/50">
+              <div className="flex flex-wrap gap-4 text-xs text-slate-500">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 bg-cyan-500 rounded-full"></span>
+                  Short+: 1-7 days
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 bg-cyan-500 rounded-full"></span>
+                  Short: 1-4 weeks
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 bg-cyan-500 rounded-full"></span>
+                  Medium: 1-6 months
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 bg-cyan-500 rounded-full"></span>
+                  Long: 6+ months
+                </span>
+              </div>
+            </div>
           </div>
         </section>
 
