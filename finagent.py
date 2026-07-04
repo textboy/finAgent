@@ -1,11 +1,15 @@
 import os
 from datetime import datetime
+from dotenv import load_dotenv
 from src.workflow import run_workflow
 from src.utils.qdrant_utils import store_entry
 
+load_dotenv(os.path.join('config', '.env'))
+RUN_MODE = os.getenv("RUN_MODE", "local")
+
 def main(symbol: str, period: str):
     state = run_workflow(symbol, period)
-    
+
     os.makedirs('results', exist_ok=True)
     timestamp = datetime.now().strftime('%Y%m%d_%H%M')
     result_file = f'results/result_{timestamp}.md'
@@ -28,20 +32,17 @@ def main(symbol: str, period: str):
             f.write(f"{value}\\n\\n")
         f.write("## <span style='color: #cfa923;'>3. Trading Plan</span>\\n")
         f.write(f"{state['trader_plan']}\\n\\n")
-        f.write("## <span style='color: #cfa923;'>4. Risk Management</span>\\n")
-        f.write(f"{state['risk_plan']}")
-    
+
     store_entry(
-        symbol, 
-        'report', 
-        state['risk_plan'], 
-        state['timestamp'], 
+        symbol,
+        'report',
+        state['trader_plan'],
+        state['timestamp'],
         {
             'period': period,
             'analyst_insights': state['analyst_insights'],
             'researcher_results': state['researcher_results'],
-            'trader_plan': state['trader_plan'],
-            'risk_plan': state['risk_plan']
+            'trader_plan': state['trader_plan']
         }
     )
     return state, result_file
