@@ -9,9 +9,9 @@ load_dotenv(os.path.join('config', '.env'))
 DEFAULT_MODEL_NAME = 'x-ai/grok-beta'
 
 llm = ChatOpenAI(
-    model=os.getenv('MODEL_NAME', DEFAULT_MODEL_NAME),
+    model=os.getenv('LLM_BASE_MODEL', DEFAULT_MODEL_NAME),
     api_key=os.getenv('OPENROUTER_API_KEY'),
-    base_url=os.getenv('OPENROUTER_BASE_URL'),
+    base_url=os.getenv('LLM_BASE_URL'),
     temperature=0.1,
 )
 

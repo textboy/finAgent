@@ -72,7 +72,7 @@ def test_researcher_team(analyst_insights):
         error_msg = str(e)
         if 'html' in error_msg.lower() or '<!' in error_msg:
             print("⚠️  SKIPPED: LLM API returned HTML (authentication/endpoint issue)")
-            print("   Check OPENROUTER_API_KEY and OPENROUTER_BASE_URL in config/.env")
+            print("   Check OPENROUTER_API_KEY and LLM_BASE_URL in config/.env")
             return {'bull': '', 'bear': '', 'debate': ''}
         raise
 
@@ -111,7 +111,7 @@ def test_trading_agent(researcher_results):
         error_msg = str(e)
         if 'html' in error_msg.lower() or '<!' in error_msg:
             print("⚠️  SKIPPED: LLM API returned HTML (authentication/endpoint issue)")
-            print("   Check OPENROUTER_API_KEY and OPENROUTER_BASE_URL in config/.env")
+            print("   Check OPENROUTER_API_KEY and LLM_BASE_URL in config/.env")
             return ''
         raise
 
@@ -145,7 +145,7 @@ def test_workflow_skip_risk():
         error_msg = str(e)
         if 'html' in error_msg.lower() or '<!' in error_msg:
             print("⚠️  SKIPPED: LLM API returned HTML (authentication/endpoint issue)")
-            print("   Check OPENROUTER_API_KEY and OPENROUTER_BASE_URL in config/.env")
+            print("   Check OPENROUTER_API_KEY and LLM_BASE_URL in config/.env")
             return None
         raise
 
@@ -195,7 +195,7 @@ def test_workflow_enable_risk():
         error_msg = str(e)
         if 'html' in error_msg.lower() or '<!' in error_msg:
             print("⚠️  SKIPPED: LLM API returned HTML (authentication/endpoint issue)")
-            print("   Check OPENROUTER_API_KEY and OPENROUTER_BASE_URL in config/.env")
+            print("   Check OPENROUTER_API_KEY and LLM_BASE_URL in config/.env")
             return None
         raise
 

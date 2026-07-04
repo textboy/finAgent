@@ -10,7 +10,7 @@ metadata = {"analyst_name": "reportA"}
 load_dotenv(os.path.join('config', '.env'))
 
 openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
-openrouter_base = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+openrouter_base = os.getenv("LLM_BASE_URL", "https://openrouter.ai/api/v1")
 
 embeddings = OpenAIEmbeddings(
     model=os.getenv('EMBEDDING_MODEL_NAME'),
