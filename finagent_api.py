@@ -62,6 +62,7 @@ async def analyze(req: AnalyzeRequest):
         "fundamentals": extract_analyst('fundamentals'),
         "sentiment": extract_analyst('sentiment'),
         "technical": extract_analyst('technical'),
+        "market": extract_analyst('market'),
         "pastLessons": state.get('past_lessons', ''),
         "research": extract_research('debate'),
         "trading": extract_trading(),

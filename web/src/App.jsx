@@ -55,6 +55,7 @@ function App() {
     { key: 'fundamentals', label: 'Fundamentals', icon: '📊', color: 'from-blue-500 to-cyan-500' },
     { key: 'sentiment', label: 'Sentiment', icon: '💬', color: 'from-emerald-500 to-teal-500' },
     { key: 'technical', label: 'Technical', icon: '📈', color: 'from-purple-500 to-pink-500' },
+    { key: 'market', label: 'Market Overview', icon: '🌍', color: 'from-orange-500 to-red-500' },
     { key: 'pastLessons', label: 'Past Lessons', icon: '📚', color: 'from-yellow-500 to-amber-500' },
     { key: 'research', label: 'Research Debate', icon: '🧠', color: 'from-amber-500 to-orange-500' },
     { key: 'trading', label: 'Trading Plan', icon: '🎯', color: 'from-indigo-500 to-blue-500' },

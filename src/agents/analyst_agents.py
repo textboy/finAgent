@@ -68,10 +68,131 @@ MACD: {macd_out}
 VWAP: {vwap_out}
 """
 
+class MarketAnalyst:
+    @staticmethod
+    def analyze(investment_period: str) -> str:
+        """Fetch market-level data from yfinance API."""
+        import yfinance as yf
+        import pandas as pd
+
+        # Get period string for yfinance
+        period_map = {
+            "short+": "5d",
+            "short": "1mo",
+            "medium": "6mo",
+            "long": "2y"
+        }
+        period = period_map.get(investment_period, "6mo")
+
+        # Major indices
+        spy = yf.Ticker("SPY")
+        qqq = yf.Ticker("QQQ")
+        vix = yf.Ticker("^VIX")
+
+        # Get historical data
+        spy_hist = spy.history(period=period)
+        qqq_hist = qqq.history(period=period)
+        vix_hist = vix.history(period="5d")  # VIX only needs short term
+
+        # S&P 500 analysis
+        spy_current = spy_hist['Close'].iloc[-1] if not spy_hist.empty else "N/A"
+        spy_change = ((spy_hist['Close'].iloc[-1] - spy_hist['Close'].iloc[0]) / spy_hist['Close'].iloc[0] * 100) if len(spy_hist) > 1 else 0
+        spy_sma50 = spy_hist['Close'].rolling(50).mean().iloc[-1] if len(spy_hist) >= 50 else "N/A"
+        spy_sma200 = spy_hist['Close'].rolling(200).mean().iloc[-1] if len(spy_hist) >= 200 else "N/A"
+
+        # NASDAQ analysis
+        qqq_current = qqq_hist['Close'].iloc[-1] if not qqq_hist.empty else "N/A"
+        qqq_change = ((qqq_hist['Close'].iloc[-1] - qqq_hist['Close'].iloc[0]) / qqq_hist['Close'].iloc[0] * 100) if len(qqq_hist) > 1 else 0
+
+        # VIX (Volatility Index)
+        vix_current = vix_hist['Close'].iloc[-1] if not vix_hist.empty else "N/A"
+        vix_prev = vix_hist['Close'].iloc[0] if len(vix_hist) > 1 else vix_current
+
+        # Market breadth (advance/decline from SPY components)
+        try:
+            spy_tickers = spy.component_symbols if hasattr(spy, 'component_symbols') else []
+            advancers = 0
+            decliners = 0
+            for ticker in spy_tickers[:50]:  # Sample top 50
+                try:
+                    t = yf.Ticker(ticker)
+                    h = t.history(period="2d")
+                    if len(h) >= 2:
+                        if h['Close'].iloc[-1] > h['Close'].iloc[-2]:
+                            advancers += 1
+                        else:
+                            decliners += 1
+                except:
+                    pass
+            breadth = f"Advancers: {advancers}, Decliners: {decliners}, A/D Ratio: {advancers/decliners if decliners > 0 else 'N/A'}"
+        except:
+            breadth = "Market breadth data unavailable"
+
+        # Sector performance (XLK, XLF, XLV, XLE, XLI, XLC, XLY, XLP, XLU, XLRE, XLB)
+        sectors = {
+            "XLK": "Technology",
+            "XLF": "Financials",
+            "XLV": "Healthcare",
+            "XLE": "Energy",
+            "XLI": "Industrials",
+            "XLC": "Communication",
+            "XLY": "Consumer Discretionary",
+            "XLP": "Consumer Staples",
+            "XLU": "Utilities",
+            "XLRE": "Real Estate",
+            "XLB": "Materials"
+        }
+        sector_perf = []
+        for ticker, name in sectors.items():
+            try:
+                t = yf.Ticker(ticker)
+                h = t.history(period="1mo")
+                if len(h) >= 2:
+                    perf = (h['Close'].iloc[-1] - h['Close'].iloc[0]) / h['Close'].iloc[0] * 100
+                    sector_perf.append(f"{name}: {perf:.2f}%")
+            except:
+                pass
+
+        # Interest rates (10-year Treasury)
+        try:
+            tnx = yf.Ticker("^TNX")
+            tnx_hist = tnx.history(period="1mo")
+            rate_10y = tnx_hist['Close'].iloc[-1] if not tnx_hist.empty else "N/A"
+        except:
+            rate_10y = "N/A"
+
+        return f"""=== MARKET ANALYSIS ===
+
+S&P 500 (SPY):
+- Current Price: ${spy_current:.2f}
+- Period Change: {spy_change:.2f}%
+- SMA-50: ${spy_sma50:.2f if isinstance(spy_sma50, float) else spy_sma50}
+- SMA-200: ${spy_sma200:.2f if isinstance(spy_sma200, float) else spy_sma200}
+- Trend: {"Bullish (above SMA-200)" if isinstance(spy_sma200, float) and spy_current > spy_sma200 else "Bearish (below SMA-200)" if isinstance(spy_sma200, float) else "N/A"}
+
+NASDAQ (QQQ):
+- Current Price: ${qqq_current:.2f}
+- Period Change: {qqq_change:.2f}%
+
+VIX (Volatility Index):
+- Current Level: {vix_current:.2f}
+- Status: {"High Volatility (>30)" if isinstance(vix_current, (int, float)) and vix_current > 30 else "Normal (15-30)" if isinstance(vix_current, (int, float)) and vix_current > 15 else "Low Volatility (<15)"}
+
+Market Breadth:
+{breadth}
+
+Sector Performance (1 Month):
+{chr(10).join(sector_perf[:6])}
+
+Interest Rates:
+- 10-Year Treasury Yield: {rate_10y:.2f}% if isinstance(rate_10y, float) else {rate_10y}
+"""
+
 def analyst_team(symbol: str, investment_period: str) -> dict:
     """Run all analyst agents and return raw API data (no LLM calls)."""
     return {
         'fundamentals': FundamentalsAnalyst.analyze(symbol, investment_period),
         'sentiment': SentimentAnalyst.analyze(symbol),
         'technical': TechnicalAnalyst.analyze(symbol, investment_period),
+        'market': MarketAnalyst.analyze(investment_period),
     }
