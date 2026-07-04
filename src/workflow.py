@@ -29,11 +29,11 @@ def researcher_node(state: AgentState) -> Dict[str, Any]:
     return {"researcher_results": results}
 
 def trading_node(state: AgentState) -> Dict[str, Any]:
-    plan = TradingAgent.decide(state["symbol"], state["investment_period"], state["researcher_results"]["debate"], state["past_lessons"])
+    plan = TradingAgent.decide(state["symbol"], state["investment_period"], state["researcher_results"]["debate"])
     return {"trader_plan": plan}
 
 def risk_node(state: AgentState) -> Dict[str, Any]:
-    plan = RiskManagementAgent.evaluate(state["symbol"], state["investment_period"], state["analyst_insights"], state["researcher_results"], state["trader_plan"], state["past_lessons"])
+    plan = RiskManagementAgent.evaluate(state["symbol"], state["investment_period"], state["analyst_insights"], state["researcher_results"], state["trader_plan"])
     return {"risk_plan": plan}
 
 def create_workflow():
