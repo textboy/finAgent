@@ -11,7 +11,7 @@ import uuid
 DEFAULT_EMBEDDING_MODEL_NAME = 'qwen/qwen3-embedding-8b'
 load_dotenv(os.path.join('config', '.env'))
 
-openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
+openrouter_api_key = os.getenv("LLM_API_KEY")
 openrouter_base = os.getenv("LLM_BASE_URL", "https://openrouter.ai/api/v1")
 COLL_NAME = 'finagent_reports'
 

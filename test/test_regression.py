@@ -58,10 +58,10 @@ def test_researcher_team(analyst_insights):
     print("="*60)
 
     # Check if API key is configured
-    api_key = os.getenv('OPENROUTER_API_KEY', '')
+    api_key = os.getenv('LLM_API_KEY', '')
     if not api_key or api_key == 'your_openrouter_api_key_here':
-        print("⚠️  SKIPPED: OPENROUTER_API_KEY not configured in .env")
-        print("   Set OPENROUTER_API_KEY in config/.env to enable LLM tests")
+        print("⚠️  SKIPPED: LLM_API_KEY not configured in .env")
+        print("   Set LLM_API_KEY in config/.env to enable LLM tests")
         return {'bull': '', 'bear': '', 'debate': ''}
 
     try:
@@ -72,7 +72,7 @@ def test_researcher_team(analyst_insights):
         error_msg = str(e)
         if 'html' in error_msg.lower() or '<!' in error_msg:
             print("⚠️  SKIPPED: LLM API returned HTML (authentication/endpoint issue)")
-            print("   Check OPENROUTER_API_KEY and LLM_BASE_URL in config/.env")
+            print("   Check LLM_API_KEY and LLM_BASE_URL in config/.env")
             return {'bull': '', 'bear': '', 'debate': ''}
         raise
 
@@ -97,10 +97,10 @@ def test_trading_agent(researcher_results):
     print("="*60)
 
     # Check if API key is configured
-    api_key = os.getenv('OPENROUTER_API_KEY', '')
+    api_key = os.getenv('LLM_API_KEY', '')
     if not api_key or api_key == 'your_openrouter_api_key_here':
-        print("⚠️  SKIPPED: OPENROUTER_API_KEY not configured in .env")
-        print("   Set OPENROUTER_API_KEY in config/.env to enable LLM tests")
+        print("⚠️  SKIPPED: LLM_API_KEY not configured in .env")
+        print("   Set LLM_API_KEY in config/.env to enable LLM tests")
         return ''
 
     try:
@@ -111,7 +111,7 @@ def test_trading_agent(researcher_results):
         error_msg = str(e)
         if 'html' in error_msg.lower() or '<!' in error_msg:
             print("⚠️  SKIPPED: LLM API returned HTML (authentication/endpoint issue)")
-            print("   Check OPENROUTER_API_KEY and LLM_BASE_URL in config/.env")
+            print("   Check LLM_API_KEY and LLM_BASE_URL in config/.env")
             return ''
         raise
 
@@ -131,10 +131,10 @@ def test_workflow_skip_risk():
     print("="*60)
 
     # Check if API key is configured
-    api_key = os.getenv('OPENROUTER_API_KEY', '')
+    api_key = os.getenv('LLM_API_KEY', '')
     if not api_key or api_key == 'your_openrouter_api_key_here':
-        print("⚠️  SKIPPED: OPENROUTER_API_KEY not configured in .env")
-        print("   Set OPENROUTER_API_KEY in config/.env to enable workflow tests")
+        print("⚠️  SKIPPED: LLM_API_KEY not configured in .env")
+        print("   Set LLM_API_KEY in config/.env to enable workflow tests")
         return None
 
     try:
@@ -145,7 +145,7 @@ def test_workflow_skip_risk():
         error_msg = str(e)
         if 'html' in error_msg.lower() or '<!' in error_msg:
             print("⚠️  SKIPPED: LLM API returned HTML (authentication/endpoint issue)")
-            print("   Check OPENROUTER_API_KEY and LLM_BASE_URL in config/.env")
+            print("   Check LLM_API_KEY and LLM_BASE_URL in config/.env")
             return None
         raise
 
@@ -177,10 +177,10 @@ def test_workflow_enable_risk():
     print("="*60)
 
     # Check if API key is configured
-    api_key = os.getenv('OPENROUTER_API_KEY', '')
+    api_key = os.getenv('LLM_API_KEY', '')
     if not api_key or api_key == 'your_openrouter_api_key_here':
-        print("⚠️  SKIPPED: OPENROUTER_API_KEY not configured in .env")
-        print("   Set OPENROUTER_API_KEY in config/.env to enable workflow tests")
+        print("⚠️  SKIPPED: LLM_API_KEY not configured in .env")
+        print("   Set LLM_API_KEY in config/.env to enable workflow tests")
         return None
 
     # Temporarily enable risk
@@ -195,7 +195,7 @@ def test_workflow_enable_risk():
         error_msg = str(e)
         if 'html' in error_msg.lower() or '<!' in error_msg:
             print("⚠️  SKIPPED: LLM API returned HTML (authentication/endpoint issue)")
-            print("   Check OPENROUTER_API_KEY and LLM_BASE_URL in config/.env")
+            print("   Check LLM_API_KEY and LLM_BASE_URL in config/.env")
             return None
         raise
 
@@ -271,7 +271,7 @@ def main():
         print("\n" + "#"*60)
         print(f"# SUMMARY: {tests_passed} passed, {tests_skipped} skipped, {tests_failed} failed")
         if tests_skipped > 0:
-            print("# Note: LLM tests skipped - configure OPENROUTER_API_KEY in .env")
+            print("# Note: LLM tests skipped - configure LLM_API_KEY in .env")
         print("#"*60)
 
     except AssertionError as e:
