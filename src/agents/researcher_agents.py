@@ -46,15 +46,17 @@ Key points to focus on:
 
 class BullishResearcher:
     @staticmethod
-    def analyze(symbol: str, investment_period: str, fundamentals_report: str, sentiment_report: str, technical_report: str, memory: str = "") -> str:
+    def analyze(symbol: str, investment_period: str, fundamentals_report: str, sentiment_report: str, technical_report: str, market_report: str, memory: str = "") -> str:
         period_desc = get_period_description(investment_period)
         user_prompt = f"""provide a bullish analysis for {symbol} with analysis period: {period_desc}
 Resources available:
 Company fundamentals report: {fundamentals_report}
-news sentiment report: {sentiment_report}
-Market research report: {technical_report}
+News sentiment report: {sentiment_report}
+Technical analysis report: {technical_report}
+Market overview report: {market_report}
 Report history of the debate: {memory}
 Use this information to deliver a compelling bull argument, refute the bear's concerns, and engage in a dynamic debate that demonstrates the strengths of the bull position. You must also address reflections and learn from lessons and mistakes you made in the past.
+Consider the overall market conditions (S&P 500, NASDAQ, VIX, sector performance) when making your case.
 Focus your analysis on the {period_desc} timeframe.
 """
 
@@ -66,15 +68,17 @@ Focus your analysis on the {period_desc} timeframe.
 
 class BearishResearcher:
     @staticmethod
-    def analyze(symbol: str, investment_period: str, fundamentals_report: str, sentiment_report: str, technical_report: str, memory: str = "") -> str:
+    def analyze(symbol: str, investment_period: str, fundamentals_report: str, sentiment_report: str, technical_report: str, market_report: str, memory: str = "") -> str:
         period_desc = get_period_description(investment_period)
         user_prompt = f"""provide a bearish analysis for {symbol} with analysis period: {period_desc}
 Resources available:
 Company fundamentals report: {fundamentals_report}
-news sentiment report: {sentiment_report}
-Market research report: {technical_report}
+News sentiment report: {sentiment_report}
+Technical analysis report: {technical_report}
+Market overview report: {market_report}
 Report history of the debate: {memory}
 Use this information to deliver a compelling bear argument, refute the bull's claims, and engage in a dynamic debate that demonstrates the risks and weaknesses of investing in the stock. You must also address reflections and learn from lessons and mistakes you made in the past.
+Consider the overall market conditions (S&P 500, NASDAQ, VIX, sector performance) when making your case.
 Focus your analysis on the {period_desc} timeframe.
 """
 
@@ -103,11 +107,12 @@ def researcher_team(analyst_insights: dict, symbol: str, investment_period: str,
     fundamentals = analyst_insights['fundamentals']
     sentiment = analyst_insights['sentiment']
     technical = analyst_insights['technical']
+    market = analyst_insights.get('market', '')
 
     memory = past_lessons  # or accumulate debate history
 
-    bull = BullishResearcher.analyze(symbol, investment_period, fundamentals, sentiment, technical, memory)
-    bear = BearishResearcher.analyze(symbol, investment_period, fundamentals, sentiment, technical, memory + f"\\nPrevious bull: {bull[-500:]}")  # simple memory
+    bull = BullishResearcher.analyze(symbol, investment_period, fundamentals, sentiment, technical, market, memory)
+    bear = BearishResearcher.analyze(symbol, investment_period, fundamentals, sentiment, technical, market, memory + f"\\nPrevious bull: {bull[-500:]}")  # simple memory
 
     debate = DebateAgent.summarize(bull, bear, investment_period)
 
