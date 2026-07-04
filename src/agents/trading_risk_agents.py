@@ -16,7 +16,7 @@ def get_llm():
     if _llm is None:
         # Try primary LLM first, then fall back to backup
         primary_key = os.getenv('LLM_API_KEY') or os.getenv('OPENROUTER_API_KEY')
-        backup_key = os.getenv('ZENMUX_API_KEY')
+        backup_key = os.getenv('BK_LLM_API_KEY')
 
         # Try primary LLM
         try:
