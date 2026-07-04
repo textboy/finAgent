@@ -6,19 +6,6 @@ from ..utils.technical_indicators import calculate_macd, calculate_vwap
 
 fetcher = DataFetcher()
 
-def get_alpha_vantage_interval(investmentPeriod: str) -> str:
-    interval_map = {
-        "short+": "30min",
-        "short": "daily",
-        "medium": "weekly",
-        "long": "monthly"
-    }
-    try:
-        return interval_map[investmentPeriod]
-    except KeyError:
-        print(f"WARNING: The key {investmentPeriod} is not correct in get_alpha_vantage_interval")
-        return "weekly"
-
 def get_yf_interval(investmentPeriod: str) -> str:
     interval_map = {
         "short+": "30m",
@@ -46,7 +33,7 @@ def get_yf_period(investmentPeriod: str) -> str:
         return "9mo"
     
 def get_company_overview(symbol: str) -> str:
-    """Get company overview and financial ratios from AlphaVantage."""
+    """Get company overview and financial ratios from yfinance."""
     data, meta = fetcher.get_company_overview(symbol)
     if data is None:
         return None
@@ -89,12 +76,16 @@ def get_news_sentiment(symbol: str) -> str:
     return data
 
 def get_macro_news_sentiment(topic: str) -> str:
-    """Get news sentiment for the stock."""
-    print(f'DEBUG: get_news_sentiment_by_topic(Alpha Vantage) with topic {topic}')
+    """Get macro news sentiment using yfinance."""
+    print(f'DEBUG: get_macro_news_sentiment(yFinance) with topic {topic}')
     data, meta = fetcher.get_macro_news_sentiment(topic)
-    if data is None:
+    if not data:
         return "No data"
-    return f"{data['url']}"
+    # Format the news data
+    news_items = []
+    for item in data[:10]:  # Limit to 10 items
+        news_items.append(f"- {item.get('title', 'N/A')} ({item.get('source', '')})")
+    return "\n".join(news_items)
 
 def download_yf_data(symbol: str) -> pd.DataFrame:
     print(f'DEBUG: Download historical market data from yFinance - symbol {symbol}')

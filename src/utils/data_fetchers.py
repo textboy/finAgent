@@ -3,34 +3,26 @@ from dotenv import load_dotenv
 from typing import Dict, Any, Tuple, Optional
 import pandas as pd
 from datetime import datetime, timedelta
-from alpha_vantage.fundamentaldata import FundamentalData
-from alpha_vantage.techindicators import TechIndicators
-from alpha_vantage.timeseries import TimeSeries
-from alpha_vantage.alphaintelligence import AlphaIntelligence
 import yfinance as yf
 import time
 
 load_dotenv(os.path.join('config', '.env'))
 
-ALPHA_VANTAGE_API_KEY = os.getenv('ALPHA_VANTAGE_API_KEY')
-
 class DataFetcher:
     def __init__(self, api_key: Optional[str] = None):
-        self.api_key = api_key or ALPHA_VANTAGE_API_KEY
-        if not self.api_key:
-            raise ValueError('ALPHA_VANTAGE_API_KEY not set')
-        self.fd = FundamentalData(key=self.api_key, output_format='pandas')
-        self.ti = TechIndicators(key=self.api_key, output_format='pandas')
-        self.ts = TimeSeries(key=self.api_key, output_format='pandas')
-        self.ns = AlphaIntelligence(key=self.api_key, output_format='pandas')
+        # Alpha Vantage no longer required - using yfinance for all data
+        pass
 
     def get_company_overview(self, symbol: str) -> Tuple[pd.DataFrame, Dict]:
-        # Get company overview. Some symbol no company overview, e.g. GLD
-        time.sleep(1.2)
+        """Get company overview using yfinance."""
         try:
-            data, meta = self.fd.get_company_overview(symbol=symbol)
+            ticker = yf.Ticker(symbol)
+            info = ticker.info
+            # Convert info dict to a format similar to Alpha Vantage
+            data = pd.DataFrame([info])
+            meta = {'source': 'yfinance'}
             return data, meta
-        except ValueError as e:
+        except Exception as e:
             print(f"No company overview found for {symbol}, bypassing...")
             return None, {}
 
@@ -68,18 +60,28 @@ class DataFetcher:
         meta = {'source': 'yfinance'}
         return urlList, meta
     
-    def get_macro_news_sentiment(self, topic: str, days_back: int = 30, limit: int = 20) -> Tuple[pd.DataFrame, Dict]:
-        time.sleep(1.2)
-        time_to = datetime.now()
-        time_from = time_to - timedelta(days=days_back)
-        data, meta = self.ns.get_news_sentiment(
-            topics=topic,
-            time_from=time_from.strftime('%Y%m%dT%H%M'),
-            time_to=time_to.strftime('%Y%m%dT%H%M'),
-            sort='LATEST',
-            limit=limit
-        )
-        return data, meta
+    def get_macro_news_sentiment(self, topic: str, days_back: int = 30, limit: int = 20) -> Tuple[list, Dict]:
+        """Get macro news sentiment using yfinance (no Alpha Vantage needed)."""
+        # Use yfinance to get market-related news
+        macro_tickers = ['SPY', 'QQQ', 'DIA']  # Major indices
+        all_news = []
+
+        for ticker_symbol in macro_tickers:
+            try:
+                ticker = yf.Ticker(ticker_symbol)
+                news = ticker.news[:limit//len(macro_tickers)]
+                for item in news:
+                    if 'content' in item and 'canonicalUrl' in item['content']:
+                        all_news.append({
+                            'title': item.get('title', ''),
+                            'url': item['content']['canonicalUrl']['url'],
+                            'source': ticker_symbol
+                        })
+            except Exception as e:
+                print(f"Warning: Could not fetch news for {ticker_symbol}: {e}")
+
+        meta = {'source': 'yfinance', 'topic': topic}
+        return all_news[:limit], meta
 
     def download_yf_data(self, symbol: str) -> pd.DataFrame:
         # download 3 years data

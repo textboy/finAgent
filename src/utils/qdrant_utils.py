@@ -11,8 +11,8 @@ import uuid
 DEFAULT_EMBEDDING_MODEL_NAME = 'qwen/qwen3-embedding-8b'
 load_dotenv(os.path.join('config', '.env'))
 
-openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
-openrouter_base = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+openrouter_api_key = os.getenv("LLM_API_KEY")
+openrouter_base = os.getenv("LLM_BASE_URL", "https://openrouter.ai/api/v1")
 COLL_NAME = 'finagent_reports'
 
 embeddings = OpenAIEmbeddings(
@@ -29,16 +29,15 @@ QDRANT_PATH = os.getenv("QDRANT_PATH", "./qdrant")
 QDRANT_URL = f"http://{SERVER_HOST}/{QDRANT_PORT}"
 qrant_server_health_status = False
 
+# Qdrant is optional for testing - will bypass memory if not available
 try:
-    response = requests.get(f"{QDRANT_URL}/health")
+    response = requests.get(f"{QDRANT_URL}/health", timeout=5)
     if response.status_code == 200:
         qrant_server_health_status = True
     else:
-        qrant_server_health_status = False
-        print("WARNING: Qdrant server is not started, bypass memory processing.")
+        print("WARNING: Qdrant server is not started, bypassing memory processing.")
 except Exception as e:
-    qrant_server_health_status = False
-    print("WARNING: Qdrant server is not started, bypass memory processing.")
+    print("WARNING: Qdrant server is not started, bypassing memory processing.")
 
 def get_client():
     if QDRANT_URL:
@@ -63,71 +62,73 @@ def init_collection():
         print(f"Collection '{COLL_NAME}' already exists.")
 
 def store_entry(symbol: str, report_type: str, content: str, analysis_datetime: str, metadata: Dict[str, Any] = None):
-    if qrant_server_health_status:
-        init_collection()
-        if content:
-            print(f'DEBUG: store_entry content-{content}')
-            emb = embeddings.embed_query(content)
-            point = models.PointStruct(
-                id=str(uuid.uuid4()),
-                vector=emb,
-                payload={
-                    "symbol": symbol,
-                    "report_type": report_type,
-                    "content": content,
-                    "analysis_datetime": analysis_datetime,
-                    "metadata": metadata or {},
-                },
-            )
-            client = get_client()
-            client.upsert(
-                collection_name=COLL_NAME,
-                points=[point],
-            )
+    """Store an entry in Qdrant with embedding for semantic search."""
+    if not qrant_server_health_status:
+        return
+    init_collection()
+    if content:
+        print(f'DEBUG: store_entry content-{content[:100]}...')
+        emb = embeddings.embed_query(content)
+        point = models.PointStruct(
+            id=str(uuid.uuid4()),
+            vector=emb,
+            payload={
+                "symbol": symbol,
+                "report_type": report_type,
+                "content": content,
+                "analysis_datetime": analysis_datetime,
+                "metadata": metadata or {},
+            },
+        )
+        client = get_client()
+        client.upsert(
+            collection_name=COLL_NAME,
+            points=[point],
+        )
 
 def get_last_report(symbol: str) -> Optional[Dict[str, Any]]:
-    if qrant_server_health_status:
-        init_collection()
-        filter_ = Filter(
-            must=[
-                FieldCondition(key="symbol", match=MatchValue(value=symbol)),
-                FieldCondition(key="report_type", match=MatchValue(value="report")),
-            ]
-        )
-        client = get_client()
-        hits, _ = client.scroll(
-            collection_name=COLL_NAME,
-            scroll_filter=filter_,
-            limit=1,
-            with_payload=True,
-            with_vectors=False,
-            order_by=OrderBy(key="analysis_datetime", direction="desc"),
-        )
-        if hits:
-            payload = dict(hits[0].payload)
-            payload["id"] = hits[0].id
-            return payload
+    """Get the most recent report for a symbol from Qdrant."""
+    if not qrant_server_health_status:
         return None
-    else:
-        return None
+    init_collection()
+    filter_ = Filter(
+        must=[
+            FieldCondition(key="symbol", match=MatchValue(value=symbol)),
+            FieldCondition(key="report_type", match=MatchValue(value="report")),
+        ]
+    )
+    client = get_client()
+    hits, _ = client.scroll(
+        collection_name=COLL_NAME,
+        scroll_filter=filter_,
+        limit=1,
+        with_payload=True,
+        with_vectors=False,
+        order_by=OrderBy(key="analysis_datetime", direction="desc"),
+    )
+    if hits:
+        payload = dict(hits[0].payload)
+        payload["id"] = hits[0].id
+        return payload
+    return None
 
 def get_past_lessons(symbol: str) -> List[str]:
-    if qrant_server_health_status:
-        init_collection()
-        filter_ = Filter(
-            must=[
-                FieldCondition(key="symbol", match=MatchValue(value=symbol)),
-                FieldCondition(key="report_type", match=MatchValue(value="lesson")),
-            ]
-        )
-        client = get_client()
-        hits, _ = client.scroll(
-            collection_name=COLL_NAME,
-            scroll_filter=filter_,
-            limit=10,
-            with_payload=True,
-            with_vectors=False,
-        )
-        return [hit.payload["content"] for hit in hits]
-    else:
+    """Get past lessons learned for a symbol from Qdrant."""
+    if not qrant_server_health_status:
         return []
+    init_collection()
+    filter_ = Filter(
+        must=[
+            FieldCondition(key="symbol", match=MatchValue(value=symbol)),
+            FieldCondition(key="report_type", match=MatchValue(value="lesson")),
+        ]
+    )
+    client = get_client()
+    hits, _ = client.scroll(
+        collection_name=COLL_NAME,
+        scroll_filter=filter_,
+        limit=10,
+        with_payload=True,
+        with_vectors=False,
+    )
+    return [hit.payload["content"] for hit in hits]

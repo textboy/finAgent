@@ -6,36 +6,18 @@ function App() {
   const serverHost = import.meta.env.VITE_SERVER_HOST;
   const uvicornPort = import.meta.env.VITE_UVICORN_PORT;
 
-  const [model, setModel] = useState('');
   const [symbol, setSymbol] = useState('');
   const [period, setPeriod] = useState('medium');
   const [log, setLog] = useState('');
   const [results, setResults] = useState({});
   const [reportPath, setReportPath] = useState('');
   const [loading, setLoading] = useState(false);
-  const [defaultModel, setDefaultModel] = useState('Default');
   const logEndRef = useRef(null);
 
   // Auto-scroll log
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [log]);
-
-  // Fetch default model on mount
-  useEffect(() => {
-    const fetchDefaultModel = async () => {
-      try {
-        const response = await fetch(`http://${serverHost}:${uvicornPort}/default-model`);
-        if (response.ok) {
-          const data = await response.json();
-          setDefaultModel(data.model);
-        }
-      } catch (err) {
-        console.error('Failed to fetch default model:', err);
-      }
-    };
-    fetchDefaultModel();
-  }, [serverHost, uvicornPort]);
 
   const handleSubmit = async (data) => {
     if (!symbol.trim() || !period.trim()) {
@@ -51,7 +33,7 @@ function App() {
       const response = await fetch(`http://${serverHost}:${uvicornPort}/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: model.trim() || undefined, symbol: symbol.trim(), period }),
+        body: JSON.stringify({ symbol: symbol.trim(), period }),
       });
       
       if (!response.ok) {
@@ -73,10 +55,10 @@ function App() {
     { key: 'fundamentals', label: 'Fundamentals', icon: '📊', color: 'from-blue-500 to-cyan-500' },
     { key: 'sentiment', label: 'Sentiment', icon: '💬', color: 'from-emerald-500 to-teal-500' },
     { key: 'technical', label: 'Technical', icon: '📈', color: 'from-purple-500 to-pink-500' },
+    { key: 'market', label: 'Market Overview', icon: '🌍', color: 'from-orange-500 to-red-500' },
+    { key: 'pastLessons', label: 'Past Lessons', icon: '📚', color: 'from-yellow-500 to-amber-500' },
     { key: 'research', label: 'Research Debate', icon: '🧠', color: 'from-amber-500 to-orange-500' },
     { key: 'trading', label: 'Trading Plan', icon: '🎯', color: 'from-indigo-500 to-blue-500' },
-    { key: 'risk', label: 'Risk Management', icon: '🛡️', color: 'from-rose-500 to-red-500' },
-    { key: 'finalEval', label: 'Final Evaluation', icon: '🏁', color: 'from-violet-500 to-purple-500' },
   ];
 
   const markdownComponents = {
@@ -189,23 +171,6 @@ function App() {
                 </div>
               </div>
 
-              {/* Model Input */}
-              <div className="lg:col-span-3 space-y-2">
-                <div className="flex items-center gap-4">
-                  <label className="text-sm font-medium text-slate-400 flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500"><path d="M12 2v4"></path><path d="m16.2 7.8 2.9-2.9"></path><path d="M18 12h4"></path><path d="m16.2 16.2 2.9 2.9"></path><path d="M12 18v4"></path><path d="m4.9 19.1 2.9-2.9"></path><path d="M2 12h4"></path><path d="m4.9 4.9 2.9 2.9"></path></svg>
-                    Model
-                  </label>
-                  <input 
-                    type="text" 
-                    value={model} 
-                    onChange={(e) => setModel(e.target.value)}
-                    className="input-field text-sm pl-10"
-                    placeholder={defaultModel}
-                  />
-                </div>
-              </div>
-
               {/* Submit Button */}
               <div className="lg:col-span-2 lg:ml-8 flex items-end">
                 <button
@@ -227,6 +192,28 @@ function App() {
                     </>
                   )}
                 </button>
+              </div>
+            </div>
+
+            {/* Period Description */}
+            <div className="pt-4 border-t border-slate-800/50">
+              <div className="flex flex-wrap gap-4 text-xs text-slate-500">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 bg-cyan-500 rounded-full"></span>
+                  Short+: 1-7 days
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 bg-cyan-500 rounded-full"></span>
+                  Short: 1-4 weeks
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 bg-cyan-500 rounded-full"></span>
+                  Medium: 1-6 months
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 bg-cyan-500 rounded-full"></span>
+                  Long: 6+ months
+                </span>
               </div>
             </div>
           </div>
@@ -281,7 +268,7 @@ function App() {
               {panelKeys.map(({ key, label, icon, color }, index) => (
                 <div 
                   key={key} 
-                  className={`glass-panel rounded-2xl overflow-hidden flex flex-col border border-slate-800/50 hover:border-slate-700/50 transition-all duration-500 hover:scale-[1.02] final-eval-panel ${key === 'finalEval' ? 'lg:col-span-2' : ''}`}
+                  className={`glass-panel rounded-2xl overflow-hidden flex flex-col border border-slate-800/50 hover:border-slate-700/50 transition-all duration-500 hover:scale-[1.02]`}
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
                   <div className={`px-6 py-4 bg-gradient-to-r ${color} flex items-center justify-between`}>
@@ -293,7 +280,7 @@ function App() {
                       {index + 1}/{panelKeys.length}
                     </div>
                   </div>
-                  <div className={`p-6 ${key === 'finalEval' ? 'text-[#fff]' : 'text-slate-300'} bg-gradient-to-b from-slate-950/50 to-slate-900/30 flex-1`}>
+                  <div className={`p-6 text-slate-300 bg-gradient-to-b from-slate-950/50 to-slate-900/30 flex-1`}>
                     {results[key] ? (
                       <ReactMarkdown 
                         remarkPlugins={[remarkGfm]}
