@@ -31,7 +31,7 @@ app = FastAPI(title="FinAgent API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3001", "http://127.0.0.1:3001", f"http://{SERVER_HOST}:3001", f"http://{SERVER_HOST}:4173"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -45,32 +45,38 @@ class AnalyzeRequest(BaseModel):
 
 @app.post("/analyze")
 async def analyze(req: AnalyzeRequest):
-    state, result_file = core_main(req.symbol, req.period)
-    
-    with open(result_file, 'r', encoding='utf-8') as f:
-        content = f.read()
-    def extract_analyst(title):
-        return state['analyst_insights'][title]
-    
-    def extract_research(title):
-        return state['researcher_results'][title]
+    try:
+        state, result_file = core_main(req.symbol, req.period)
 
-    def extract_trading():
-        return state['trader_plan']
+        with open(result_file, 'r', encoding='utf-8') as f:
+            content = f.read()
+        def extract_analyst(title):
+            return state['analyst_insights'][title]
 
-    reports = {
-        "fundamentals": extract_analyst('fundamentals'),
-        "sentiment": extract_analyst('sentiment'),
-        "technical": extract_analyst('technical'),
-        "market": extract_analyst('market'),
-        "pastLessons": state.get('past_lessons', ''),
-        "research": extract_research('debate'),
-        "trading": extract_trading(),
-    }
-    return {
-        "reports": reports,
-        "report_path": f"/static/{os.path.basename(result_file)}"
-    }
+        def extract_research(title):
+            return state['researcher_results'][title]
+
+        def extract_trading():
+            return state['trader_plan']
+
+        reports = {
+            "fundamentals": extract_analyst('fundamentals'),
+            "sentiment": extract_analyst('sentiment'),
+            "technical": extract_analyst('technical'),
+            "market": extract_analyst('market'),
+            "pastLessons": state.get('past_lessons', ''),
+            "research": extract_research('debate'),
+            "trading": extract_trading(),
+        }
+        return {
+            "reports": reports,
+            "report_path": f"/static/{os.path.basename(result_file)}"
+        }
+    except Exception as e:
+        print(f"ERROR: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     uvicorn.run(app, host=SERVER_HOST, port=UVICORN_PORT)
