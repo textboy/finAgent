@@ -6,36 +6,18 @@ function App() {
   const serverHost = import.meta.env.VITE_SERVER_HOST;
   const uvicornPort = import.meta.env.VITE_UVICORN_PORT;
 
-  const [model, setModel] = useState('');
   const [symbol, setSymbol] = useState('');
   const [period, setPeriod] = useState('medium');
   const [log, setLog] = useState('');
   const [results, setResults] = useState({});
   const [reportPath, setReportPath] = useState('');
   const [loading, setLoading] = useState(false);
-  const [defaultModel, setDefaultModel] = useState('Default');
   const logEndRef = useRef(null);
 
   // Auto-scroll log
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [log]);
-
-  // Fetch default model on mount
-  useEffect(() => {
-    const fetchDefaultModel = async () => {
-      try {
-        const response = await fetch(`http://${serverHost}:${uvicornPort}/default-model`);
-        if (response.ok) {
-          const data = await response.json();
-          setDefaultModel(data.model);
-        }
-      } catch (err) {
-        console.error('Failed to fetch default model:', err);
-      }
-    };
-    fetchDefaultModel();
-  }, [serverHost, uvicornPort]);
 
   const handleSubmit = async (data) => {
     if (!symbol.trim() || !period.trim()) {
@@ -51,7 +33,7 @@ function App() {
       const response = await fetch(`http://${serverHost}:${uvicornPort}/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: model.trim() || undefined, symbol: symbol.trim(), period }),
+        body: JSON.stringify({ symbol: symbol.trim(), period }),
       });
       
       if (!response.ok) {
@@ -186,23 +168,6 @@ function App() {
                     <option value="medium">Medium</option>
                     <option value="long">Long</option>
                   </select>
-                </div>
-              </div>
-
-              {/* Model Input */}
-              <div className="lg:col-span-3 space-y-2">
-                <div className="flex items-center gap-4">
-                  <label className="text-sm font-medium text-slate-400 flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500"><path d="M12 2v4"></path><path d="m16.2 7.8 2.9-2.9"></path><path d="M18 12h4"></path><path d="m16.2 16.2 2.9 2.9"></path><path d="M12 18v4"></path><path d="m4.9 19.1 2.9-2.9"></path><path d="M2 12h4"></path><path d="m4.9 4.9 2.9 2.9"></path></svg>
-                    Model
-                  </label>
-                  <input 
-                    type="text" 
-                    value={model} 
-                    onChange={(e) => setModel(e.target.value)}
-                    className="input-field text-sm pl-10"
-                    placeholder={defaultModel}
-                  />
                 </div>
               </div>
 

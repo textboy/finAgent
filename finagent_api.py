@@ -3,7 +3,6 @@
 import os
 import re
 from datetime import datetime
-from typing import Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -13,6 +12,12 @@ from finagent import main as core_main
 import uvicorn
 
 load_dotenv(os.path.join('config', '.env'))
+
+RUN_MODE = os.getenv("RUN_MODE", "local")
+SUPPORTED_MODES = ["local"]
+if RUN_MODE not in SUPPORTED_MODES:
+    raise ValueError(f"Unsupported RUN_MODE '{RUN_MODE}'. Supported modes: {SUPPORTED_MODES}")
+
 SERVER_HOST = os.getenv("SERVER_HOST")
 UVICORN_PORT = os.getenv("UVICORN_PORT")
 print(f"DEBUG: SERVER_HOST:{SERVER_HOST}, UVICORN_PORT:{UVICORN_PORT}")
@@ -37,22 +42,9 @@ app.add_middleware(
 class AnalyzeRequest(BaseModel):
     symbol: str
     period: str
-    model: Optional[str] = None
-
-@app.get("/default-model")
-async def get_default_model():
-    return {"model": os.getenv('MODEL_NAME', 'Default')}
 
 @app.post("/analyze")
 async def analyze(req: AnalyzeRequest):
-    original_model = os.getenv('MODEL_NAME')
-    model_set = False
-    if req.model and req.model.strip():
-        os.environ['MODEL_NAME'] = req.model.strip()
-        model_set = True
-    if model_set:
-        os.environ['MODEL_NAME'] = original_model
-    
     state, result_file = core_main(req.symbol, req.period)
     
     with open(result_file, 'r', encoding='utf-8') as f:
