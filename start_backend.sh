@@ -47,23 +47,25 @@ echo "  ✅ Python dependencies installed"
 echo ""
 echo "  Building frontend..."
 if [ -f "$SCRIPT_DIR/web/package.json" ]; then
-    cd "$SCRIPT_DIR/web"
+    cd "$SCRIPT_DIR/web" || { echo "  ❌ Cannot access web directory"; }
+    echo "  Working directory: $(pwd)"
     if [ ! -d "node_modules" ]; then
-        npm install -q 2>/dev/null || {
-            echo "  ⚠️  npm install failed, checking if npm is available..."
-            if command -v npm &> /dev/null; then
-                npm install -q
-            else
-                echo "  ⚠️  npm not found. Frontend will not be built."
-            fi
-        }
+        echo "  Installing npm dependencies..."
+        npm install 2>&1 | tail -3
     fi
-    if [ -f "node_modules/.package-lock.json" ] || [ -d "node_modules" ]; then
-        npm run build -q 2>/dev/null && echo "  ✅ Frontend built" || echo "  ⚠️  Frontend build failed"
+    echo "  Running build..."
+    npm run build 2>&1 | tail -10
+    if [ -d "dist" ]; then
+        echo "  ✅ Frontend built successfully"
+        ls -la dist/ 2>/dev/null | head -5
+    else
+        echo "  ❌ Frontend build failed - dist directory not created"
     fi
     cd "$SCRIPT_DIR"
 else
-    echo "  ⚠️  web/package.json not found, skipping frontend build"
+    echo "  ⚠️  web/package.json not found at $SCRIPT_DIR/web/package.json"
+    echo "  Listing web directory:"
+    ls -la "$SCRIPT_DIR/web/" 2>/dev/null | head -10
 fi
 
 # ==================================== 3. Check/Install Docker & Qdrant ====================================
