@@ -1,5 +1,4 @@
 #!/bin/bash
-set -e
 
 # Detect mode from config or argument
 RUN_MODE="${1:-production}"
@@ -8,7 +7,7 @@ echo "=================================== FinAgent Backend ($RUN_MODE) =========
 
 # Get script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
+cd "$SCRIPT_DIR" || { echo "❌ Failed to change directory"; exit 1; }
 
 # ==================================== 1. Check/Install Virtual Environment ====================================
 echo ""
@@ -19,23 +18,29 @@ VENV_ACTIVATE="$VENV_DIR/bin/activate"
 
 if [ ! -f "$VENV_ACTIVATE" ]; then
     echo "  Virtual environment not found. Creating..."
-    python3 -m venv "$VENV_DIR" || {
+    python3 -m venv "$VENV_DIR" 2>/dev/null || {
         apt-get update -qq && apt-get install -y -qq python3 python3-venv
         python3 -m venv "$VENV_DIR"
     }
+    if [ ! -f "$VENV_ACTIVATE" ]; then
+        echo "  ❌ Failed to create virtual environment"
+        exit 1
+    fi
     echo "  ✅ Virtual environment created"
 else
     echo "  ✅ Virtual environment found"
 fi
 
 # Activate virtual environment
-source "$VENV_ACTIVATE"
+source "$VENV_ACTIVATE" || { echo "❌ Failed to activate virtual environment"; exit 1; }
 
 # ==================================== 2. Install/Update Dependencies ====================================
 echo ""
 echo "[2/5] Installing dependencies..."
 
-pip install -r requirements.txt -q
+pip install -r requirements.txt -q 2>/dev/null || {
+    echo "  ⚠️  Some dependencies may have failed to install"
+}
 echo "  ✅ Dependencies installed"
 
 # ==================================== 3. Check/Install Docker & Qdrant ====================================
@@ -45,28 +50,34 @@ echo "[3/5] Checking Docker and Qdrant..."
 # Install Docker if not present
 if ! command -v docker &> /dev/null; then
     echo "  Docker not found. Installing..."
-    apt-get update -qq
-    apt-get install -y -qq docker.io
-    systemctl enable docker
-    systemctl start docker
-    echo "  ✅ Docker installed"
+    apt-get update -qq 2>/dev/null || true
+    apt-get install -y -qq docker.io 2>/dev/null || {
+        echo "  ⚠️  Could not install Docker automatically"
+    }
+    if command -v docker &> /dev/null; then
+        systemctl enable docker 2>/dev/null || true
+        systemctl start docker 2>/dev/null || true
+        echo "  ✅ Docker installed"
+    fi
 fi
 
 # Check if Qdrant is already running
 if curl -s http://localhost:6333/health > /dev/null 2>&1; then
     echo "  ✅ Qdrant is already running"
-else
+elif command -v docker &> /dev/null; then
     echo "  Starting Qdrant..."
     docker pull qdrant/qdrant:1.16.0 -q 2>/dev/null || true
     docker stop qdrant-finagent 2>/dev/null || true
     docker rm qdrant-finagent 2>/dev/null || true
-    docker run -d --name qdrant-finagent -p 6333:6333 -p 6334:6334 qdrant/qdrant:1.16.0
+    docker run -d --name qdrant-finagent -p 6333:6333 -p 6334:6334 qdrant/qdrant:1.16.0 2>/dev/null || true
     sleep 2
     if curl -s http://localhost:6333/health > /dev/null 2>&1; then
         echo "  ✅ Qdrant started successfully"
     else
         echo "  ⚠️  Qdrant failed to start. Memory features will be limited."
     fi
+else
+    echo "  ⚠️  Docker not found. Memory features will be limited."
 fi
 
 # ==================================== 4. Check Environment Variables ====================================
@@ -76,7 +87,7 @@ echo "[4/5] Checking environment variables..."
 # Load from .env file if exists
 if [ -f "$SCRIPT_DIR/config/.env" ]; then
     set -a
-    source "$SCRIPT_DIR/config/.env"
+    source "$SCRIPT_DIR/config/.env" 2>/dev/null || true
     set +a
 fi
 
@@ -88,6 +99,7 @@ else
         echo "  ✅ ZENMUX_API_KEY set from FINAGENT_ZENMUX_API_KEY"
     else
         echo "  ❌ ZENMUX_API_KEY is not set"
+        echo "  Set it with: export ZENMUX_API_KEY=your-key"
         exit 1
     fi
 fi
@@ -121,42 +133,27 @@ if [ "$EUID" -eq 0 ]; then
         echo "    sudo systemctl import-environment ZENMUX_API_KEY"
         echo "    sudo systemctl import-environment AGNES_API_KEY"
         echo "    sudo systemctl import-environment NVIDIA_API_KEY"
-        echo ""
-        echo "  Or create /etc/finagent/env:"
-        echo "    sudo mkdir -p /etc/finagent"
-        echo "    sudo tee /etc/finagent/env << 'EOF'"
-        echo "    ZENMUX_API_KEY=your-key"
-        echo "    AGNES_API_KEY=your-key"
-        echo "    NVIDIA_API_KEY=your-key"
-        echo "    EOF"
     fi
 else
     echo "  ⏭️  Skipping systemd setup (not running as root)"
-    echo "  Note: Run with sudo to configure systemd service"
 fi
 
 # ==================================== Start Server ====================================
 echo ""
-echo "=================================== Starting Production Server ==================================="
+echo "=================================== Starting Server ==================================="
 echo "  API: http://localhost:8000"
-echo "  Logs: journalctl -u finagent -f (if running as service)"
+echo "  Press Ctrl+C to stop"
 echo ""
-
-# Trap signals to keep terminal alive
-trap 'echo ""; echo "Server stopped."; exit 0' INT TERM
 
 # Check if we should run as systemd service or directly
 if [ "$EUID" -eq 0 ] && systemctl is-active --quiet finagent 2>/dev/null; then
     echo "  Starting as systemd service..."
-    echo "  Use 'sudo systemctl status finagent' to check status"
-    echo "  Use 'sudo journalctl -u finagent -f' to view logs"
-    echo ""
     systemctl start finagent
-    echo "  Service started. Running in background."
-    echo "  Press Ctrl+C to exit this terminal (service will keep running)."
-    wait
+    echo "  ✅ Service started in background"
+    echo "  Check status: sudo systemctl status finagent"
+    echo "  View logs: sudo journalctl -u finagent -f"
 else
-    echo "  Starting directly... (Press Ctrl+C to stop)"
-    echo ""
+    echo "  Starting directly..."
+    # Run gunicorn in foreground - this keeps the terminal alive
     gunicorn -w 2 -k uvicorn.workers.UvicornWorker finagent_api:app --bind 0.0.0.0:8000 --timeout 480 --log-level info
 fi
