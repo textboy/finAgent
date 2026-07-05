@@ -70,9 +70,13 @@ app.mount("/static", StaticFiles(directory="results"), name="static")
 
 # Mount frontend build files (if exists)
 WEB_DIST_DIR = os.path.join(os.path.dirname(__file__), "web", "dist")
+WEB_PUBLIC_DIR = os.path.join(os.path.dirname(__file__), "web", "public")
 if os.path.exists(WEB_DIST_DIR):
     # Mount assets directory for CSS/JS files
     app.mount("/assets", StaticFiles(directory=os.path.join(WEB_DIST_DIR, "assets")), name="assets")
+    # Mount public directory for ticket_mapping.json etc
+    if os.path.exists(WEB_PUBLIC_DIR):
+        app.mount("/public", StaticFiles(directory=WEB_PUBLIC_DIR), name="public")
     # Mount root for index.html
     app.mount("/app", StaticFiles(directory=WEB_DIST_DIR, html=True), name="frontend")
 
