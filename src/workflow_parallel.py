@@ -12,11 +12,15 @@ Architecture:
 """
 
 import time
+import logging
 import threading
 import traceback
 from typing import Dict, Any, Optional, Tuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
+
+# Get logger for this module
+logger = logging.getLogger('finagent')
 
 from .agents.analyst_agents import (
     FundamentalsAnalyst,
@@ -61,7 +65,7 @@ def _run_step_with_timeout(func, *args, timeout: int = STEP_TIMEOUT, **kwargs) -
     except Exception as e:
         duration = time.time() - start
         error_msg = f"{type(e).__name__}: {str(e)}"
-        print(f"ERROR: Step failed after {duration:.1f}s: {error_msg}")
+        logger.error(f" Step failed after {duration:.1f}s: {error_msg}")
         traceback.print_exc()
         return StepResult(error=error_msg, duration=duration)
 
@@ -116,10 +120,20 @@ def _step_7_past_lessons(symbol: str) -> Tuple[str, StepResult]:
     return ("past_lessons", _run_step_with_timeout(_run))
 
 
-def _run_steps_1_to_7(symbol: str, investment_period: str) -> Dict[str, StepResult]:
+def _run_steps_1_to_7(symbol: str, investment_period: str, step_logs: list) -> Dict[str, StepResult]:
     """Run steps 1-7 in parallel."""
-    print(f"DEBUG: [{symbol}] Running steps 1-7 in parallel")
+    logger.debug(f" [{symbol}] Running steps 1-7 in parallel")
     start = time.time()
+
+    step_display_names = {
+        "fundamentals": "Fundamentals",
+        "sentiment": "Sentiment & Social",
+        "technical": "Technical",
+        "market": "Market Overview",
+        "global_economic": "Global Economy",
+        "fund_holding": "Fund Holdings",
+        "past_lessons": "Past Lessons",
+    }
 
     results = {}
     with ThreadPoolExecutor(max_workers=MAX_WORKERS_INNER) as executor:
@@ -139,13 +153,17 @@ def _run_steps_1_to_7(symbol: str, investment_period: str) -> Dict[str, StepResu
                 name, result = future.result(timeout=STEP_TIMEOUT + 10)
                 results[name] = result
                 status = "✓" if result.success else "✗"
-                print(f"DEBUG: [{symbol}] Step {step_name} {status} ({result.duration:.1f}s)")
+                duration_min = round(result.duration / 60, 2)
+                display_name = step_display_names.get(step_name, step_name)
+                step_logs.append(f"✅ [{symbol}] {display_name} completed ({duration_min} min)")
+                logger.debug(f" [{symbol}] Step {step_name} {status} ({result.duration:.1f}s)")
             except Exception as e:
                 results[step_name] = StepResult(error=f"Future error: {str(e)}")
-                print(f"DEBUG: [{symbol}] Step {step_name} ✗ (future error)")
+                step_logs.append(f"❌ [{symbol}] {step_display_names.get(step_name, step_name)} failed")
+                logger.debug(f" [{symbol}] Step {step_name} ✗ (future error)")
 
     duration = time.time() - start
-    print(f"DEBUG: [{symbol}] Steps 1-7 completed in {duration:.1f}s")
+    logger.debug(f" [{symbol}] Steps 1-7 completed in {duration:.1f}s")
     return results
 
 
@@ -219,7 +237,7 @@ def _step_8_2_bear(symbol: str, investment_period: str, steps_1_to_7: Dict[str, 
 
 def _run_steps_8_1_and_8_2(symbol: str, investment_period: str, steps_1_to_7: Dict[str, StepResult]) -> Dict[str, StepResult]:
     """Run bull and bear analyses in parallel."""
-    print(f"DEBUG: [{symbol}] Running steps 8.1 (bull) and 8.2 (bear) in parallel")
+    logger.debug(f" [{symbol}] Running steps 8.1 (bull) and 8.2 (bear) in parallel")
     start = time.time()
 
     results = {}
@@ -235,13 +253,13 @@ def _run_steps_8_1_and_8_2(symbol: str, investment_period: str, steps_1_to_7: Di
                 name, result = future.result(timeout=STEP_TIMEOUT + 10)
                 results[name] = result
                 status = "✓" if result.success else "✗"
-                print(f"DEBUG: [{symbol}] Step {step_name} {status} ({result.duration:.1f}s)")
+                logger.debug(f" [{symbol}] Step {step_name} {status} ({result.duration:.1f}s)")
             except Exception as e:
                 results[step_name] = StepResult(error=f"Future error: {str(e)}")
-                print(f"DEBUG: [{symbol}] Step {step_name} ✗ (future error)")
+                logger.debug(f" [{symbol}] Step {step_name} ✗ (future error)")
 
     duration = time.time() - start
-    print(f"DEBUG: [{symbol}] Steps 8.1-8.2 completed in {duration:.1f}s")
+    logger.debug(f" [{symbol}] Steps 8.1-8.2 completed in {duration:.1f}s")
     return results
 
 
@@ -334,25 +352,32 @@ def run_single_ticket_pipeline(symbol: str, investment_period: str) -> Dict[str,
     Run the complete analysis pipeline for a single stock ticket.
 
     Returns:
-        Dict with all results including timing and errors.
+        Dict with all results including timing, errors, and step logs.
     """
     pipeline_start = time.time()
-    print(f"\n{'='*60}")
-    print(f"  PIPELINE START: {symbol} ({investment_period})")
-    print(f"{'='*60}")
+    step_logs = []
+    logger.info(f"PIPELINE START: {symbol} ({investment_period})")
+
+    step_display_names = {
+        "bull": "Bull Analysis",
+        "bear": "Bear Analysis",
+        "debate": "Research Debate",
+        "trading": "Trading Plan",
+    }
 
     result = {
         "symbol": symbol,
         "investment_period": investment_period,
         "start_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "steps": {},
+        "step_logs": step_logs,
         "errors": [],
         "success": True
     }
 
     # Phase 1: Run steps 1-7 in parallel
     try:
-        steps_1_to_7 = _run_steps_1_to_7(symbol, investment_period)
+        steps_1_to_7 = _run_steps_1_to_7(symbol, investment_period, step_logs)
         result["steps"].update({k: v.result if v.success else f"[ERROR] {v.error}"
                                for k, v in steps_1_to_7.items()})
 
@@ -379,6 +404,16 @@ def run_single_ticket_pipeline(symbol: str, investment_period: str) -> Dict[str,
         result["steps"]["bull"] = bull_result.result if bull_result.success else f"[ERROR] {bull_result.error}"
         result["steps"]["bear"] = bear_result.result if bear_result.success else f"[ERROR] {bear_result.error}"
 
+        # Log bull/bear completion
+        if bull_result.success:
+            step_logs.append(f"✅ [{symbol}] Bull Analysis completed ({round(bull_result.duration / 60, 2)} min)")
+        else:
+            step_logs.append(f"❌ [{symbol}] Bull Analysis failed")
+        if bear_result.success:
+            step_logs.append(f"✅ [{symbol}] Bear Analysis completed ({round(bear_result.duration / 60, 2)} min)")
+        else:
+            step_logs.append(f"❌ [{symbol}] Bear Analysis failed")
+
         if not bull_result.success or not bear_result.success:
             result["errors"].append("Bull/Bear analysis partially failed")
     except Exception as e:
@@ -394,11 +429,15 @@ def run_single_ticket_pipeline(symbol: str, investment_period: str) -> Dict[str,
             )
             result["steps"]["debate"] = debate_result.result if debate_result.success else f"[ERROR] {debate_result.error}"
 
-            if not debate_result.success:
+            if debate_result.success:
+                step_logs.append(f"✅ [{symbol}] Research Debate completed ({round(debate_result.duration / 60, 2)} min)")
+            else:
+                step_logs.append(f"❌ [{symbol}] Research Debate failed")
                 result["errors"].append(f"Debate failed: {debate_result.error}")
         else:
             result["steps"]["debate"] = "[ERROR] Skipped due to bull/bear failure"
             debate_result = StepResult(error="Skipped")
+            step_logs.append(f"❌ [{symbol}] Research Debate skipped (bull/bear failed)")
     except Exception as e:
         result["errors"].append(f"Phase 3 failed: {str(e)}")
         debate_result = StepResult(error=str(e))
@@ -411,11 +450,15 @@ def run_single_ticket_pipeline(symbol: str, investment_period: str) -> Dict[str,
             )
             result["steps"]["trading"] = trading_result.result if trading_result.success else f"[ERROR] {trading_result.error}"
 
-            if not trading_result.success:
+            if trading_result.success:
+                step_logs.append(f"✅ [{symbol}] Trading Plan completed ({round(trading_result.duration / 60, 2)} min)")
+            else:
+                step_logs.append(f"❌ [{symbol}] Trading Plan failed")
                 result["errors"].append(f"Trading plan failed: {trading_result.error}")
         else:
             result["steps"]["trading"] = "[ERROR] Skipped due to debate failure"
             trading_result = StepResult(error="Skipped")
+            step_logs.append(f"❌ [{symbol}] Trading Plan skipped (debate failed)")
     except Exception as e:
         result["errors"].append(f"Phase 4 failed: {str(e)}")
         trading_result = StepResult(error=str(e))
@@ -425,7 +468,7 @@ def run_single_ticket_pipeline(symbol: str, investment_period: str) -> Dict[str,
     def _run_lesson_summary_background():
         try:
             if debate_result.success and trading_result.success:
-                print(f"DEBUG: [{symbol}] Starting background lesson summary...")
+                logger.debug(f" [{symbol}] Starting background lesson summary...")
                 _step_10_lesson_summary(
                     symbol,
                     investment_period,
@@ -433,11 +476,11 @@ def run_single_ticket_pipeline(symbol: str, investment_period: str) -> Dict[str,
                     trading_result.result,
                     result["start_time"]
                 )
-                print(f"DEBUG: [{symbol}] Background lesson summary completed")
+                logger.debug(f" [{symbol}] Background lesson summary completed")
             else:
-                print(f"DEBUG: [{symbol}] Skipping lesson summary (debate/trading failed)")
+                logger.debug(f" [{symbol}] Skipping lesson summary (debate/trading failed)")
         except Exception as e:
-            print(f"WARNING: [{symbol}] Background lesson summary failed: {str(e)}")
+            logger.warning(f" [{symbol}] Background lesson summary failed: {str(e)}")
 
     # Start background thread (non-blocking)
     lesson_thread = threading.Thread(
@@ -446,7 +489,7 @@ def run_single_ticket_pipeline(symbol: str, investment_period: str) -> Dict[str,
         name=f"lesson-{symbol}"
     )
     lesson_thread.start()
-    print(f"DEBUG: [{symbol}] Lesson summary thread started (background)")
+    logger.debug(f" [{symbol}] Lesson summary thread started (background)")
 
     result["end_time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     result["duration_minutes"] = round((time.time() - pipeline_start) / 60, 2)

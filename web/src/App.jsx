@@ -190,6 +190,20 @@ function App() {
         setTiming(data.results[0].timing);
       }
 
+      // Log step completion for all results
+      let stepLog = '';
+      data.results.forEach(result => {
+        if (result.step_logs && result.step_logs.length > 0) {
+          result.step_logs.forEach(log => {
+            stepLog += `${log}\n`;
+          });
+        }
+      });
+
+      if (stepLog) {
+        setLog(prev => prev + `\n📊 Step Progress:\n${stepLog}`);
+      }
+
       // Log errors from all results
       let errorLog = '';
       data.results.forEach(result => {
