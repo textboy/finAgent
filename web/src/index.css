@@ -27,7 +27,7 @@
   .glass-panel {
     @apply bg-slate-900/70 backdrop-blur-xl border border-slate-800/50 shadow-2xl shadow-black/30;
   }
-  
+
   .input-field {
     @apply w-full bg-slate-900/50 border border-slate-700/50 rounded-xl px-4 py-3.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 hover:border-slate-600;
   }
@@ -39,18 +39,51 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
-  
+
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-  
+
   .text-glow {
     text-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
   }
-  
+
   .border-glow {
     box-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
+  }
+
+  /* Markdown content styling */
+  .markdown-content > *:first-child {
+    @apply mt-0;
+  }
+
+  .markdown-content > *:last-child {
+    @apply mb-0;
+  }
+
+  .markdown-content p + p {
+    @apply mt-0;
+  }
+
+  .markdown-content ul, .markdown-content ol {
+    @apply pl-1;
+  }
+
+  .markdown-content li + li {
+    @apply mt-1;
+  }
+
+  .markdown-content blockquote p {
+    @apply italic text-slate-400;
+  }
+
+  .markdown-content table {
+    @apply text-xs;
+  }
+
+  .markdown-content th {
+    @apply text-xs uppercase tracking-wider;
   }
 }
 

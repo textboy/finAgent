@@ -1,6 +1,9 @@
 from langchain_core.tools import tool
 from typing import Optional
 import pandas as pd
+import requests
+import xml.etree.ElementTree as ET
+import time
 from ..utils.data_fetchers import DataFetcher
 from ..utils.technical_indicators import calculate_macd, calculate_vwap
 
@@ -74,6 +77,39 @@ def get_news_sentiment(symbol: str) -> str:
     if data is None:
         return "No data"
     return data
+
+def get_reddit_sentiment(symbol: str) -> str:
+    """Get social media sentiment from Reddit for the stock."""
+    print(f'DEBUG: get_reddit_sentiment(Reddit RSS) with symbol {symbol}')
+
+    subreddits = ['wallstreetbets', 'stocks', 'investing']
+    all_posts = []
+
+    for sub in subreddits:
+        try:
+            url = f'https://www.reddit.com/r/{sub}/search.rss?q={symbol}&restrict_sr=1&limit=5'
+            headers = {'User-Agent': 'FinAgent/1.0 (Financial Analysis Bot)'}
+            response = requests.get(url, headers=headers, timeout=10)
+
+            if response.status_code == 200:
+                root = ET.fromstring(response.content)
+                ns = {'atom': 'http://www.w3.org/2005/Atom'}
+                entries = root.findall('atom:entry', ns)
+
+                for entry in entries[:3]:
+                    title = entry.find('atom:title', ns).text or 'N/A'
+                    all_posts.append(f"r/{sub}: {title}")
+            else:
+                print(f'WARNING: Reddit r/{sub} returned HTTP {response.status_code}')
+        except Exception as e:
+            print(f'WARNING: Could not fetch from r/{sub}: {str(e)[:50]}')
+
+        time.sleep(1)  # Rate limiting
+
+    if not all_posts:
+        return "No Reddit data available"
+
+    return '\n'.join(all_posts)
 
 def get_macro_news_sentiment(topic: str) -> str:
     """Get macro news sentiment using yfinance."""

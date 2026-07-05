@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
@@ -6,44 +6,206 @@ function App() {
   const serverHost = import.meta.env.VITE_SERVER_HOST;
   const uvicornPort = import.meta.env.VITE_UVICORN_PORT;
 
-  const [symbol, setSymbol] = useState('');
+  const [symbolInput, setSymbolInput] = useState('');
   const [period, setPeriod] = useState('medium');
   const [log, setLog] = useState('');
-  const [results, setResults] = useState({});
-  const [reportPath, setReportPath] = useState('');
+  const [multiResults, setMultiResults] = useState([]);
+  const [timing, setTiming] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [expandedPanels, setExpandedPanels] = useState({});
+  const [symbolWarning, setSymbolWarning] = useState('');
+  const [tickerMapping, setTickerMapping] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const logEndRef = useRef(null);
+  const inputRef = useRef(null);
+  const suggestionsRef = useRef(null);
+
+  // Load ticker mapping on mount
+  useEffect(() => {
+    fetch('/ticket_mapping.json')
+      .then(res => res.json())
+      .then(data => setTickerMapping(data))
+      .catch(err => console.error('Failed to load ticker mapping:', err));
+  }, []);
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (suggestionsRef.current && !suggestionsRef.current.contains(event.target) &&
+          inputRef.current && !inputRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Get current typing symbol (last part after separator)
+  const getCurrentSymbol = () => {
+    const parts = symbolInput.split(/[,;]/);
+    return parts[parts.length - 1].trim();
+  };
+
+  // Filter suggestions based on input
+  useEffect(() => {
+    const query = getCurrentSymbol().toLowerCase();
+    if (query.length < 1) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      setHighlightedIndex(-1);
+      return;
+    }
+
+    const filtered = tickerMapping.filter(item => {
+      if (!item || !item.ticker) return false;
+      const matchTicker = item.ticker?.toLowerCase().includes(query);
+      const matchName = item.name?.toLowerCase().includes(query);
+      const matchAlias = item.aliases?.some(alias => alias?.toLowerCase().includes(query));
+      return matchTicker || matchName || matchAlias;
+    }).slice(0, 8); // Limit to 8 suggestions
+
+    setSuggestions(filtered);
+    setShowSuggestions(filtered.length > 0);
+    setHighlightedIndex(-1);
+  }, [symbolInput, tickerMapping]);
+
+  const selectSuggestion = (ticker) => {
+    const parts = symbolInput.split(/[,;]/);
+    parts[parts.length - 1] = ticker;
+    setSymbolInput(parts.join(','));
+    setShowSuggestions(false);
+    setHighlightedIndex(-1);
+    inputRef.current?.focus();
+  };
+
+  const handleKeyDown = (e) => {
+    // Handle Escape to close suggestions
+    if (e.key === 'Escape') {
+      setShowSuggestions(false);
+      setHighlightedIndex(-1);
+      return;
+    }
+
+    // Handle Arrow keys when suggestions are visible
+    if (showSuggestions && suggestions.length > 0) {
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault();
+          setHighlightedIndex(prev =>
+            prev < suggestions.length - 1 ? prev + 1 : 0
+          );
+          return;
+        case 'ArrowUp':
+          e.preventDefault();
+          setHighlightedIndex(prev =>
+            prev > 0 ? prev - 1 : suggestions.length - 1
+          );
+          return;
+        case 'Enter':
+          e.preventDefault();
+          // If an item is highlighted, select it
+          if (highlightedIndex >= 0 && highlightedIndex < suggestions.length) {
+            selectSuggestion(suggestions[highlightedIndex].ticker);
+            return;
+          }
+          break; // Fall through to trigger analyze if no item highlighted
+        default:
+          break;
+      }
+    }
+
+    // Handle Enter to trigger Analyze (when no suggestion is highlighted or suggestions not showing)
+    if (e.key === 'Enter') {
+      const symbols = symbolInput
+        .split(/[,;]/)
+        .map(s => s.trim())
+        .filter(s => s.length > 0);
+
+      if (symbols.length > 0 && period) {
+        e.preventDefault();
+        handleSubmit();
+      }
+    }
+  };
+
+  const togglePanel = (symbol, key) => {
+    const panelId = `${symbol}-${key}`;
+    setExpandedPanels(prev => ({ ...prev, [panelId]: !prev[panelId] }));
+  };
+
+  const isPanelExpanded = (symbol, key) => {
+    // Trading panel (step 7) is expanded by default
+    if (key === 'trading') return expandedPanels[`${symbol}-${key}`] !== false;
+    return expandedPanels[`${symbol}-${key}`] === true;
+  };
 
   // Auto-scroll log
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [log]);
 
-  const handleSubmit = async (data) => {
-    if (!symbol.trim() || !period.trim()) {
-      setLog(prev => prev + '⚠️ Please provide symbol and investment period.\n');
+  const handleSubmit = async () => {
+    if (!symbolInput.trim() || !period.trim()) {
+      setLog(prev => prev + '⚠️ Please provide symbol(s) and investment period.\n');
       return;
     }
+
+    // Parse symbols (split by comma or semicolon)
+    const symbols = symbolInput
+      .split(/[,;]/)
+      .map(s => s.trim().toUpperCase())
+      .filter(s => s.length > 0);
+
+    // Validate max 5 symbols
+    if (symbols.length > 5) {
+      setSymbolWarning('⚠️ Maximum 5 symbols allowed. Only the first 5 will be analyzed.');
+      symbols.splice(5); // Keep only first 5
+    } else {
+      setSymbolWarning('');
+    }
+
     setLoading(true);
-    setResults({});
-    setReportPath('');
-    setLog(`🚀 Starting analysis for ${symbol.toUpperCase()} (${period})...\n`);
-    
+    setMultiResults([]);
+    setTiming(null);
+    setExpandedPanels({});
+    setLog(`🚀 Starting analysis for ${symbols.join(', ')} (${period})...\n`);
+
     try {
-      const response = await fetch(`http://${serverHost}:${uvicornPort}/analyze`, {
+      const response = await fetch(`http://${serverHost}:${uvicornPort}/analyze-batch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ symbol: symbol.trim(), period }),
+        body: JSON.stringify({ symbols, period }),
       });
-      
+
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      setLog(data.log);
-      setResults(data.reports);
-      setReportPath(`http://${serverHost}:${uvicornPort}${data.report_path}`);
+      setMultiResults(data.results);
+      // Use timing from first result for display
+      if (data.results.length > 0 && data.results[0].timing) {
+        setTiming(data.results[0].timing);
+      }
+
+      // Log errors from all results
+      let errorLog = '';
+      data.results.forEach(result => {
+        if (result.errors && result.errors.length > 0) {
+          errorLog += `\n📋 ${result.symbol}:\n`;
+          result.errors.forEach(err => {
+            errorLog += `  ${err}\n`;
+          });
+        }
+      });
+
+      if (errorLog) {
+        setLog(prev => prev + `\n⚠️ Pipeline Warnings:${errorLog}`);
+      }
+
+      setLog(prev => prev + `\n✅ Analysis complete for ${data.results.length} symbol(s).\n`);
     } catch (err) {
       setLog(prev => prev + `\n❌ Error: ${err.message}\n`);
     } finally {
@@ -53,30 +215,37 @@ function App() {
 
   const panelKeys = [
     { key: 'fundamentals', label: 'Fundamentals', icon: '📊', color: 'from-blue-500 to-cyan-500' },
-    { key: 'sentiment', label: 'Sentiment', icon: '💬', color: 'from-emerald-500 to-teal-500' },
+    { key: 'sentiment', label: 'Sentiment & Social', icon: '💬', color: 'from-emerald-500 to-teal-500' },
     { key: 'technical', label: 'Technical', icon: '📈', color: 'from-purple-500 to-pink-500' },
     { key: 'market', label: 'Market Overview', icon: '🌍', color: 'from-orange-500 to-red-500' },
+    { key: 'globalEconomic', label: 'Global Economy', icon: '🌐', color: 'from-cyan-500 to-blue-500' },
+    { key: 'fundHolding', label: 'Fund Holdings', icon: '🏦', color: 'from-teal-500 to-cyan-500' },
     { key: 'pastLessons', label: 'Past Lessons', icon: '📚', color: 'from-yellow-500 to-amber-500' },
     { key: 'research', label: 'Research Debate', icon: '🧠', color: 'from-amber-500 to-orange-500' },
     { key: 'trading', label: 'Trading Plan', icon: '🎯', color: 'from-indigo-500 to-blue-500' },
   ];
 
   const markdownComponents = {
-    h1: ({children}) => <h1 className="text-xl font-bold mb-4 text-white border-b border-slate-700 pb-3">{children}</h1>,
-    h2: ({children}) => <h2 className="text-lg font-semibold mb-3 text-slate-200 mt-4 flex items-center gap-2"><div className="w-2 h-2 bg-purple-500 rounded-full"></div>{children}</h2>,
-    h3: ({children}) => <h3 className="text-base font-medium mb-2 text-slate-300 mt-3">{children}</h3>,
+    h1: ({children}) => <h1 className="text-xl font-bold mb-5 text-white border-b border-slate-700 pb-3">{children}</h1>,
+    h2: ({children}) => <h2 className="text-lg font-semibold mb-4 text-slate-200 mt-6 flex items-center gap-2"><div className="w-2 h-2 bg-purple-500 rounded-full"></div>{children}</h2>,
+    h3: ({children}) => <h3 className="text-base font-medium mb-3 text-slate-300 mt-4">{children}</h3>,
+    h4: ({children}) => <h4 className="text-sm font-semibold mb-2 text-slate-300 mt-3 uppercase tracking-wide">{children}</h4>,
     p: ({children}) => <p className="mb-4 leading-relaxed text-slate-400 text-sm">{children}</p>,
     ul: ({children}) => <ul className="list-disc ml-5 mb-4 space-y-2 text-slate-400 text-sm">{children}</ul>,
     ol: ({children}) => <ol className="list-decimal ml-5 mb-4 space-y-2 text-slate-400 text-sm">{children}</ol>,
-    li: ({children}) => <li className="pl-1">{children}</li>,
+    li: ({children}) => <li className="pl-1 leading-relaxed">{children}</li>,
     strong: ({children}) => <strong className="font-semibold text-white">{children}</strong>,
+    em: ({children}) => <em className="italic text-slate-300">{children}</em>,
     code: ({children}) => <code className="bg-slate-800/50 px-2 py-1 rounded-lg font-mono text-cyan-300 text-xs border border-slate-700">{children}</code>,
     pre: ({children}) => <pre className="bg-slate-900/80 p-4 rounded-xl overflow-x-auto font-mono text-slate-300 text-xs my-4 border border-slate-700 shadow-inner">{children}</pre>,
     blockquote: ({children}) => <blockquote className="border-l-4 border-purple-500 bg-gradient-to-r from-slate-900/50 to-transparent pl-4 py-3 italic my-4 text-slate-400 text-sm rounded-r-lg">{children}</blockquote>,
     table: ({children}) => <div className="overflow-x-auto my-4 rounded-lg border border-slate-800"><table className="w-full border-collapse text-sm text-left">{children}</table></div>,
+    thead: ({children}) => <thead className="bg-slate-900/50">{children}</thead>,
+    tbody: ({children}) => <tbody className="divide-y divide-slate-800">{children}</tbody>,
     th: ({children}) => <th className="border-b border-slate-700 p-3 font-semibold text-slate-300 bg-slate-900/80">{children}</th>,
     td: ({children}) => <td className="border-b border-slate-800 p-3 text-slate-400">{children}</td>,
     hr: () => <hr className="border-slate-800 my-6" />,
+    a: ({href, children}) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:text-cyan-300 underline underline-offset-2">{children}</a>,
   };
 
   return (
@@ -135,20 +304,56 @@ function App() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-6">
               
               {/* Symbol Input */}
-              <div className="lg:col-span-3 space-y-2">
+              <div className="lg:col-span-6 space-y-2">
                 <div className="flex items-center gap-4">
                   <label className="text-sm font-medium text-slate-400 flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-500"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-                    Symbol
+                    Symbols
                   </label>
-                  <input 
-                    type="text" 
-                    value={symbol} 
-                    onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-                    className="input-field text-sm tracking-wide uppercase pl-12"
-                    placeholder="AAPL"
-                  />
+                  <div className="flex-1 relative" ref={suggestionsRef}>
+                    <input
+                      ref={inputRef}
+                      type="text"
+                      value={symbolInput}
+                      onChange={(e) => {
+                        // Auto-convert to uppercase and trim spaces between symbols
+                        const value = e.target.value.toUpperCase().replace(/\s+/g, '');
+                        setSymbolInput(value);
+                      }}
+                      onKeyDown={handleKeyDown}
+                      onFocus={() => {
+                        if (suggestions.length > 0) setShowSuggestions(true);
+                      }}
+                      className="input-field text-sm tracking-wide uppercase pr-16"
+                      placeholder="AAPL,GOOG,MSFT (type company name)"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">max 5</span>
+
+                    {/* Suggestions Dropdown */}
+                    {showSuggestions && suggestions.length > 0 && (
+                      <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl max-h-64 overflow-y-auto">
+                        {suggestions.map((item, index) => (
+                          <button
+                            key={item.ticker}
+                            onClick={() => selectSuggestion(item.ticker)}
+                            onMouseEnter={() => setHighlightedIndex(index)}
+                            className={`w-full px-4 py-2 text-left transition-colors flex items-center gap-3 ${
+                              index === highlightedIndex
+                                ? 'bg-slate-700 text-white'
+                                : 'hover:bg-slate-700 text-slate-300'
+                            }`}
+                          >
+                            <span className="font-mono font-bold text-cyan-400 min-w-[60px]">{item.ticker}</span>
+                            <span className="text-sm truncate">{item.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
+                {symbolWarning && (
+                  <p className="text-amber-500 text-xs ml-20">{symbolWarning}</p>
+                )}
               </div>
 
               {/* Period Select */}
@@ -175,7 +380,7 @@ function App() {
               <div className="lg:col-span-2 lg:ml-8 flex items-end">
                 <button
                   onClick={handleSubmit}
-                  disabled={loading || !symbol.trim()}
+                  disabled={loading || !symbolInput.trim()}
                   className="btn-primary h-[52px] w-full flex items-center justify-center gap-3 text-base font-semibold"
                 >
                   {loading ? (
@@ -241,7 +446,7 @@ function App() {
         </section>
 
         {/* Results Grid */}
-        {Object.keys(results).length > 0 && (
+        {multiResults.length > 0 && (
           <div className="space-y-10 animate-slide-up" style={{ animationDelay: '0.3s' }}>
             <div className="flex items-center justify-between">
               <div>
@@ -249,55 +454,152 @@ function App() {
                   <div className="w-4 h-10 bg-gradient-to-b from-purple-500 to-cyan-500 rounded-full"></div>
                   Analysis Report
                 </h2>
-                <p className="text-slate-500 text-base mt-2">Comprehensive insights generated by AI</p>
+                <p className="text-slate-500 text-base mt-2">
+                  {multiResults.length} symbol(s) analyzed • Click headers to expand/collapse
+                </p>
               </div>
-              {reportPath && (
-                <a
-                  href={reportPath}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 text-cyan-400 rounded-xl text-base font-medium transition-all duration-300 border border-slate-700 hover:border-cyan-500/30 hover:shadow-lg hover:shadow-cyan-900/20"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                  View Full Report
-                </a>
-              )}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {panelKeys.map(({ key, label, icon, color }, index) => (
-                <div 
-                  key={key} 
-                  className={`glass-panel rounded-2xl overflow-hidden flex flex-col border border-slate-800/50 hover:border-slate-700/50 transition-all duration-500 hover:scale-[1.02]`}
-                  style={{ animationDelay: `${index * 100}ms` }}
-                >
-                  <div className={`px-6 py-4 bg-gradient-to-r ${color} flex items-center justify-between`}>
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">{icon}</span>
-                      <h3 className="font-bold text-white text-lg">{label}</h3>
-                    </div>
-                    <div className="text-white/80 text-xs font-mono bg-black/20 px-3 py-1 rounded-full">
-                      {index + 1}/{panelKeys.length}
-                    </div>
-                  </div>
-                  <div className={`p-6 text-slate-300 bg-gradient-to-b from-slate-950/50 to-slate-900/30 flex-1`}>
-                    {results[key] ? (
-                      <ReactMarkdown 
-                        remarkPlugins={[remarkGfm]}
-                        components={markdownComponents}
-                      >
-                        {results[key]}
-                      </ReactMarkdown>
-                    ) : (
-                      <div className="h-full flex flex-col items-center justify-center text-slate-600 italic text-sm py-12">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="mb-4 opacity-50"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                        No data available for this section
+            {/* Symbol Sessions */}
+            {multiResults.map((result, resultIndex) => (
+              <div key={result.symbol} className="space-y-4">
+                {/* Symbol Session Header */}
+                <div className="glass-panel rounded-2xl p-6 border border-slate-800/50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center">
+                        <span className="text-2xl font-bold text-white">{result.symbol[0]}</span>
                       </div>
-                    )}
+                      <div>
+                        <h3 className="text-2xl font-bold text-white">{result.symbol}</h3>
+                        <p className="text-slate-500 text-sm">
+                          Session {resultIndex + 1} of {multiResults.length}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      {result.timing && (
+                        <div className="text-right text-sm text-slate-400">
+                          <div>Duration: <span className="text-slate-300 font-mono">{result.timing.duration_minutes} min</span></div>
+                          <div className="text-xs text-slate-500">{result.timing.start}</div>
+                        </div>
+                      )}
+                      {result.reports?.trading && (
+                        <a
+                          href={`http://${serverHost}:${uvicornPort}${result.report_path}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-cyan-400 rounded-lg text-sm font-medium transition-all duration-300 border border-slate-700 hover:border-cyan-500/30"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                          View Report
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
+
+                {/* Panels for this symbol */}
+                {result.reports && (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pl-4">
+                    {panelKeys.map(({ key, label, icon, color }, index) => {
+                      const panelId = `${result.symbol}-${key}`;
+                      const isExpanded = isPanelExpanded(result.symbol, key);
+                      return (
+                        <div
+                          key={panelId}
+                          className={`glass-panel rounded-2xl overflow-hidden flex flex-col border border-slate-800/50 hover:border-slate-700/50 transition-all duration-500 hover:scale-[1.02]`}
+                          style={{ animationDelay: `${(resultIndex * 7 + index) * 50}ms` }}
+                        >
+                          <button
+                            onClick={() => togglePanel(result.symbol, key)}
+                            className={`px-5 py-3 bg-gradient-to-r ${color} flex items-center justify-between cursor-pointer w-full text-left`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="text-xl">{icon}</span>
+                              <h4 className="font-bold text-white text-base">{label}</h4>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="text-white/80 text-xs font-mono bg-black/20 px-2 py-0.5 rounded-full">
+                                {index + 1}/{panelKeys.length}
+                              </div>
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="18"
+                                height="18"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                className={`text-white/80 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
+                              >
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                              </svg>
+                            </div>
+                          </button>
+                          {isExpanded && (
+                            <div className={`p-5 text-slate-300 bg-gradient-to-b from-slate-950/50 to-slate-900/30 flex-1 markdown-content`}>
+                              {result.reports[key] ? (
+                                <ReactMarkdown
+                                  remarkPlugins={[remarkGfm]}
+                                  components={markdownComponents}
+                                >
+                                  {result.reports[key]}
+                                </ReactMarkdown>
+                              ) : (
+                                <div className="h-full flex flex-col items-center justify-center text-slate-600 italic text-sm py-12">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="mb-4 opacity-50"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                                  No data available for this section
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Error state */}
+                {result.error && (
+                  <div className="glass-panel rounded-2xl p-6 border border-red-500/30 bg-red-500/10 ml-4">
+                    <p className="text-red-400">Error analyzing {result.symbol}: {result.error}</p>
+                  </div>
+                )}
+
+                {/* Divider between sessions */}
+                {resultIndex < multiResults.length - 1 && (
+                  <div className="border-t border-slate-800/50 my-6"></div>
+                )}
+              </div>
+            ))}
+
+            {/* Overall Timing Info */}
+            {timing && multiResults.length > 1 && (
+              <div className="glass-panel rounded-2xl p-6 border border-slate-800/50 animate-slide-up" style={{ animationDelay: '0.4s' }}>
+                <h4 className="text-center text-slate-400 mb-4 font-medium">Batch Analysis Summary</h4>
+                <div className="flex items-center justify-center gap-8 text-sm text-slate-400">
+                  <div className="flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    <span>Started: <span className="text-slate-300 font-mono">{timing.start}</span></span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-500"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    <span>Ended: <span className="text-slate-300 font-mono">{timing.end}</span></span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cyan-500"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    <span>Total Duration: <span className="text-slate-300 font-mono">{timing.duration_minutes} min</span></span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-purple-500">📊</span>
+                    <span>Symbols: <span className="text-slate-300 font-mono">{multiResults.length}</span></span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </main>
