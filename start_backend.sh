@@ -142,11 +142,21 @@ echo "  API: http://localhost:8000"
 echo "  Logs: journalctl -u finagent -f (if running as service)"
 echo ""
 
+# Trap signals to keep terminal alive
+trap 'echo ""; echo "Server stopped."; exit 0' INT TERM
+
 # Check if we should run as systemd service or directly
 if [ "$EUID" -eq 0 ] && systemctl is-active --quiet finagent 2>/dev/null; then
     echo "  Starting as systemd service..."
-    exec systemctl start finagent
+    echo "  Use 'sudo systemctl status finagent' to check status"
+    echo "  Use 'sudo journalctl -u finagent -f' to view logs"
+    echo ""
+    systemctl start finagent
+    echo "  Service started. Running in background."
+    echo "  Press Ctrl+C to exit this terminal (service will keep running)."
+    wait
 else
-    echo "  Starting directly..."
-    exec gunicorn -w 2 -k uvicorn.workers.UvicornWorker finagent_api:app --bind 0.0.0.0:8000 --timeout 480 --log-level info
+    echo "  Starting directly... (Press Ctrl+C to stop)"
+    echo ""
+    gunicorn -w 2 -k uvicorn.workers.UvicornWorker finagent_api:app --bind 0.0.0.0:8000 --timeout 480 --log-level info
 fi
