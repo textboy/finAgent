@@ -68,10 +68,18 @@ app.add_middleware(
 
 app.mount("/static", StaticFiles(directory="results"), name="static")
 
+# Mount frontend build files (if exists)
+WEB_DIST_DIR = os.path.join(os.path.dirname(__file__), "web", "dist")
+if os.path.exists(WEB_DIST_DIR):
+    app.mount("/app", StaticFiles(directory=WEB_DIST_DIR, html=True), name="frontend")
+
 
 @app.get("/")
 async def root():
-    """Root endpoint - returns API status and links."""
+    """Root endpoint - serves frontend or returns API status."""
+    if os.path.exists(WEB_DIST_DIR):
+        from fastapi.responses import FileResponse
+        return FileResponse(os.path.join(WEB_DIST_DIR, "index.html"))
     return {
         "name": "FinAgent API",
         "version": "1.0.0",
@@ -82,7 +90,8 @@ async def root():
             "analyze_batch": "/analyze-batch",
             "history_reports": "/api/history-reports",
             "docs": "/docs",
-            "static_reports": "/static/"
+            "static_reports": "/static/",
+            "frontend": "/app" if os.path.exists(WEB_DIST_DIR) else None
         },
         "production_url": f"http://{PRODUCTION_HOST}:{UVICORN_PORT}" if RUN_MODE == "production" else None
     }
