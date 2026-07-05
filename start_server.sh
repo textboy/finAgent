@@ -170,17 +170,32 @@ else
     echo "  ⏭️  Skipping systemd setup (not running as root)"
 fi
 
+# ==================================== Stop Existing Server ====================================
+echo ""
+echo "Stopping existing server..."
+
+# Stop systemd service if running
+if systemctl is-active --quiet finagent 2>/dev/null; then
+    echo "  Stopping systemd service..."
+    systemctl stop finagent 2>/dev/null || true
+fi
+
+# Kill any process on port 8000
+if lsof -Pi :8000 -sTCP:LISTEN -t >/dev/null 2>&1 ; then
+    echo "  Killing process on port 8000..."
+    lsof -ti :8000 | xargs kill -9 2>/dev/null || true
+    sleep 2
+fi
+
+# Kill any gunicorn processes
+pkill -f "gunicorn.*finagent_api" 2>/dev/null || true
+sleep 1
+
+echo "  ✅ Existing server stopped"
+
 # ==================================== Start Server ====================================
 echo ""
 echo "=================================== Starting Server ==================================="
-
-# Check if port 8000 is already in use
-if lsof -Pi :8000 -sTCP:LISTEN -t >/dev/null 2>&1 ; then
-    echo "  ⚠️  Port 8000 is already in use. Stopping existing process..."
-    lsof -ti :8000 | xargs kill -9 2>/dev/null || true
-    sleep 2
-    echo "  ✅ Existing process stopped"
-fi
 
 # Get production host from config
 PRODUCTION_HOST=$(grep -E "^PRODUCTION_HOST=" "$SCRIPT_DIR/config/.env" 2>/dev/null | cut -d'=' -f2)
@@ -201,6 +216,7 @@ if [ "$EUID" -eq 0 ]; then
         echo "  ✅ Service started in background"
         echo "  Check status: sudo systemctl status finagent"
         echo "  View logs: sudo journalctl -u finagent -f"
+        echo "  Restart: sudo systemctl restart finagent"
         echo "  Stop: sudo systemctl stop finagent"
     else
         echo "  Starting in background with nohup..."
@@ -208,6 +224,8 @@ if [ "$EUID" -eq 0 ]; then
         echo "  ✅ Server started in background"
         echo "  PID: $!"
         echo "  Logs: tail -f /var/log/finagent.log"
+        echo "  Restart: ./start_server.sh"
+        echo "  Stop: kill $!"
     fi
 else
     # Not running as root - use nohup
@@ -216,6 +234,6 @@ else
     echo "  ✅ Server started in background"
     echo "  PID: $!"
     echo "  Logs: tail -f /tmp/finagent.log"
-    echo ""
-    echo "  To stop: kill $!"
+    echo "  Restart: ./start_server.sh"
+    echo "  Stop: kill $!"
 fi
