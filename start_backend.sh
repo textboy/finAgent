@@ -49,23 +49,30 @@ echo "  Building frontend..."
 if [ -f "$SCRIPT_DIR/web/package.json" ]; then
     cd "$SCRIPT_DIR/web" || { echo "  ❌ Cannot access web directory"; }
     echo "  Working directory: $(pwd)"
-    if [ ! -d "node_modules" ]; then
-        echo "  Installing npm dependencies..."
-        npm install 2>&1 | tail -3
-    fi
+
+    # Clean old build
+    echo "  Cleaning old build files..."
+    rm -rf dist node_modules/.vite 2>/dev/null || true
+
+    # Install dependencies
+    echo "  Installing npm dependencies..."
+    npm install 2>&1 | tail -3
+
+    # Build
     echo "  Running build..."
-    npm run build 2>&1 | tail -10
+    npm run build 2>&1
+
     if [ -d "dist" ]; then
         echo "  ✅ Frontend built successfully"
+        echo "  Build timestamp: $(date)"
         ls -la dist/ 2>/dev/null | head -5
+        ls -la dist/assets/ 2>/dev/null | head -5
     else
         echo "  ❌ Frontend build failed - dist directory not created"
     fi
     cd "$SCRIPT_DIR"
 else
     echo "  ⚠️  web/package.json not found at $SCRIPT_DIR/web/package.json"
-    echo "  Listing web directory:"
-    ls -la "$SCRIPT_DIR/web/" 2>/dev/null | head -10
 fi
 
 # ==================================== 3. Check/Install Docker & Qdrant ====================================
