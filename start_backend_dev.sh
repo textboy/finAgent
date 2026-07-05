@@ -1,17 +1,30 @@
 #!/bin/bash
 cd /app/workspace/finAgent
 source finagent/bin/activate
-export LLM_API_KEY="${FINAGENT_ZENMUX_API_KEY}"
-export BK_LLM_API_KEY="${BK_LLM_API_KEY}"
-if [ -n "$LLM_API_KEY" ]; then
-  echo "LLM API Key OK"
+
+# API Keys
+export ZENMUX_API_KEY="${FINAGENT_ZENMUX_API_KEY}"
+export AGNES_API_KEY="${AGNES_API_KEY}"
+export NVIDIA_API_KEY="${NVIDIA_API_KEY}"
+
+# Validation
+if [ -n "$ZENMUX_API_KEY" ]; then
+  echo "ZenMux API Key OK"
 else
-  echo "ERROR: LLM API Key is not set"
+  echo "ERROR: ZenMux API Key is not set"
   exit 1
 fi
-if [ -n "$BK_LLM_API_KEY" ]; then
-  echo "Backup LLM API Key OK"
+
+if [ -n "$AGNES_API_KEY" ]; then
+  echo "Agnes API Key OK"
 else
-  echo "WARNING: Backup LLM API Key is not set, backup LLM will not be available"
+  echo "WARNING: Agnes API Key is not set"
 fi
+
+if [ -n "$NVIDIA_API_KEY" ]; then
+  echo "NVIDIA API Key OK"
+else
+  echo "WARNING: NVIDIA API Key is not set"
+fi
+
 exec python finagent_api.py

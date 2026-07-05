@@ -1,51 +1,13 @@
 import os
 from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
+from ..utils.llm_client import get_llm_client
 
 load_dotenv(os.path.join('config', '.env'))
 
-DEFAULT_MODEL_NAME = 'x-ai/grok-beta'
-
-# Lazy initialization of LLM to ensure env vars are loaded
-_llm = None
 
 def get_llm():
-    global _llm
-    if _llm is None:
-        # Try primary LLM first, then fall back to backup
-        primary_key = os.getenv('LLM_API_KEY') or os.getenv('OPENROUTER_API_KEY')
-        backup_key = os.getenv('BK_LLM_API_KEY')
-
-        # Try primary LLM
-        try:
-            print(f"DEBUG: FundHolding - Trying primary LLM: {os.getenv('LLM_BASE_MODEL')} @ {os.getenv('LLM_BASE_URL')}")
-            _llm = ChatOpenAI(
-                model=os.getenv('LLM_BASE_MODEL', DEFAULT_MODEL_NAME),
-                api_key=primary_key,
-                base_url=os.getenv('LLM_BASE_URL'),
-                temperature=0.1,
-            )
-            # Test the connection
-            _llm.invoke([{"role": "user", "content": "hi"}])
-            print(f"DEBUG: FundHolding - Primary LLM OK")
-        except Exception as e:
-            print(f"DEBUG: FundHolding - Primary LLM failed: {e}")
-            print(f"DEBUG: FundHolding - Trying backup LLM: {os.getenv('LLM_BACKUP_MODEL')} @ {os.getenv('LLM_BACKUP_URL')}")
-            try:
-                _llm = ChatOpenAI(
-                    model=os.getenv('LLM_BACKUP_MODEL', DEFAULT_MODEL_NAME),
-                    api_key=backup_key,
-                    base_url=os.getenv('LLM_BACKUP_URL'),
-                    temperature=0.1,
-                )
-                # Test the connection
-                _llm.invoke([{"role": "user", "content": "hi"}])
-                print(f"DEBUG: FundHolding - Backup LLM OK")
-            except Exception as e2:
-                print(f"DEBUG: FundHolding - Backup LLM also failed: {e2}")
-                raise Exception(f"Both LLM providers failed. Primary: {e}, Backup: {e2}")
-    return _llm
+    return get_llm_client('FUND_HOLDING_MODEL', 'FUND_HOLDING_URL', 'Fund Holdings')
 
 
 FUND_HOLDING_SYSTEM_PROMPT = """You are a senior quantitative financial analyst and fund research expert, fluent in regulatory disclosure systems across global and Chinese markets (such as US SEC 13F and Form N-PORT filings, Chinese mutual fund quarterly/semi-annual reports, and major third-party private fund data platforms).

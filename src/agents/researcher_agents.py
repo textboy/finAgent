@@ -1,12 +1,11 @@
 import os
 from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from ..utils.qdrant_utils import get_past_lessons
+from ..utils.llm_client import get_llm_client
 
 load_dotenv(os.path.join('config', '.env'))
 
-DEFAULT_MODEL_NAME = 'x-ai/grok-beta'
 
 def get_period_description(investment_period: str) -> str:
     """Convert period code to descriptive timeframe."""
@@ -18,45 +17,28 @@ def get_period_description(investment_period: str) -> str:
     }
     return period_map.get(investment_period, investment_period)
 
-# Lazy initialization of LLM to ensure env vars are loaded
-_llm = None
+
+# Lazy initialization for each step
+_bull_llm = None
+_bear_llm = None
+_debate_llm = None
+
+
+def get_bull_llm():
+    return get_llm_client('BULL_MODEL', 'BULL_URL', 'Bull Analysis')
+
+
+def get_bear_llm():
+    return get_llm_client('BEAR_MODEL', 'BEAR_URL', 'Bear Analysis')
+
+
+def get_debate_llm():
+    return get_llm_client('DEBATE_MODEL', 'DEBATE_URL', 'Research Debate')
+
 
 def get_llm():
-    global _llm
-    if _llm is None:
-        # Try primary LLM first, then fall back to backup
-        primary_key = os.getenv('LLM_API_KEY') or os.getenv('OPENROUTER_API_KEY')
-        backup_key = os.getenv('BK_LLM_API_KEY')
-
-        # Try primary LLM
-        try:
-            print(f"DEBUG: Trying primary LLM: {os.getenv('LLM_BASE_MODEL')} @ {os.getenv('LLM_BASE_URL')}")
-            _llm = ChatOpenAI(
-                model=os.getenv('LLM_BASE_MODEL', DEFAULT_MODEL_NAME),
-                api_key=primary_key,
-                base_url=os.getenv('LLM_BASE_URL'),
-                temperature=0.1,
-            )
-            # Test the connection
-            _llm.invoke([{"role": "user", "content": "hi"}])
-            print(f"DEBUG: Primary LLM OK")
-        except Exception as e:
-            print(f"DEBUG: Primary LLM failed: {e}")
-            print(f"DEBUG: Trying backup LLM: {os.getenv('LLM_BACKUP_MODEL')} @ {os.getenv('LLM_BACKUP_URL')}")
-            try:
-                _llm = ChatOpenAI(
-                    model=os.getenv('LLM_BACKUP_MODEL', DEFAULT_MODEL_NAME),
-                    api_key=backup_key,
-                    base_url=os.getenv('LLM_BACKUP_URL'),
-                    temperature=0.1,
-                )
-                # Test the connection
-                _llm.invoke([{"role": "user", "content": "hi"}])
-                print(f"DEBUG: Backup LLM OK")
-            except Exception as e2:
-                print(f"DEBUG: Backup LLM also failed: {e2}")
-                raise Exception(f"Both LLM providers failed. Primary: {e}, Backup: {e2}")
-    return _llm
+    """Legacy function - returns debate LLM for backward compatibility."""
+    return get_debate_llm()
 
 BULL_SYSTEM_PROMPT = """You are a Bull Analyst advocating for investing in the stock. Your task is to build a strong, evidence-based case emphasizing growth potential, competitive advantages, and positive market indicators. Leverage the provided research and data to address concerns and counter bearish arguments effectively.
 
@@ -97,7 +79,7 @@ Focus your analysis on the {period_desc} timeframe.
             SystemMessage(content=BULL_SYSTEM_PROMPT),
             HumanMessage(content=user_prompt)
         ]
-        return get_llm().invoke(messages).content
+        return get_bull_llm().invoke(messages).content
 
 class BearishResearcher:
     @staticmethod
@@ -119,7 +101,7 @@ Focus your analysis on the {period_desc} timeframe.
             SystemMessage(content=BEAR_SYSTEM_PROMPT),
             HumanMessage(content=user_prompt)
         ]
-        return get_llm().invoke(messages).content
+        return get_bear_llm().invoke(messages).content
 
 class DebateAgent:
     @staticmethod
@@ -133,7 +115,7 @@ Bear: {bear_analysis[:3000]}"""
             SystemMessage(content="You are a debate moderator. Summarize the key points from both sides and provide a balanced debate result."),
             HumanMessage(content=user_prompt)
         ]
-        return get_llm().invoke(messages).content
+        return get_debate_llm().invoke(messages).content
 
 def researcher_team(analyst_insights: dict, symbol: str, investment_period: str, past_lessons: str = "") -> dict:
     print('DEBUG: researcher_team')

@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
+import { Routes, Route, Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import Introduction from './Introduction.jsx'
 
-function App() {
+function HomePage() {
   const serverHost = import.meta.env.VITE_SERVER_HOST;
   const uvicornPort = import.meta.env.VITE_UVICORN_PORT;
 
@@ -18,9 +20,16 @@ function App() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [historyReports, setHistoryReports] = useState([]);
+  const [selectedReport, setSelectedReport] = useState('');
+  const [viewingHistory, setViewingHistory] = useState(false);
+  const abortControllerRef = useRef(null);
+  const isSubmittingRef = useRef(false);
   const logEndRef = useRef(null);
   const inputRef = useRef(null);
   const suggestionsRef = useRef(null);
+  const periodRef = useRef(null);
 
   // Load ticker mapping on mount
   useEffect(() => {
@@ -88,36 +97,27 @@ function App() {
       return;
     }
 
-    // Handle Arrow keys when suggestions are visible
-    if (showSuggestions && suggestions.length > 0) {
-      switch (e.key) {
-        case 'ArrowDown':
-          e.preventDefault();
-          setHighlightedIndex(prev =>
-            prev < suggestions.length - 1 ? prev + 1 : 0
-          );
-          return;
-        case 'ArrowUp':
-          e.preventDefault();
-          setHighlightedIndex(prev =>
-            prev > 0 ? prev - 1 : suggestions.length - 1
-          );
-          return;
-        case 'Enter':
-          e.preventDefault();
-          // If an item is highlighted, select it
-          if (highlightedIndex >= 0 && highlightedIndex < suggestions.length) {
-            selectSuggestion(suggestions[highlightedIndex].ticker);
-            return;
-          }
-          break; // Fall through to trigger analyze if no item highlighted
-        default:
-          break;
+    // Handle Tab key - move focus to period select
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      setShowSuggestions(false);
+      setHighlightedIndex(-1);
+      if (periodRef.current) {
+        periodRef.current.focus();
       }
+      return;
     }
 
-    // Handle Enter to trigger Analyze (when no suggestion is highlighted or suggestions not showing)
+    // Handle Enter key
     if (e.key === 'Enter') {
+      // If suggestions are showing and an item is highlighted, select it
+      if (showSuggestions && suggestions.length > 0 && highlightedIndex >= 0) {
+        e.preventDefault();
+        selectSuggestion(suggestions[highlightedIndex].ticker);
+        return;
+      }
+
+      // Otherwise, trigger analyze if symbols are inputted
       const symbols = symbolInput
         .split(/[,;]/)
         .map(s => s.trim())
@@ -126,6 +126,27 @@ function App() {
       if (symbols.length > 0 && period) {
         e.preventDefault();
         handleSubmit();
+      }
+      return;
+    }
+
+    // Handle Arrow keys when suggestions are visible
+    if (showSuggestions && suggestions.length > 0) {
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault();
+          setHighlightedIndex(prev =>
+            prev < suggestions.length - 1 ? prev + 1 : 0
+          );
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          setHighlightedIndex(prev =>
+            prev > 0 ? prev - 1 : suggestions.length - 1
+          );
+          break;
+        default:
+          break;
       }
     }
   };
@@ -146,11 +167,57 @@ function App() {
     logEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [log]);
 
+  const validateTicker = (ticker) => {
+    if (!ticker || ticker.length === 0) return false;
+    return tickerMapping.some(item => item.ticker === ticker.toUpperCase());
+  };
+
+  const handleStop = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsAnalyzing(false);
+    setLoading(false);
+    setLog(prev => prev + `\n⏹️ Analysis stopped by user.\n`);
+  };
+
+  const fetchHistoryReports = async () => {
+    try {
+      const response = await fetch(`http://${serverHost}:${uvicornPort}/api/history-reports`);
+      if (response.ok) {
+        const data = await response.json();
+        setHistoryReports(data.reports || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch history reports:', err);
+    }
+  };
+
+  const viewReport = () => {
+    if (selectedReport) {
+      window.open(`http://${serverHost}:${uvicornPort}/static/${selectedReport}`, '_blank');
+    }
+  };
+
+  // Load history reports on mount
+  useEffect(() => {
+    fetchHistoryReports();
+  }, []);
+
   const handleSubmit = async () => {
+    // Prevent duplicate submissions
+    if (loading || isAnalyzing || isSubmittingRef.current) {
+      return;
+    }
+
     if (!symbolInput.trim() || !period.trim()) {
       setLog(prev => prev + '⚠️ Please provide symbol(s) and investment period.\n');
       return;
     }
+
+    // Set submitting flag immediately
+    isSubmittingRef.current = true;
 
     // Parse symbols (split by comma or semicolon)
     const symbols = symbolInput
@@ -166,17 +233,30 @@ function App() {
       setSymbolWarning('');
     }
 
+    // Validate tickers against mapping
+    const invalidTickers = symbols.filter(s => !validateTicker(s));
+    if (invalidTickers.length > 0) {
+      setLog(prev => prev + `❌ Invalid ticker(s): ${invalidTickers.join(', ')}\n`);
+      setLog(prev => prev + `💡 Please check the ticker symbol. Example: AAPL, GOOG, MSFT\n`);
+      return;
+    }
+
     setLoading(true);
+    setIsAnalyzing(true);
     setMultiResults([]);
     setTiming(null);
     setExpandedPanels({});
     setLog(`🚀 Starting analysis for ${symbols.join(', ')} (${period})...\n`);
+
+    // Create new AbortController for this request
+    abortControllerRef.current = new AbortController();
 
     try {
       const response = await fetch(`http://${serverHost}:${uvicornPort}/analyze-batch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ symbols, period }),
+        signal: abortControllerRef.current.signal,
       });
 
       if (!response.ok) {
@@ -221,9 +301,16 @@ function App() {
 
       setLog(prev => prev + `\n✅ Analysis complete for ${data.results.length} symbol(s).\n`);
     } catch (err) {
-      setLog(prev => prev + `\n❌ Error: ${err.message}\n`);
+      if (err.name === 'AbortError') {
+        setLog(prev => prev + `\n⏹️ Analysis cancelled.\n`);
+      } else {
+        setLog(prev => prev + `\n❌ Error: ${err.message}\n`);
+      }
     } finally {
       setLoading(false);
+      setIsAnalyzing(false);
+      isSubmittingRef.current = false;
+      abortControllerRef.current = null;
     }
   };
 
@@ -283,6 +370,17 @@ function App() {
               </div>
             </div>
             <div className="hidden md:flex items-center gap-6">
+              <Link
+                to="/introduction"
+                className="flex items-center gap-2 px-3 py-1.5 bg-slate-900/50 rounded-lg border border-slate-800 hover:border-purple-500/50 hover:bg-slate-800/50 transition-all duration-300"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-400">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                <span className="text-xs font-mono text-slate-400">Introduction</span>
+              </Link>
               <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-900/50 rounded-lg border border-slate-800">
                 <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
                 <span className="text-xs font-mono text-slate-400">System Online</span>
@@ -377,8 +475,9 @@ function App() {
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cyan-500"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                     Period
                   </label>
-                  <select 
-                    value={period} 
+                  <select
+                    ref={periodRef}
+                    value={period}
                     onChange={(e) => setPeriod(e.target.value)}
                     className="input-field appearance-none cursor-pointer pl-10"
                   >
@@ -390,27 +489,39 @@ function App() {
                 </div>
               </div>
 
-              {/* Submit Button */}
-              <div className="lg:col-span-2 lg:ml-8 flex items-end">
-                <button
-                  onClick={handleSubmit}
-                  disabled={loading || !symbolInput.trim()}
-                  className="btn-primary h-[52px] w-full flex items-center justify-center gap-3 text-base font-semibold"
-                >
-                  {loading ? (
-                    <>
-                      <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      <span>Processing</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Analyze</span>
-                    </>
-                  )}
-                </button>
+              {/* Submit/Stop Button */}
+              <div className="lg:col-span-2 lg:ml-8 flex items-end gap-2">
+                {isAnalyzing ? (
+                  <button
+                    onClick={handleStop}
+                    className="h-[52px] px-6 flex items-center justify-center gap-2 text-base font-semibold bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white rounded-xl shadow-lg transition-all duration-300"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                      <rect x="6" y="6" width="12" height="12" rx="2"/>
+                    </svg>
+                    <span>Stop</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleSubmit}
+                    disabled={loading || !symbolInput.trim()}
+                    className="btn-primary h-[52px] w-full flex items-center justify-center gap-3 text-base font-semibold"
+                  >
+                    {loading ? (
+                      <>
+                        <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Processing</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Analyze</span>
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
 
@@ -616,8 +727,55 @@ function App() {
             )}
           </div>
         )}
+
+        {/* History Reports Section */}
+        <section className="glass-panel rounded-2xl p-6 border border-slate-800/50 animate-slide-up" style={{ animationDelay: '0.5s' }}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-semibold text-white flex items-center gap-3">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-500">
+                <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              History Reports
+            </h3>
+            <button
+              onClick={fetchHistoryReports}
+              className="text-sm text-cyan-400 hover:text-cyan-300 flex items-center gap-1 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+              </svg>
+              Refresh
+            </button>
+          </div>
+          <div className="flex items-center gap-4">
+            <select
+              value={selectedReport}
+              onChange={(e) => setSelectedReport(e.target.value)}
+              className="input-field flex-1 text-sm"
+            >
+              <option value="">-- Select a report --</option>
+              {historyReports.map((report) => (
+                <option key={report.filename} value={report.filename}>
+                  {report.display}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={viewReport}
+              disabled={!selectedReport}
+              className="px-6 py-3 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 disabled:from-slate-600 disabled:to-slate-600 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-all duration-300 flex items-center gap-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+              View Report
+            </button>
+          </div>
+        </section>
       </main>
-      
+
       <footer className="relative z-10 mt-auto py-10 text-center text-slate-600 text-base border-t border-slate-900/50">
         <div className="max-w-7xl mx-auto px-4">
           <p>© 2026 FinAgent. AI-Powered Financial Analysis Platform.</p>
@@ -625,6 +783,15 @@ function App() {
         </div>
       </footer>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+      <Route path="/introduction" element={<Introduction />} />
+    </Routes>
   );
 }
 

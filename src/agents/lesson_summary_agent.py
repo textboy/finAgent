@@ -1,46 +1,13 @@
 import os
 from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
+from ..utils.llm_client import get_llm_client
 
 load_dotenv(os.path.join('config', '.env'))
 
-DEFAULT_MODEL_NAME = 'x-ai/grok-beta'
-
-# Lazy initialization of LLM
-_llm = None
 
 def get_llm():
-    global _llm
-    if _llm is None:
-        primary_key = os.getenv('LLM_API_KEY') or os.getenv('OPENROUTER_API_KEY')
-        backup_key = os.getenv('BK_LLM_API_KEY')
-
-        try:
-            print(f"DEBUG: LessonSummary - Trying primary LLM: {os.getenv('LLM_BASE_MODEL')}")
-            _llm = ChatOpenAI(
-                model=os.getenv('LLM_BASE_MODEL', DEFAULT_MODEL_NAME),
-                api_key=primary_key,
-                base_url=os.getenv('LLM_BASE_URL'),
-                temperature=0.1,
-            )
-            _llm.invoke([{"role": "user", "content": "hi"}])
-            print(f"DEBUG: LessonSummary - Primary LLM OK")
-        except Exception as e:
-            print(f"DEBUG: LessonSummary - Primary LLM failed: {e}")
-            try:
-                _llm = ChatOpenAI(
-                    model=os.getenv('LLM_BACKUP_MODEL', DEFAULT_MODEL_NAME),
-                    api_key=backup_key,
-                    base_url=os.getenv('LLM_BACKUP_URL'),
-                    temperature=0.1,
-                )
-                _llm.invoke([{"role": "user", "content": "hi"}])
-                print(f"DEBUG: LessonSummary - Backup LLM OK")
-            except Exception as e2:
-                print(f"DEBUG: LessonSummary - Backup LLM also failed: {e2}")
-                raise Exception(f"Both LLM providers failed. Primary: {e}, Backup: {e2}")
-    return _llm
+    return get_llm_client('LESSON_MODEL', 'LESSON_URL', 'Lesson Summary')
 
 
 LESSON_SUMMARY_SYSTEM_PROMPT = """You are a senior financial analyst responsible for creating concise learning summaries from investment analyses.

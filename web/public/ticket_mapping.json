@@ -1,4 +1,5 @@
 [
+  {"ticker": "SPCX", "name": "SPAC Index ETF", "aliases": ["spac", "spacex", "blank check"]},
   {"ticker": "AAPL", "name": "Apple Inc.", "aliases": ["apple", "iphone", "mac"]},
   {"ticker": "MSFT", "name": "Microsoft Corporation", "aliases": ["microsoft", "windows", "azure", "office"]},
   {"ticker": "GOOGL", "name": "Alphabet Inc. (Class A)", "aliases": ["google", "alphabet", "youtube", "android"]},
