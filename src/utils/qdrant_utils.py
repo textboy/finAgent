@@ -11,15 +11,22 @@ import uuid
 DEFAULT_EMBEDDING_MODEL_NAME = 'qwen/qwen3-embedding-8b'
 load_dotenv(os.path.join('config', '.env'))
 
-openrouter_api_key = os.getenv("LLM_API_KEY")
-openrouter_base = os.getenv("LLM_BASE_URL", "https://openrouter.ai/api/v1")
+# Get embedding API key - use ZENMUX_API_KEY for embeddings
+embedding_api_key = os.getenv("ZENMUX_API_KEY") or os.getenv("FINAGENT_ZENMUX_API_KEY")
+embedding_base = os.getenv("LLM_BASE_URL", "https://zenmux.ai/api/v1")
 COLL_NAME = 'finagent_reports'
 
-embeddings = OpenAIEmbeddings(
-    model=os.getenv('EMBEDDING_MODEL_NAME', DEFAULT_EMBEDDING_MODEL_NAME),
-    openai_api_key=openrouter_api_key,
-    openai_api_base=openrouter_base,
-)
+# Only initialize embeddings if API key is available
+embeddings = None
+if embedding_api_key:
+    try:
+        embeddings = OpenAIEmbeddings(
+            model=os.getenv('EMBEDDING_MODEL_NAME', DEFAULT_EMBEDDING_MODEL_NAME),
+            openai_api_key=embedding_api_key,
+            openai_api_base=embedding_base,
+        )
+    except Exception as e:
+        print(f"WARNING: Could not initialize embeddings: {e}")
 
 EMBED_DIM = 4096
 
@@ -65,26 +72,32 @@ def store_entry(symbol: str, report_type: str, content: str, analysis_datetime: 
     """Store an entry in Qdrant with embedding for semantic search."""
     if not qrant_server_health_status:
         return
+    if not embeddings:
+        print("WARNING: Embeddings not available, skipping store_entry")
+        return
     init_collection()
     if content:
         print(f'DEBUG: store_entry content-{content[:100]}...')
-        emb = embeddings.embed_query(content)
-        point = models.PointStruct(
-            id=str(uuid.uuid4()),
-            vector=emb,
-            payload={
-                "symbol": symbol,
-                "report_type": report_type,
-                "content": content,
-                "analysis_datetime": analysis_datetime,
-                "metadata": metadata or {},
-            },
-        )
-        client = get_client()
-        client.upsert(
-            collection_name=COLL_NAME,
-            points=[point],
-        )
+        try:
+            emb = embeddings.embed_query(content)
+            point = models.PointStruct(
+                id=str(uuid.uuid4()),
+                vector=emb,
+                payload={
+                    "symbol": symbol,
+                    "report_type": report_type,
+                    "content": content,
+                    "analysis_datetime": analysis_datetime,
+                    "metadata": metadata or {},
+                },
+            )
+            client = get_client()
+            client.upsert(
+                collection_name=COLL_NAME,
+                points=[point],
+            )
+        except Exception as e:
+            print(f"WARNING: Failed to store entry: {e}")
 
 def get_last_report(symbol: str) -> Optional[Dict[str, Any]]:
     """Get the most recent report for a symbol from Qdrant."""
