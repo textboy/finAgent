@@ -6,6 +6,7 @@ Features:
 - Client caching across steps
 - No test calls (fails naturally on first use)
 - Automatic fallback to backup LLM
+- Temperature parameter optional (some models don't support it)
 """
 
 import os
@@ -21,7 +22,7 @@ DEFAULT_MODEL_NAME = 'x-ai/grok-beta'
 _llm_cache = {}
 
 
-def get_llm_client(model_env_var: str, url_env_var: str, step_name: str) -> ChatOpenAI:
+def get_llm_client(model_env_var: str, url_env_var: str, step_name: str, temperature: float = None) -> ChatOpenAI:
     """
     Get or create a cached LLM client for the specified step.
 
@@ -29,6 +30,7 @@ def get_llm_client(model_env_var: str, url_env_var: str, step_name: str) -> Chat
         model_env_var: Environment variable name for the model
         url_env_var: Environment variable name for the URL
         step_name: Name of the step (for logging)
+        temperature: Temperature parameter (None = don't pass, some models don't support it)
 
     Returns:
         ChatOpenAI instance
@@ -46,16 +48,23 @@ def get_llm_client(model_env_var: str, url_env_var: str, step_name: str) -> Chat
     backup_url = os.getenv('LLM_BACKUP_URL')
     backup_key = os.getenv("ZENMUX_API_KEY")  # Backup always uses ZenMux
 
+    # Build kwargs for ChatOpenAI
+    def _build_kwargs(model_name, api_key, url, temp):
+        kwargs = {
+            "model": model_name,
+            "api_key": api_key,
+            "base_url": url,
+        }
+        # Only add temperature if explicitly provided
+        if temp is not None:
+            kwargs["temperature"] = temp
+        return kwargs
+
     # Try primary LLM
     try:
         primary_key = get_api_key_for_url(base_url)
         print(f"DEBUG: {step_name} - Creating LLM client: {model} @ {base_url}")
-        llm = ChatOpenAI(
-            model=model,
-            api_key=primary_key,
-            base_url=base_url,
-            temperature=0.1,
-        )
+        llm = ChatOpenAI(**_build_kwargs(model, primary_key, base_url, temperature))
         # Cache and return (no test call - fails naturally on first use)
         _llm_cache[cache_key] = llm
         print(f"DEBUG: {step_name} - Primary LLM client created")
@@ -66,12 +75,7 @@ def get_llm_client(model_env_var: str, url_env_var: str, step_name: str) -> Chat
         # Try backup LLM
         try:
             print(f"DEBUG: {step_name} - Trying backup LLM: {backup_model} @ {backup_url}")
-            llm = ChatOpenAI(
-                model=backup_model,
-                api_key=backup_key,
-                base_url=backup_url,
-                temperature=0.1,
-            )
+            llm = ChatOpenAI(**_build_kwargs(backup_model, backup_key, backup_url, temperature))
             # Cache and return (no test call)
             _llm_cache[cache_key] = llm
             print(f"DEBUG: {step_name} - Backup LLM client created")
