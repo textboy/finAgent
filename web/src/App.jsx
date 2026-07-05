@@ -5,8 +5,14 @@ import remarkGfm from 'remark-gfm'
 import Introduction from './Introduction.jsx'
 
 function HomePage() {
-  const serverHost = import.meta.env.VITE_SERVER_HOST;
-  const uvicornPort = import.meta.env.VITE_UVICORN_PORT;
+  // Determine server based on run mode
+  const runMode = import.meta.env.VITE_RUN_MODE || 'local';
+  const serverHost = runMode === 'production'
+    ? import.meta.env.VITE_PRODUCTION_HOST
+    : import.meta.env.VITE_LOCAL_HOST;
+  const uvicornPort = runMode === 'production'
+    ? import.meta.env.VITE_PRODUCTION_PORT
+    : import.meta.env.VITE_LOCAL_PORT;
 
   const [symbolInput, setSymbolInput] = useState('');
   const [period, setPeriod] = useState('medium');

@@ -23,10 +23,10 @@ embeddings = OpenAIEmbeddings(
 
 EMBED_DIM = 4096
 
-SERVER_HOST = os.getenv("SERVER_HOST")
-QDRANT_PORT = os.getenv("QDRANT_PORT")
+QDRANT_HOST = os.getenv("QDRANT_HOST", "localhost")
+QDRANT_PORT = os.getenv("QDRANT_PORT", "6333")
 QDRANT_PATH = os.getenv("QDRANT_PATH", "./qdrant")
-QDRANT_URL = f"http://{SERVER_HOST}/{QDRANT_PORT}"
+QDRANT_URL = f"http://{QDRANT_HOST}:{QDRANT_PORT}"
 qrant_server_health_status = False
 
 # Qdrant is optional for testing - will bypass memory if not available
