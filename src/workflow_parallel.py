@@ -115,8 +115,15 @@ def _step_6_fund_holding(symbol: str) -> Tuple[str, StepResult]:
 def _step_7_past_lessons(symbol: str) -> Tuple[str, StepResult]:
     """Step 7: Past Lessons."""
     def _run():
-        lessons = get_past_lessons(symbol)
-        return "\n".join(lessons) if lessons else "No past lessons found."
+        try:
+            lessons = get_past_lessons(symbol)
+            if lessons:
+                return "\n".join(lessons)
+            else:
+                return "No past lessons found. (Qdrant may not be available)"
+        except Exception as e:
+            logger.warning(f"Past lessons unavailable: {str(e)}")
+            return "Past lessons unavailable. (Qdrant may not be running)"
     return ("past_lessons", _run_step_with_timeout(_run))
 
 
