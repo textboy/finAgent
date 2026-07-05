@@ -32,13 +32,14 @@ logger = logging.getLogger('finagent')
 load_dotenv(os.path.join('config', '.env'))
 
 RUN_MODE = os.getenv("RUN_MODE", "local")
-SUPPORTED_MODES = ["local"]
+SUPPORTED_MODES = ["local", "production"]
 if RUN_MODE not in SUPPORTED_MODES:
     raise ValueError(f"Unsupported RUN_MODE '{RUN_MODE}'. Supported modes: {SUPPORTED_MODES}")
 
-SERVER_HOST = os.getenv("SERVER_HOST")
+SERVER_HOST = os.getenv("SERVER_HOST", "0.0.0.0" if RUN_MODE == "production" else "localhost")
+PRODUCTION_HOST = os.getenv("PRODUCTION_HOST", "5ngc.s.time4vps.cloud")
 UVICORN_PORT = os.getenv("UVICORN_PORT")
-logger.info(f"SERVER_HOST:{SERVER_HOST}, UVICORN_PORT:{UVICORN_PORT}")
+logger.info(f"RUN_MODE:{RUN_MODE}, SERVER_HOST:{SERVER_HOST}, PRODUCTION_HOST:{PRODUCTION_HOST}, UVICORN_PORT:{UVICORN_PORT}")
 try:
     UVICORN_PORT = int(UVICORN_PORT)
 except (ValueError, TypeError) as e:
@@ -47,9 +48,19 @@ except (ValueError, TypeError) as e:
 
 app = FastAPI(title="FinAgent API")
 
+# CORS configuration
+cors_origins = ["*"] if RUN_MODE == "local" else [
+    f"http://{PRODUCTION_HOST}",
+    f"https://{PRODUCTION_HOST}",
+    f"http://{PRODUCTION_HOST}:{UVICORN_PORT}",
+    f"https://{PRODUCTION_HOST}:{UVICORN_PORT}",
+    "http://localhost:3001",
+    "http://localhost:5173",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
