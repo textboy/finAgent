@@ -1,6 +1,20 @@
 import os
 from dotenv import load_dotenv
-from ..tools.analyst_tools import *
+from ..tools.analyst_tools import (
+    get_company_overview,
+    get_income_statement,
+    get_balance_sheet,
+    get_cash_flow,
+    get_news_sentiment,
+    get_reddit_sentiment,
+    download_yf_data,
+    get_sma,
+    get_ema,
+    get_rsi,
+    get_bbands,
+    get_macd,
+    get_vwap
+)
 
 load_dotenv(os.path.join('config', '.env'))
 
@@ -33,15 +47,15 @@ class SentimentAnalyst:
     def analyze(symbol: str) -> str:
         """Fetch sentiment data from APIs without LLM processing."""
         news_sentiment = get_news_sentiment(symbol)
-        macro_news_sentiment = get_macro_news_sentiment("economy_fiscal,economy_monetary,economy_macro")
+        reddit_sentiment = get_reddit_sentiment(symbol)
 
         return f"""=== SENTIMENT DATA: {symbol} ===
 
 NEWS SENTIMENT:
 {news_sentiment}
 
-MACRO NEWS SENTIMENT:
-{macro_news_sentiment}
+SOCIAL MEDIA (Reddit):
+{reddit_sentiment}
 """
 
 class TechnicalAnalyst:

@@ -1,0 +1,518 @@
+"""
+Parallel Pipeline for FinAgent Analysis
+
+Architecture:
+- Outer parallelism: 1-5 stock tickets in 5 threads
+- Inner parallelism per ticket:
+  - Steps 1-7 run in parallel
+  - Steps 8.1 (Bull) and 8.2 (Bear) run in parallel after steps 1-7
+  - Step 8.3 (Debate) runs after 8.1 and 8.2
+  - Step 9 (Trading) runs after 8.3
+  - Step 10 (Lesson Summary) runs in BACKGROUND after Step 9 (non-blocking)
+"""
+
+import time
+import threading
+import traceback
+from typing import Dict, Any, Optional, Tuple
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime
+
+from .agents.analyst_agents import (
+    FundamentalsAnalyst,
+    SentimentAnalyst,
+    TechnicalAnalyst,
+    MarketAnalyst
+)
+from .agents.global_economic_agent import get_global_economic_analysis
+from .agents.fund_holding_agent import FundHoldingAnalyst
+from .agents.researcher_agents import BullishResearcher, BearishResearcher, DebateAgent
+from .agents.trading_risk_agents import TradingAgent
+from .agents.lesson_summary_agent import LessonSummaryAgent
+from .utils.qdrant_utils import get_past_lessons, store_entry
+
+# Configuration
+STEP_TIMEOUT = 120  # seconds per step
+MAX_WORKERS_INNER = 7  # parallel steps 1-7
+MAX_WORKERS_BULL_BEAR = 2  # parallel bull/bear
+
+
+class StepResult:
+    """Wrapper for step results with error handling."""
+    def __init__(self, result: Any = None, error: Optional[str] = None, duration: float = 0):
+        self.result = result
+        self.error = error
+        self.duration = duration
+        self.success = error is None
+
+    def __repr__(self):
+        if self.success:
+            return f"StepResult(success, {self.duration:.1f}s)"
+        return f"StepResult(error: {self.error[:50]}, {self.duration:.1f}s)"
+
+
+def _run_step_with_timeout(func, *args, timeout: int = STEP_TIMEOUT, **kwargs) -> StepResult:
+    """Run a function with timeout and error handling."""
+    start = time.time()
+    try:
+        result = func(*args, **kwargs)
+        duration = time.time() - start
+        return StepResult(result=result, duration=duration)
+    except Exception as e:
+        duration = time.time() - start
+        error_msg = f"{type(e).__name__}: {str(e)}"
+        print(f"ERROR: Step failed after {duration:.1f}s: {error_msg}")
+        traceback.print_exc()
+        return StepResult(error=error_msg, duration=duration)
+
+
+def _step_1_fundamentals(symbol: str, investment_period: str) -> Tuple[str, StepResult]:
+    """Step 1: Fundamentals Analysis."""
+    def _run():
+        return FundamentalsAnalyst.analyze(symbol, investment_period)
+    return ("fundamentals", _run_step_with_timeout(_run))
+
+
+def _step_2_sentiment(symbol: str) -> Tuple[str, StepResult]:
+    """Step 2: Sentiment & Social Analysis."""
+    def _run():
+        return SentimentAnalyst.analyze(symbol)
+    return ("sentiment", _run_step_with_timeout(_run))
+
+
+def _step_3_technical(symbol: str, investment_period: str) -> Tuple[str, StepResult]:
+    """Step 3: Technical Analysis."""
+    def _run():
+        return TechnicalAnalyst.analyze(symbol, investment_period)
+    return ("technical", _run_step_with_timeout(_run))
+
+
+def _step_4_market(investment_period: str) -> Tuple[str, StepResult]:
+    """Step 4: Market Overview."""
+    def _run():
+        return MarketAnalyst.analyze(investment_period)
+    return ("market", _run_step_with_timeout(_run))
+
+
+def _step_5_global_economic(investment_period: str) -> Tuple[str, StepResult]:
+    """Step 5: Global Economy."""
+    def _run():
+        return get_global_economic_analysis(investment_period)
+    return ("global_economic", _run_step_with_timeout(_run))
+
+
+def _step_6_fund_holding(symbol: str) -> Tuple[str, StepResult]:
+    """Step 6: Fund Holdings."""
+    def _run():
+        return FundHoldingAnalyst.analyze(symbol)
+    return ("fund_holding", _run_step_with_timeout(_run))
+
+
+def _step_7_past_lessons(symbol: str) -> Tuple[str, StepResult]:
+    """Step 7: Past Lessons."""
+    def _run():
+        lessons = get_past_lessons(symbol)
+        return "\n".join(lessons) if lessons else "No past lessons found."
+    return ("past_lessons", _run_step_with_timeout(_run))
+
+
+def _run_steps_1_to_7(symbol: str, investment_period: str) -> Dict[str, StepResult]:
+    """Run steps 1-7 in parallel."""
+    print(f"DEBUG: [{symbol}] Running steps 1-7 in parallel")
+    start = time.time()
+
+    results = {}
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS_INNER) as executor:
+        futures = {
+            executor.submit(_step_1_fundamentals, symbol, investment_period): "fundamentals",
+            executor.submit(_step_2_sentiment, symbol): "sentiment",
+            executor.submit(_step_3_technical, symbol, investment_period): "technical",
+            executor.submit(_step_4_market, investment_period): "market",
+            executor.submit(_step_5_global_economic, investment_period): "global_economic",
+            executor.submit(_step_6_fund_holding, symbol): "fund_holding",
+            executor.submit(_step_7_past_lessons, symbol): "past_lessons",
+        }
+
+        for future in as_completed(futures):
+            step_name = futures[future]
+            try:
+                name, result = future.result(timeout=STEP_TIMEOUT + 10)
+                results[name] = result
+                status = "✓" if result.success else "✗"
+                print(f"DEBUG: [{symbol}] Step {step_name} {status} ({result.duration:.1f}s)")
+            except Exception as e:
+                results[step_name] = StepResult(error=f"Future error: {str(e)}")
+                print(f"DEBUG: [{symbol}] Step {step_name} ✗ (future error)")
+
+    duration = time.time() - start
+    print(f"DEBUG: [{symbol}] Steps 1-7 completed in {duration:.1f}s")
+    return results
+
+
+def _step_8_1_bull(symbol: str, investment_period: str, steps_1_to_7: Dict[str, StepResult]) -> Tuple[str, StepResult]:
+    """Step 8.1: Bullish Analysis."""
+    def _run():
+        # Extract individual step outputs
+        fundamentals = steps_1_to_7.get("fundamentals", StepResult()).result or ""
+        sentiment = steps_1_to_7.get("sentiment", StepResult()).result or ""
+        technical = steps_1_to_7.get("technical", StepResult()).result or ""
+        market = steps_1_to_7.get("market", StepResult()).result or ""
+        global_economic = steps_1_to_7.get("global_economic", StepResult()).result or ""
+        fund_holding = steps_1_to_7.get("fund_holding", StepResult()).result or ""
+        past_lessons = steps_1_to_7.get("past_lessons", StepResult()).result or ""
+
+        # Build memory context from all steps
+        memory = f"""=== GLOBAL ECONOMIC DATA ===
+{global_economic}
+
+=== FUND HOLDING CHANGES ===
+{fund_holding}
+
+=== PAST LESSONS ===
+{past_lessons}"""
+
+        return BullishResearcher.analyze(
+            symbol,
+            investment_period,
+            fundamentals,
+            sentiment,
+            technical,
+            market,
+            memory
+        )
+    return ("bull", _run_step_with_timeout(_run))
+
+
+def _step_8_2_bear(symbol: str, investment_period: str, steps_1_to_7: Dict[str, StepResult]) -> Tuple[str, StepResult]:
+    """Step 8.2: Bearish Analysis."""
+    def _run():
+        # Extract individual step outputs
+        fundamentals = steps_1_to_7.get("fundamentals", StepResult()).result or ""
+        sentiment = steps_1_to_7.get("sentiment", StepResult()).result or ""
+        technical = steps_1_to_7.get("technical", StepResult()).result or ""
+        market = steps_1_to_7.get("market", StepResult()).result or ""
+        global_economic = steps_1_to_7.get("global_economic", StepResult()).result or ""
+        fund_holding = steps_1_to_7.get("fund_holding", StepResult()).result or ""
+        past_lessons = steps_1_to_7.get("past_lessons", StepResult()).result or ""
+
+        # Build memory context from all steps
+        memory = f"""=== GLOBAL ECONOMIC DATA ===
+{global_economic}
+
+=== FUND HOLDING CHANGES ===
+{fund_holding}
+
+=== PAST LESSONS ===
+{past_lessons}"""
+
+        return BearishResearcher.analyze(
+            symbol,
+            investment_period,
+            fundamentals,
+            sentiment,
+            technical,
+            market,
+            memory
+        )
+    return ("bear", _run_step_with_timeout(_run))
+
+
+def _run_steps_8_1_and_8_2(symbol: str, investment_period: str, steps_1_to_7: Dict[str, StepResult]) -> Dict[str, StepResult]:
+    """Run bull and bear analyses in parallel."""
+    print(f"DEBUG: [{symbol}] Running steps 8.1 (bull) and 8.2 (bear) in parallel")
+    start = time.time()
+
+    results = {}
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS_BULL_BEAR) as executor:
+        futures = {
+            executor.submit(_step_8_1_bull, symbol, investment_period, steps_1_to_7): "bull",
+            executor.submit(_step_8_2_bear, symbol, investment_period, steps_1_to_7): "bear",
+        }
+
+        for future in as_completed(futures):
+            step_name = futures[future]
+            try:
+                name, result = future.result(timeout=STEP_TIMEOUT + 10)
+                results[name] = result
+                status = "✓" if result.success else "✗"
+                print(f"DEBUG: [{symbol}] Step {step_name} {status} ({result.duration:.1f}s)")
+            except Exception as e:
+                results[step_name] = StepResult(error=f"Future error: {str(e)}")
+                print(f"DEBUG: [{symbol}] Step {step_name} ✗ (future error)")
+
+    duration = time.time() - start
+    print(f"DEBUG: [{symbol}] Steps 8.1-8.2 completed in {duration:.1f}s")
+    return results
+
+
+def _step_8_3_debate(bull_result: str, bear_result: str, investment_period: str) -> Tuple[str, StepResult]:
+    """Step 8.3: Debate Summary."""
+    def _run():
+        # Append Warren Buffett's core thinkings for long-term analysis
+        buffett_context = ""
+        if investment_period == "long":
+            buffett_context = """
+
+---
+
+## Warren Buffett's 5 Core Investment Principles (Long-Term Analysis)
+
+When evaluating this long-term investment, please consider Warren Buffett's foundational investment philosophy:
+
+**1. Buy a Business, Not a Stock**
+- Evaluate the underlying business fundamentals, not just stock price movements
+- Focus on the company's ability to generate cash and profits over time
+
+**2. Prioritize Quality and "Economic Moats"**
+- Look for companies with sustainable competitive advantages (brand, network effects, switching costs, cost advantages)
+- Strong moats protect profits from competitors over the long term
+
+**3. Only Operate Within Your "Circle of Competence"**
+- Invest in businesses you thoroughly understand
+- Avoid complex or rapidly changing industries where prediction is difficult
+
+**4. Have a "Forever" Holding Period and Embrace Patience**
+- Buy with the intention to hold indefinitely
+- Time in the market beats timing the market
+- Allow compound interest to work its magic
+
+**5. Demand a "Margin of Safety" and Be Contrarian**
+- Buy at a significant discount to intrinsic value
+- Be greedy when others are fearful, fearful when others are greedy
+- Protect downside through conservative valuations
+
+---
+Please incorporate these principles into your long-term investment debate summary."""
+        return DebateAgent.summarize(bull_result, bear_result + buffett_context, investment_period)
+    return ("debate", _run_step_with_timeout(_run))
+
+
+def _step_9_trading(symbol: str, investment_period: str, debate_result: str) -> Tuple[str, StepResult]:
+    """Step 9: Trading Plan."""
+    def _run():
+        return TradingAgent.decide(symbol, investment_period, debate_result)
+    return ("trading", _run_step_with_timeout(_run))
+
+
+def _step_10_lesson_summary(
+    symbol: str,
+    investment_period: str,
+    debate_result: str,
+    trading_plan: str,
+    analysis_start_time: str
+) -> Tuple[str, StepResult]:
+    """Step 10: Lesson Summary - Generate and store lesson in Qdrant."""
+    def _run():
+        # Generate lesson summary
+        summary = LessonSummaryAgent.generate_summary(
+            symbol,
+            investment_period,
+            debate_result,
+            trading_plan,
+            analysis_start_time
+        )
+
+        # Store in Qdrant
+        store_entry(
+            symbol=symbol,
+            report_type="lesson",
+            content=summary,
+            analysis_datetime=analysis_start_time,
+            metadata={
+                "investment_period": investment_period,
+                "analysis_type": "lesson_summary",
+                "source_steps": ["debate", "trading"]
+            }
+        )
+
+        return summary
+    return ("lesson_summary", _run_step_with_timeout(_run))
+
+
+def run_single_ticket_pipeline(symbol: str, investment_period: str) -> Dict[str, Any]:
+    """
+    Run the complete analysis pipeline for a single stock ticket.
+
+    Returns:
+        Dict with all results including timing and errors.
+    """
+    pipeline_start = time.time()
+    print(f"\n{'='*60}")
+    print(f"  PIPELINE START: {symbol} ({investment_period})")
+    print(f"{'='*60}")
+
+    result = {
+        "symbol": symbol,
+        "investment_period": investment_period,
+        "start_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "steps": {},
+        "errors": [],
+        "success": True
+    }
+
+    # Phase 1: Run steps 1-7 in parallel
+    try:
+        steps_1_to_7 = _run_steps_1_to_7(symbol, investment_period)
+        result["steps"].update({k: v.result if v.success else f"[ERROR] {v.error}"
+                               for k, v in steps_1_to_7.items()})
+
+        # Check for critical failures
+        critical_steps = ["fundamentals", "technical"]
+        for step in critical_steps:
+            if not steps_1_to_7.get(step, StepResult()).success:
+                result["errors"].append(f"Critical step {step} failed")
+                result["success"] = False
+    except Exception as e:
+        result["errors"].append(f"Phase 1 failed: {str(e)}")
+        result["success"] = False
+        result["end_time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        result["duration_minutes"] = round((time.time() - pipeline_start) / 60, 2)
+        return result
+
+    # Phase 2: Run bull/bear in parallel (requires steps 1-7)
+    try:
+        steps_8_1_and_8_2 = _run_steps_8_1_and_8_2(symbol, investment_period, steps_1_to_7)
+
+        bull_result = steps_8_1_and_8_2.get("bull", StepResult(error="Bull not computed"))
+        bear_result = steps_8_1_and_8_2.get("bear", StepResult(error="Bear not computed"))
+
+        result["steps"]["bull"] = bull_result.result if bull_result.success else f"[ERROR] {bull_result.error}"
+        result["steps"]["bear"] = bear_result.result if bear_result.success else f"[ERROR] {bear_result.error}"
+
+        if not bull_result.success or not bear_result.success:
+            result["errors"].append("Bull/Bear analysis partially failed")
+    except Exception as e:
+        result["errors"].append(f"Phase 2 failed: {str(e)}")
+        bull_result = StepResult(error=str(e))
+        bear_result = StepResult(error=str(e))
+
+    # Phase 3: Debate (requires bull/bear)
+    try:
+        if bull_result.success and bear_result.success:
+            debate_name, debate_result = _step_8_3_debate(
+                bull_result.result, bear_result.result, investment_period
+            )
+            result["steps"]["debate"] = debate_result.result if debate_result.success else f"[ERROR] {debate_result.error}"
+
+            if not debate_result.success:
+                result["errors"].append(f"Debate failed: {debate_result.error}")
+        else:
+            result["steps"]["debate"] = "[ERROR] Skipped due to bull/bear failure"
+            debate_result = StepResult(error="Skipped")
+    except Exception as e:
+        result["errors"].append(f"Phase 3 failed: {str(e)}")
+        debate_result = StepResult(error=str(e))
+
+    # Phase 4: Trading Plan (requires debate)
+    try:
+        if debate_result.success:
+            trading_name, trading_result = _step_9_trading(
+                symbol, investment_period, debate_result.result
+            )
+            result["steps"]["trading"] = trading_result.result if trading_result.success else f"[ERROR] {trading_result.error}"
+
+            if not trading_result.success:
+                result["errors"].append(f"Trading plan failed: {trading_result.error}")
+        else:
+            result["steps"]["trading"] = "[ERROR] Skipped due to debate failure"
+            trading_result = StepResult(error="Skipped")
+    except Exception as e:
+        result["errors"].append(f"Phase 4 failed: {str(e)}")
+        trading_result = StepResult(error=str(e))
+
+    # Phase 5: Lesson Summary (runs in background, non-blocking)
+    # Launch background thread for lesson summary
+    def _run_lesson_summary_background():
+        try:
+            if debate_result.success and trading_result.success:
+                print(f"DEBUG: [{symbol}] Starting background lesson summary...")
+                _step_10_lesson_summary(
+                    symbol,
+                    investment_period,
+                    debate_result.result,
+                    trading_result.result,
+                    result["start_time"]
+                )
+                print(f"DEBUG: [{symbol}] Background lesson summary completed")
+            else:
+                print(f"DEBUG: [{symbol}] Skipping lesson summary (debate/trading failed)")
+        except Exception as e:
+            print(f"WARNING: [{symbol}] Background lesson summary failed: {str(e)}")
+
+    # Start background thread (non-blocking)
+    lesson_thread = threading.Thread(
+        target=_run_lesson_summary_background,
+        daemon=True,
+        name=f"lesson-{symbol}"
+    )
+    lesson_thread.start()
+    print(f"DEBUG: [{symbol}] Lesson summary thread started (background)")
+
+    result["end_time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    result["duration_minutes"] = round((time.time() - pipeline_start) / 60, 2)
+
+    print(f"\n{'='*60}")
+    print(f"  PIPELINE END: {symbol} ({result['duration_minutes']} min)")
+    print(f"  Success: {result['success']}, Errors: {len(result['errors'])}")
+    print(f"{'='*60}\n")
+
+    return result
+
+
+def run_batch_pipeline(symbols: list, investment_period: str) -> list:
+    """
+    Run analysis pipeline for multiple stock tickets in parallel.
+
+    Args:
+        symbols: List of stock symbols (max 5)
+        investment_period: Investment period
+
+    Returns:
+        List of results, one per symbol
+    """
+    if len(symbols) > 5:
+        raise ValueError("Maximum 5 symbols allowed")
+
+    if not symbols:
+        raise ValueError("At least one symbol required")
+
+    print(f"\n{'#'*60}")
+    print(f"  BATCH PIPELINE: {len(symbols)} symbols")
+    print(f"  Symbols: {', '.join(symbols)}")
+    print(f"  Period: {investment_period}")
+    print(f"{'#'*60}\n")
+
+    batch_start = time.time()
+    results = []
+
+    # Outer parallelism: run each symbol in parallel
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = {
+            executor.submit(run_single_ticket_pipeline, symbol.strip().upper(), investment_period): symbol
+            for symbol in symbols
+        }
+
+        for future in as_completed(futures):
+            symbol = futures[future]
+            try:
+                result = future.result(timeout=600)  # 10 min timeout per ticket
+                results.append(result)
+                print(f"BATCH: {symbol} completed ({result['duration_minutes']} min)")
+            except Exception as e:
+                results.append({
+                    "symbol": symbol.strip().upper(),
+                    "error": str(e),
+                    "success": False,
+                    "steps": {},
+                    "errors": [str(e)]
+                })
+                print(f"BATCH: {symbol} failed: {str(e)[:50]}")
+
+    # Sort results by original order
+    symbol_order = {s.strip().upper(): i for i, s in enumerate(symbols)}
+    results.sort(key=lambda x: symbol_order.get(x['symbol'], 0))
+
+    batch_duration = round((time.time() - batch_start) / 60, 2)
+    print(f"\nBATCH COMPLETE: {len(results)} symbols in {batch_duration} min\n")
+
+    return results
