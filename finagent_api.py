@@ -69,6 +69,25 @@ app.add_middleware(
 app.mount("/static", StaticFiles(directory="results"), name="static")
 
 
+@app.get("/")
+async def root():
+    """Root endpoint - returns API status and links."""
+    return {
+        "name": "FinAgent API",
+        "version": "1.0.0",
+        "status": "running",
+        "run_mode": RUN_MODE,
+        "endpoints": {
+            "analyze": "/analyze",
+            "analyze_batch": "/analyze-batch",
+            "history_reports": "/api/history-reports",
+            "docs": "/docs",
+            "static_reports": "/static/"
+        },
+        "production_url": f"http://{PRODUCTION_HOST}:{UVICORN_PORT}" if RUN_MODE == "production" else None
+    }
+
+
 class AnalyzeRequest(BaseModel):
     symbols: List[str]
     period: str
