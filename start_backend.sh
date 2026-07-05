@@ -150,7 +150,14 @@ if lsof -Pi :8000 -sTCP:LISTEN -t >/dev/null 2>&1 ; then
     echo "  ✅ Existing process stopped"
 fi
 
-echo "  API: http://localhost:8000"
+# Get production host from config
+PRODUCTION_HOST=$(grep -E "^PRODUCTION_HOST=" "$SCRIPT_DIR/config/.env" 2>/dev/null | cut -d'=' -f2)
+PRODUCTION_HOST="${PRODUCTION_HOST:-5ngc.s.time4vps.cloud}"
+
+echo ""
+echo "  🌐 Access URL: http://${PRODUCTION_HOST}:8000"
+echo "  📊 API Docs: http://${PRODUCTION_HOST}:8000/docs"
+echo ""
 echo "  Press Ctrl+C to stop"
 echo ""
 
