@@ -190,18 +190,32 @@ echo ""
 echo "  🌐 Access URL: http://${PRODUCTION_HOST}:8000"
 echo "  📊 API Docs: http://${PRODUCTION_HOST}:8000/docs"
 echo ""
-echo "  Press Ctrl+C to stop"
-echo ""
 
 # Check if we should run as systemd service or directly
-if [ "$EUID" -eq 0 ] && systemctl is-active --quiet finagent 2>/dev/null; then
-    echo "  Starting as systemd service..."
-    systemctl start finagent
-    echo "  ✅ Service started in background"
-    echo "  Check status: sudo systemctl status finagent"
-    echo "  View logs: sudo journalctl -u finagent -f"
+if [ "$EUID" -eq 0 ]; then
+    # Running as root - use systemd
+    if [ -f "/etc/systemd/system/finagent.service" ]; then
+        echo "  Starting as systemd service..."
+        systemctl start finagent
+        systemctl enable finagent 2>/dev/null || true
+        echo "  ✅ Service started in background"
+        echo "  Check status: sudo systemctl status finagent"
+        echo "  View logs: sudo journalctl -u finagent -f"
+        echo "  Stop: sudo systemctl stop finagent"
+    else
+        echo "  Starting in background with nohup..."
+        nohup gunicorn -w 2 -k uvicorn.workers.UvicornWorker finagent_api:app --bind 0.0.0.0:8000 --timeout 480 --log-level info > /var/log/finagent.log 2>&1 &
+        echo "  ✅ Server started in background"
+        echo "  PID: $!"
+        echo "  Logs: tail -f /var/log/finagent.log"
+    fi
 else
-    echo "  Starting directly..."
-    # Run gunicorn in foreground - this keeps the terminal alive
-    gunicorn -w 2 -k uvicorn.workers.UvicornWorker finagent_api:app --bind 0.0.0.0:8000 --timeout 480 --log-level info
+    # Not running as root - use nohup
+    echo "  Starting in background with nohup..."
+    nohup gunicorn -w 2 -k uvicorn.workers.UvicornWorker finagent_api:app --bind 0.0.0.0:8000 --timeout 480 --log-level info > /tmp/finagent.log 2>&1 &
+    echo "  ✅ Server started in background"
+    echo "  PID: $!"
+    echo "  Logs: tail -f /tmp/finagent.log"
+    echo ""
+    echo "  To stop: kill $!"
 fi
