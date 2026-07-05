@@ -5,14 +5,9 @@ import remarkGfm from 'remark-gfm'
 import Introduction from './Introduction.jsx'
 
 function HomePage() {
-  // Determine server based on run mode
-  const runMode = import.meta.env.VITE_RUN_MODE || 'local';
-  const serverHost = runMode === 'production'
-    ? import.meta.env.VITE_PRODUCTION_HOST
-    : import.meta.env.VITE_LOCAL_HOST;
-  const uvicornPort = runMode === 'production'
-    ? import.meta.env.VITE_PRODUCTION_PORT
-    : import.meta.env.VITE_LOCAL_PORT;
+  // Use current browser host/port for API calls
+  const serverHost = window.location.hostname;
+  const uvicornPort = window.location.port || '8000';
 
   const [symbolInput, setSymbolInput] = useState('');
   const [period, setPeriod] = useState('medium');
@@ -39,11 +34,11 @@ function HomePage() {
 
   // Load ticker mapping on mount
   useEffect(() => {
-    fetch('/ticket_mapping.json')
+    fetch(`http://${serverHost}:${uvicornPort}/public/ticket_mapping.json`)
       .then(res => res.json())
       .then(data => setTickerMapping(data))
       .catch(err => console.error('Failed to load ticker mapping:', err));
-  }, []);
+  }, [serverHost, uvicornPort]);
 
   // Close suggestions when clicking outside
   useEffect(() => {
