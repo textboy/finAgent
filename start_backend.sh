@@ -41,7 +41,30 @@ echo "[2/5] Installing dependencies..."
 pip install -r requirements.txt -q 2>/dev/null || {
     echo "  ⚠️  Some dependencies may have failed to install"
 }
-echo "  ✅ Dependencies installed"
+echo "  ✅ Python dependencies installed"
+
+# Build frontend if needed
+echo ""
+echo "  Building frontend..."
+if [ -f "$SCRIPT_DIR/web/package.json" ]; then
+    cd "$SCRIPT_DIR/web"
+    if [ ! -d "node_modules" ]; then
+        npm install -q 2>/dev/null || {
+            echo "  ⚠️  npm install failed, checking if npm is available..."
+            if command -v npm &> /dev/null; then
+                npm install -q
+            else
+                echo "  ⚠️  npm not found. Frontend will not be built."
+            fi
+        }
+    fi
+    if [ -f "node_modules/.package-lock.json" ] || [ -d "node_modules" ]; then
+        npm run build -q 2>/dev/null && echo "  ✅ Frontend built" || echo "  ⚠️  Frontend build failed"
+    fi
+    cd "$SCRIPT_DIR"
+else
+    echo "  ⚠️  web/package.json not found, skipping frontend build"
+fi
 
 # ==================================== 3. Check/Install Docker & Qdrant ====================================
 echo ""
