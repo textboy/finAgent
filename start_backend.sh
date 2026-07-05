@@ -141,6 +141,15 @@ fi
 # ==================================== Start Server ====================================
 echo ""
 echo "=================================== Starting Server ==================================="
+
+# Check if port 8000 is already in use
+if lsof -Pi :8000 -sTCP:LISTEN -t >/dev/null 2>&1 ; then
+    echo "  ⚠️  Port 8000 is already in use. Stopping existing process..."
+    lsof -ti :8000 | xargs kill -9 2>/dev/null || true
+    sleep 2
+    echo "  ✅ Existing process stopped"
+fi
+
 echo "  API: http://localhost:8000"
 echo "  Press Ctrl+C to stop"
 echo ""
