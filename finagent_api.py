@@ -393,5 +393,35 @@ async def analyze(req: AnalyzeRequest):
         return await analyze_batch(req)
 
 
+@app.get("/api/history-reports")
+async def get_history_reports():
+    """Get list of all HTML reports in the results folder."""
+    results_dir = "results"
+    if not os.path.exists(results_dir):
+        return {"reports": []}
+
+    reports = []
+    for filename in sorted(os.listdir(results_dir), reverse=True):
+        if filename.endswith(".html"):
+            # Extract info from filename: result_SYMBOL_YYYYMMDD_HHMM.html
+            parts = filename.replace("result_", "").replace(".html", "").split("_")
+            if len(parts) >= 3:
+                symbol = parts[0]
+                date = parts[1]
+                time_str = parts[2]
+                display = f"{symbol} - {date[:4]}-{date[4:6]}-{date[6:]} {time_str[:2]}:{time_str[2:]}"
+            else:
+                display = filename
+
+            reports.append({
+                "filename": filename,
+                "display": display,
+                "symbol": parts[0] if len(parts) >= 1 else "Unknown",
+                "date": f"{date[:4]}-{date[4:6]}-{date[6:]}" if len(parts) >= 2 else "Unknown",
+            })
+
+    return {"reports": reports[:50]}  # Limit to 50 most recent
+
+
 if __name__ == "__main__":
     uvicorn.run(app, host=SERVER_HOST, port=UVICORN_PORT)

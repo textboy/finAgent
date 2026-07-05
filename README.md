@@ -1,107 +1,240 @@
 # FinAgents
 ***
-Finance Agents on secondary market
+AI-Powered Financial Analysis Platform with Multi-Stock Parallel Processing
 
-# Flowchart
-FinAgents is a multi-agent trading framework that mirrors the real-world trading firms which takes reference to project TradinAgents. By deploying LLM-powered agents: from fundamental analysts, sentiment experts, and technical analysts, to trader, risk management team, the platform collaboratively evaluates market conditions and informs trading decisions.
+## Overview
+FinAgents is a multi-agent trading framework that mirrors real-world trading firms. By deploying LLM-powered agents: from fundamental analysts, sentiment experts, and technical analysts, to trader, risk management team, the platform collaboratively evaluates market conditions and informs trading decisions.
+
 ![Flow Design](./design/finAgentFlow.png)
 
-# Installation
+## Key Features
+
+### 🚀 Parallel Processing
+- **Multi-Stock Analysis**: Analyze 1-5 stocks simultaneously
+- **Inner Parallelism**: Steps 1-7 run in parallel per stock
+- **Bull/Bear Parallel**: Step 8.1 and 8.2 run concurrently
+
+### 🔍 Searchable Ticker Input
+- Type company name, alias, or ticker to search
+- Example: "google" → shows GOOG, GOOGL
+- Keyboard navigation (↑/↓/Enter)
+- Supports comma/semicolon separators
+
+### 📊 10-Step Analysis Pipeline
+| Step | Name | Data Source | LLM |
+|------|------|-------------|-----|
+| 1 | Fundamentals | yfinance | - |
+| 2 | Sentiment & Social | yfinance + Reddit | - |
+| 3 | Technical | yfinance | - |
+| 4 | Market Overview | yfinance | - |
+| 5 | Global Economy | World Bank API | - |
+| 6 | Fund Holdings | - | ✅ agnes-2.0-flash |
+| 7 | Past Lessons | Qdrant DB | - |
+| 8.1 | Bull Analysis | - | ✅ xiaomi/mimo-v2.5 |
+| 8.2 | Bear Analysis | - | ✅ anthropic/claude-sonnet-5-free |
+| 8.3 | Research Debate | - | ✅ anthropic/claude-fable-5-free |
+| 9 | Trading Plan | - | ✅ anthropic/claude-fable-5-free |
+| 10 | Lesson Summary | - | ✅ agnes-2.0-flash (background) |
+
+### 🤖 Multi-Provider LLM Support
+- **ZenMux**: https://zenmux.ai/api/v1
+- **Agnes AI**: https://apihub.agnes-ai.com/v1
+- **NVIDIA**: https://integrate.api.nvidia.com/v1
+- API key automatically selected based on URL prefix
+
+### 📈 Additional Features
+- Warren Buffett's 5 core principles for long-term analysis
+- Reddit sentiment integration
+- HTML report generation
+- Step progress logs in UI
+- Stop button for analysis cancellation
+- Server-side logging
+
+## Installation
+
 ### Environment Setup
-##### windows
+
+#### Windows
 ```cmd
 ./setup.cmd
 ```
-##### linux
+
+#### Linux/Mac
 ```shell
 ./setup.sh
 ```
 
-##### frontend
+#### Frontend
 ```shell
 cd web
 npm install
 ```
 
-### Vector DB Setup
-##### windows
+### Vector DB Setup (Optional)
+
+#### Windows
 ```cmd
 ./vector-db-setup.cmd
 ```
-##### linux
+
+#### Linux/Mac
 ```shell
 ./vector-db-setup.sh
 ```
 
-# Required APIs
-Alpha Vantage API Key is required for the project (standard API rate limit is 25 requests per day)
+## Configuration
 
-# Configuration
-Copy ./config/.env.example to .env
-Fill in the OpenRouter Key, Alpha Vantage API Key, model name etc. in the .env file.
-
-# Execution
-
-## Web UI
-**backend**
+### 1. Copy and edit .env file
 ```shell
-python finagent_api.py # for development
-# pm2 start "/app/workspace/finAgent/start_backend.sh" --name finagent_be | pm2 save | pm2 restart finagent_be | pm2 show finagent_be | pm2 logs finagent_be [--lines 1000]  # for production
+cp config/.env.example config/.env
 ```
-- http://localhost:8000/
 
-**frontend**
+### 2. API Keys (Environment Variables)
+```shell
+# Required
+export ZENMUX_API_KEY="your-zenmux-api-key"
+
+# Optional (for additional providers)
+export AGNES_API_KEY="your-agnes-api-key"
+export NVIDIA_API_KEY="your-nvidia-api-key"
+```
+
+### 3. LLM Configuration (config/.env)
+Each step can use different models and providers:
+
+```env
+# Step 6: Fund Holdings
+FUND_HOLDING_MODEL=agnes-2.0-flash
+FUND_HOLDING_URL=https://apihub.agnes-ai.com/v1
+
+# Step 8.1: Bull Analysis
+BULL_MODEL=xiaomi/mimo-v2.5
+BULL_URL=https://zenmux.ai/api/v1
+
+# Step 8.2: Bear Analysis
+BEAR_MODEL=anthropic/claude-sonnet-5-free
+BEAR_URL=https://zenmux.ai/api/v1
+
+# ... etc
+```
+
+## Execution
+
+### Web UI
+
+#### Backend
+```shell
+# Development
+python finagent_api.py
+
+# Production
+./start_backend.sh
+```
+- http://localhost:8000
+
+#### Frontend
 ```shell
 cd web
-npm run dev # for development
-# npm run build # for production 
-# pm2 start "npm run preview" --name finagent_ui | pm2 save | pm2 startup | pm2 show finagent_ui  # for pre-production
-# nginx for production
+
+# Development
+npm run dev
+
+# Production
+npm run build
+npm run preview
 ```
 - http://localhost:3001
-- http://{yourServerIp}:4173  # npm run preview
 
-## CLI
-**Sample python script to run the project**
-```python
-python finagent.py --symbol GOOG --period short+
-```
-**Sample linux shell script to run the project**
+### CLI
 ```shell
-finagent.sh GOOG short+
-```
-**Sample windows bat script to run the project**
-```cmd
-finagent.bat GOOG short+
-```
-- **symbol**: ticker
-- **period**: *short+* within 2 weeks; *short* from 2 weeks to 1 month; *medium* from 1 month to 1 year; *long* from 1 year to 2 years
+# Python
+python finagent.py --symbol AAPL,GOOG --period medium
 
-**Sample output to the console**
-```shell
-...
-========== Researcher Debate ==========
-Bull: Hey Bear, let's cut through the noise—you're probably harping on Alphabet's "sky-high valuation," antitrust headaches, or some short-term technical wobble like that VWAP gap or fading MACD momentum. Fair enough, but let's stack up the facts and watch your case crumble. As the Bull Analyst, I'm here to show why GOOG (Alphabet Class C) isn't just a hold—it's a compounding machine with explosive growth ahead, trading at a steal around $310-312 with analyst targets at $328. This is a $3.97T behemoth...
-...
-========== Trading Plan ==========
-### Trader Plan for GOOG
-- **Trading Signal**: BUY
-- **Trading Timing**: Buy on dips above $305 support level; initial entry at or below current levels (~$311) for momentum confirmation above $312 resistance.    
-- **Reason for Trading**: Bull case prevails narrowly (55-45) on superior long-term fundamentals (AI/cloud growth, moats, PEG 1.74 undervaluation) outweighing short-term technical weakness (RSI 43, MACD fade). Diversified revenue and $10T TAM support upside in 3 months, with flawless Q4 execution as catalyst.
-
-1. **PROPOSAL**: **BUY**
-2. **TARGET PRICE**: $325 (USD)
-3. **FORECAST PERIOD**: 3 months
-4. **CONFIDENCE**: 0.60
-5. **RISK SCORE**: 0.55
-6. **LAST CLOSE PRICE**: $311.00
-...
+# Shell
+./finagent.sh AAPL,GOOG medium
 ```
 
-**Sample output as report (e.g. Linux terminal)**
-```shell
-glow ./results/result_yyyymmdd_nnnn.md
+**Parameters:**
+- **symbol**: Stock ticker(s), comma-separated (max 5)
+- **period**: 
+  - `short+` - 1-7 days
+  - `short` - 1-4 weeks
+  - `medium` - 1-6 months
+  - `long` - 6+ months (includes Warren Buffett principles)
+
+## API Endpoints
+
+### POST /analyze-batch
+Analyze multiple stocks in parallel.
+
+**Request:**
+```json
+{
+  "symbols": ["AAPL", "GOOG", "MSFT"],
+  "period": "medium"
+}
 ```
 
-# Disclaimer
+**Response:**
+```json
+{
+  "results": [
+    {
+      "symbol": "AAPL",
+      "reports": { ... },
+      "report_path": "/static/result_AAPL_20260705_1200.html",
+      "timing": { "start": "...", "end": "...", "duration_minutes": 2.5 },
+      "step_logs": ["✅ [AAPL] Fundamentals completed (0.18 min)", ...],
+      "errors": [],
+      "success": true
+    }
+  ]
+}
+```
+
+## Project Structure
+```
+finAgent/
+├── config/
+│   └── .env              # Configuration
+├── src/
+│   ├── agents/
+│   │   ├── analyst_agents.py
+│   │   ├── fund_holding_agent.py
+│   │   ├── global_economic_agent.py
+│   │   ├── lesson_summary_agent.py
+│   │   ├── researcher_agents.py
+│   │   └── trading_risk_agents.py
+│   ├── tools/
+│   │   └── analyst_tools.py
+│   ├── utils/
+│   │   ├── api_key_selector.py
+│   │   ├── data_fetchers.py
+│   │   └── qdrant_utils.py
+│   └── workflow_parallel.py
+├── web/
+│   ├── public/
+│   │   └── ticket_mapping.json
+│   └── src/
+│       └── App.jsx
+├── logs/                  # Server logs
+├── results/               # Analysis reports (HTML)
+├── finagent_api.py        # FastAPI backend
+└── requirements.txt
+```
+
+## Logging
+Server logs are stored in `logs/` folder:
+```
+logs/finagent_20260705.log
+```
+
+## Reports
+Analysis reports are generated in both Markdown and HTML formats:
+```
+results/result_AAPL_20260705_1200.md
+results/result_AAPL_20260705_1200.html
+```
+
+## Disclaimer
 Trading performance may vary based on many factors, including the chosen backbone language models, model temperature, trading periods, the quality of data, and other non-deterministic factors. It is not intended as financial, investment, or trading advice.

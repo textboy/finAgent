@@ -37,7 +37,7 @@ from .utils.qdrant_utils import get_past_lessons, store_entry
 
 # Configuration
 STEP_TIMEOUT = 120  # seconds per step
-MAX_WORKERS_INNER = 7  # parallel steps 1-7
+MAX_WORKERS_INNER = 10  # parallel steps 1-7
 MAX_WORKERS_BULL_BEAR = 2  # parallel bull/bear
 
 
