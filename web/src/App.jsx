@@ -503,7 +503,7 @@ function HomePage() {
                       onClick={handleSubmit}
                       disabled={loading || !symbolInput.trim()}
                       className="btn-primary h-[52px] w-full flex items-center justify-center gap-3 text-base font-semibold"
-                  >
+                    >
                     {loading ? (
                       <>
                         <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
