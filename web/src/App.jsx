@@ -361,47 +361,44 @@ function HomePage() {
       {/* Navbar */}
       <nav className="sticky top-0 z-50 glass-panel border-b border-slate-800/50 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-20">
-            <div className="flex items-center gap-3">
+          <div className="flex items-center justify-between h-16 sm:h-20">
+            <Link to="/" className="flex items-center gap-2 sm:gap-3">
               <div>
-                <h1 className="text-2xl bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-300">
+                <h1 className="text-xl sm:text-2xl bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-300">
                   FinAgent
                 </h1>
-                <p className="text-xs text-slate-500 font-mono mt-1">AI-Powered Financial Intelligence</p>
+                <p className="text-[10px] sm:text-xs text-slate-500 font-mono mt-0.5 sm:mt-1 hidden sm:block">AI-Powered Financial Intelligence</p>
               </div>
-            </div>
-            <div className="hidden md:flex items-center gap-6">
+            </Link>
+            <div className="flex items-center gap-2 sm:gap-4">
               <Link
                 to="/introduction"
-                className="flex items-center gap-2 px-3 py-1.5 bg-slate-900/50 rounded-lg border border-slate-800 hover:border-purple-500/50 hover:bg-slate-800/50 transition-all duration-300"
+                className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 bg-slate-900/50 rounded-lg border border-slate-800 hover:border-purple-500/50 hover:bg-slate-800/50 transition-all duration-300"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-400">
                   <circle cx="12" cy="12" r="10"></circle>
                   <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
                   <line x1="12" y1="17" x2="12.01" y2="17"></line>
                 </svg>
-                <span className="text-xs font-mono text-slate-400">Introduction</span>
+                <span className="text-[10px] sm:text-xs font-mono text-slate-400 hidden sm:inline">Introduction</span>
               </Link>
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-900/50 rounded-lg border border-slate-800">
-                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                <span className="text-xs font-mono text-slate-400">System Online</span>
-              </div>
-              <div className="text-xs font-mono text-slate-500 bg-slate-900/30 px-3 py-1.5 rounded border border-slate-800">
-                v1.0
+              <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 bg-slate-900/50 rounded-lg border border-slate-800">
+                <div className="w-1.5 sm:w-2 h-1.5 sm:h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                <span className="text-[10px] sm:text-xs font-mono text-slate-400 hidden sm:inline">Online</span>
               </div>
             </div>
           </div>
         </div>
       </nav>
 
-      <main className="relative z-10 flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-12 space-y-12">
-        
+      <main className="relative z-10 flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-12 space-y-6 sm:space-y-12">
+
         {/* Hero Section */}
-        <section className="text-center space-y-6 animate-slide-up">
-          <h2 className="text-4xl md:text-5xl font-bold text-white">
+        <section className="text-center space-y-4 sm:space-y-6 animate-slide-up">
+          <h2 className="text-2xl sm:text-4xl md:text-5xl font-bold text-white">
             Advanced Financial <span className="text-glow bg-clip-text text-transparent bg-gradient-to-r from-purple-500 to-cyan-500">Analysis</span> Platform
           </h2>
-          <p className="text-slate-400 max-w-3xl mx-auto text-xl leading-relaxed">
+          <p className="text-slate-400 max-w-3xl mx-auto text-base sm:text-xl leading-relaxed">
             Get comprehensive AI-driven insights for any stock symbol with detailed fundamentals, sentiment, technical, and risk analysis.
           </p>
         </section>
@@ -414,64 +411,63 @@ function HomePage() {
               <h3 className="text-xl font-semibold text-white">Analysis Configuration</h3>
             </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-6">
-              
+            <div className="space-y-4">
               {/* Symbol Input */}
-              <div className="lg:col-span-6 space-y-2">
-                <div className="flex items-center gap-4">
-                  <label className="text-sm font-medium text-slate-400 flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-500"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-                    Symbols
-                  </label>
-                  <div className="flex-1 relative" ref={suggestionsRef}>
-                    <input
-                      ref={inputRef}
-                      type="text"
-                      value={symbolInput}
-                      onChange={(e) => {
-                        // Auto-convert to uppercase and trim spaces between symbols
-                        const value = e.target.value.toUpperCase().replace(/\s+/g, '');
-                        setSymbolInput(value);
-                      }}
-                      onKeyDown={handleKeyDown}
-                      onFocus={() => {
-                        if (suggestions.length > 0) setShowSuggestions(true);
-                      }}
-                      className="input-field text-sm tracking-wide uppercase pr-16"
-                      placeholder="AAPL,GOOG,MSFT (type company name)"
-                    />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">max 5</span>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-400 flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-500"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                  Symbols
+                </label>
+                <div className="relative" ref={suggestionsRef}>
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={symbolInput}
+                    onChange={(e) => {
+                      // Auto-convert to uppercase and trim spaces between symbols
+                      const value = e.target.value.toUpperCase().replace(/\s+/g, '');
+                      setSymbolInput(value);
+                    }}
+                    onKeyDown={handleKeyDown}
+                    onFocus={() => {
+                      if (suggestions.length > 0) setShowSuggestions(true);
+                    }}
+                    className="input-field text-sm sm:text-base tracking-wide uppercase pr-16"
+                    placeholder="AAPL,GOOG,MSFT"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">max 5</span>
 
-                    {/* Suggestions Dropdown */}
-                    {showSuggestions && suggestions.length > 0 && (
-                      <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl max-h-64 overflow-y-auto">
-                        {suggestions.map((item, index) => (
-                          <button
-                            key={item.ticker}
-                            onClick={() => selectSuggestion(item.ticker)}
-                            onMouseEnter={() => setHighlightedIndex(index)}
-                            className={`w-full px-4 py-2 text-left transition-colors flex items-center gap-3 ${
-                              index === highlightedIndex
-                                ? 'bg-slate-700 text-white'
-                                : 'hover:bg-slate-700 text-slate-300'
-                            }`}
-                          >
-                            <span className="font-mono font-bold text-cyan-400 min-w-[60px]">{item.ticker}</span>
-                            <span className="text-sm truncate">{item.name}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  {/* Suggestions Dropdown */}
+                  {showSuggestions && suggestions.length > 0 && (
+                    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl max-h-64 overflow-y-auto">
+                      {suggestions.map((item, index) => (
+                        <button
+                          key={item.ticker}
+                          onClick={() => selectSuggestion(item.ticker)}
+                          onTouchEnd={() => selectSuggestion(item.ticker)}
+                          onMouseEnter={() => setHighlightedIndex(index)}
+                          className={`w-full px-4 py-3 text-left transition-colors flex items-center gap-3 ${
+                            index === highlightedIndex
+                              ? 'bg-slate-700 text-white'
+                              : 'hover:bg-slate-700 text-slate-300'
+                          }`}
+                        >
+                          <span className="font-mono font-bold text-cyan-400 min-w-[60px]">{item.ticker}</span>
+                          <span className="text-sm truncate">{item.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 {symbolWarning && (
-                  <p className="text-amber-500 text-xs ml-20">{symbolWarning}</p>
+                  <p className="text-amber-500 text-xs">{symbolWarning}</p>
                 )}
               </div>
 
-              {/* Period Select */}
-              <div className="lg:col-span-3 space-y-2">
-                <div className="flex items-center gap-4">
+              {/* Period Select + Button Row */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {/* Period Select */}
+                <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-400 flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cyan-500"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                     Period
@@ -480,7 +476,7 @@ function HomePage() {
                     ref={periodRef}
                     value={period}
                     onChange={(e) => setPeriod(e.target.value)}
-                    className="input-field appearance-none cursor-pointer pl-10"
+                    className="input-field appearance-none cursor-pointer"
                   >
                     <option value="short+">Short+</option>
                     <option value="short">Short</option>
@@ -488,25 +484,25 @@ function HomePage() {
                     <option value="long">Long</option>
                   </select>
                 </div>
-              </div>
 
-              {/* Submit/Stop Button */}
-              <div className="lg:col-span-2 lg:ml-8 flex items-end gap-2">
-                {isAnalyzing ? (
-                  <button
-                    onClick={handleStop}
-                    className="h-[52px] px-6 flex items-center justify-center gap-2 text-base font-semibold bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white rounded-xl shadow-lg transition-all duration-300"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                      <rect x="6" y="6" width="12" height="12" rx="2"/>
-                    </svg>
-                    <span>Stop</span>
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleSubmit}
-                    disabled={loading || !symbolInput.trim()}
-                    className="btn-primary h-[52px] w-full flex items-center justify-center gap-3 text-base font-semibold"
+                {/* Submit/Stop Button */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-transparent">Action</label>
+                  {isAnalyzing ? (
+                    <button
+                      onClick={handleStop}
+                      className="w-full h-[52px] flex items-center justify-center gap-2 text-base font-semibold bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white rounded-xl shadow-lg transition-all duration-300"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="6" y="6" width="12" height="12" rx="2"/>
+                      </svg>
+                      <span>Stop</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleSubmit}
+                      disabled={loading || !symbolInput.trim()}
+                      className="btn-primary h-[52px] w-full flex items-center justify-center gap-3 text-base font-semibold"
                   >
                     {loading ? (
                       <>
@@ -552,17 +548,17 @@ function HomePage() {
 
         {/* Log Section */}
         <section className="glass-panel rounded-2xl overflow-hidden border-l-4 border-l-cyan-500/50 animate-slide-up" style={{ animationDelay: '0.2s' }}>
-          <div className="bg-gradient-to-b from-slate-950 to-slate-900 p-6">
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-xl font-semibold text-white flex items-center gap-3">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cyan-500"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+          <div className="bg-gradient-to-b from-slate-950 to-slate-900 p-4 sm:p-6">
+            <div className="flex items-center justify-between mb-4 sm:mb-5">
+              <h3 className="text-lg sm:text-xl font-semibold text-white flex items-center gap-2 sm:gap-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cyan-500"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
                 System Logs
               </h3>
-              <div className="text-sm font-mono text-slate-500 bg-slate-900/50 px-4 py-1.5 rounded-full">
+              <div className="text-xs sm:text-sm font-mono text-slate-500 bg-slate-900/50 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full">
                 Real-time
               </div>
             </div>
-            <div className="bg-black/40 rounded-xl p-5 font-mono text-sm text-slate-300 h-48 overflow-y-auto scrollbar-hide border border-slate-800/50">
+            <div className="bg-black/40 rounded-xl p-3 sm:p-5 font-mono text-xs sm:text-sm text-slate-300 h-40 sm:h-48 overflow-y-auto scrollbar-hide border border-slate-800/50">
               <div className="whitespace-pre-wrap leading-relaxed">
                 {log || <span className="text-slate-600 italic">// System ready. Enter a stock symbol and click Analyze to begin...</span>}
               </div>
@@ -573,11 +569,11 @@ function HomePage() {
 
         {/* Results Grid */}
         {multiResults.length > 0 && (
-          <div className="space-y-10 animate-slide-up" style={{ animationDelay: '0.3s' }}>
-            <div className="flex items-center justify-between">
+          <div className="space-y-6 sm:space-y-10 animate-slide-up" style={{ animationDelay: '0.3s' }}>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <h2 className="text-3xl font-bold text-white flex items-center gap-4">
-                  <div className="w-4 h-10 bg-gradient-to-b from-purple-500 to-cyan-500 rounded-full"></div>
+                <h2 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-3 sm:gap-4">
+                  <div className="w-3 sm:w-4 h-8 sm:h-10 bg-gradient-to-b from-purple-500 to-cyan-500 rounded-full"></div>
                   Analysis Report
                 </h2>
                 <p className="text-slate-500 text-base mt-2">
@@ -777,10 +773,10 @@ function HomePage() {
         </section>
       </main>
 
-      <footer className="relative z-10 mt-auto py-10 text-center text-slate-600 text-base border-t border-slate-900/50">
+      <footer className="relative z-10 mt-auto py-6 sm:py-10 text-center text-slate-600 text-sm sm:text-base border-t border-slate-900/50">
         <div className="max-w-7xl mx-auto px-4">
           <p>© 2026 FinAgent. AI-Powered Financial Analysis Platform.</p>
-          <p className="mt-3 text-sm text-slate-700">All analysis is generated by AI and should be used for informational purposes only.</p>
+          <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-slate-700">All analysis is generated by AI and should be used for informational purposes only.</p>
         </div>
       </footer>
     </div>

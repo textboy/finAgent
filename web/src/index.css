@@ -8,18 +8,27 @@
     @apply bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-200 font-sans antialiased;
     font-family: 'Inter', system-ui, sans-serif;
     background-attachment: fixed;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
   }
-  
+
   code, pre, .font-mono {
     font-family: 'JetBrains Mono', monospace;
   }
-  
+
   h1, h2, h3, h4, h5, h6 {
     @apply font-semibold tracking-tight text-red-100;
   }
-  
+
   ::selection {
     @apply bg-purple-500/30 text-white;
+  }
+
+  /* Mobile viewport fix */
+  @supports (height: 100dvh) {
+    body {
+      min-height: 100dvh;
+    }
   }
 }
 
@@ -32,8 +41,24 @@
     @apply w-full bg-slate-900/50 border border-slate-700/50 rounded-xl px-4 py-3.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 hover:border-slate-600;
   }
 
+  /* Mobile input field */
+  @media (max-width: 640px) {
+    .input-field {
+      @apply py-3 text-base;
+      font-size: 16px; /* Prevent iOS zoom on input focus */
+    }
+  }
+
   .btn-primary {
     @apply w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold py-4 px-6 rounded-xl shadow-lg shadow-purple-900/30 transition-all duration-300 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-purple-900/50;
+  }
+
+  /* Mobile button */
+  @media (max-width: 640px) {
+    .btn-primary {
+      @apply py-4 text-base;
+      min-height: 48px; /* Minimum touch target */
+    }
   }
 
   .scrollbar-hide::-webkit-scrollbar {
@@ -85,6 +110,29 @@
   .markdown-content th {
     @apply text-xs uppercase tracking-wider;
   }
+
+  /* Mobile markdown content */
+  @media (max-width: 640px) {
+    .markdown-content {
+      @apply text-sm;
+    }
+
+    .markdown-content table {
+      @apply text-xs;
+      display: block;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+  }
+}
+
+/* Mobile-specific animations */
+@media (prefers-reduced-motion: reduce) {
+  .animate-slide-up,
+  .animate-pulse-glow,
+  .animate-float {
+    animation: none;
+  }
 }
 
 @keyframes slideUp {
@@ -112,4 +160,17 @@
 
 .animate-float {
   animation: float 3s ease-in-out infinite;
+}
+
+/* Safe area insets for iOS */
+@supports (padding: env(safe-area-inset-top)) {
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .glass-panel {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
 }
