@@ -314,8 +314,13 @@ function HomePage() {
     } catch (err) {
       if (err.name === 'AbortError') {
         setLog(prev => prev + `\n⏹️ Analysis cancelled.\n`);
+      } else if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
+        setLog(prev => prev + `\n❌ Connection failed: Server may be down or unreachable.\n`);
+        setLog(prev => prev + `   URL: http://${serverHost}:${uvicornPort}/analyze-batch\n`);
+        setLog(prev => prev + `   Check if server is running and accessible.\n`);
       } else {
         setLog(prev => prev + `\n❌ Error: ${err.message}\n`);
+        setLog(prev => prev + `   URL: http://${serverHost}:${uvicornPort}/analyze-batch\n`);
       }
     } finally {
       setLoading(false);
