@@ -486,12 +486,12 @@ function HomePage() {
                 </div>
 
                 {/* Submit/Stop Button */}
-                <div className="space-y-2">
+                <div className="space-y-2 flex flex-col items-end">
                   <label className="text-sm font-medium text-transparent">Action</label>
                   {isAnalyzing ? (
                     <button
                       onClick={handleStop}
-                      className="w-full h-[52px] flex items-center justify-center gap-2 text-base font-semibold bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white rounded-xl shadow-lg transition-all duration-300"
+                      className="h-[52px] px-6 flex items-center justify-center gap-2 text-base font-semibold bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white rounded-xl shadow-lg transition-all duration-300"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                         <rect x="6" y="6" width="12" height="12" rx="2"/>
@@ -502,7 +502,7 @@ function HomePage() {
                     <button
                       onClick={handleSubmit}
                       disabled={loading || !symbolInput.trim()}
-                      className="btn-primary h-[52px] w-full flex items-center justify-center gap-3 text-base font-semibold"
+                      className="h-[52px] px-6 flex items-center justify-center gap-3 text-base font-semibold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:from-slate-600 disabled:to-slate-600 disabled:cursor-not-allowed text-white rounded-xl shadow-lg transition-all duration-300"
                     >
                     {loading ? (
                       <>
