@@ -22,6 +22,7 @@ function HomePage() {
   const [suggestions, setSuggestions] = useState([]);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [justSelected, setJustSelected] = useState(false);
   const [historyReports, setHistoryReports] = useState([]);
   const [selectedReport, setSelectedReport] = useState('');
   const [viewingHistory, setViewingHistory] = useState(false);
@@ -60,6 +61,12 @@ function HomePage() {
 
   // Filter suggestions based on input
   useEffect(() => {
+    // Skip if a suggestion was just selected
+    if (justSelected) {
+      setJustSelected(false);
+      return;
+    }
+
     const query = getCurrentSymbol().toLowerCase();
     if (query.length < 1) {
       setSuggestions([]);
@@ -79,11 +86,12 @@ function HomePage() {
     setSuggestions(filtered);
     setShowSuggestions(filtered.length > 0);
     setHighlightedIndex(-1);
-  }, [symbolInput, tickerMapping]);
+  }, [symbolInput, tickerMapping, justSelected]);
 
   const selectSuggestion = (ticker) => {
     const parts = symbolInput.split(/[,;]/);
     parts[parts.length - 1] = ticker;
+    setJustSelected(true);
     setSymbolInput(parts.join(','));
     setShowSuggestions(false);
     setHighlightedIndex(-1);
