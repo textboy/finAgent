@@ -633,39 +633,39 @@ function HomePage() {
 
                 {/* Panels for this symbol */}
                 {result.reports && (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 pl-0 sm:pl-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 pl-0 sm:pl-4">
                     {panelKeys.map(({ key, label, icon, color }, index) => {
                       const panelId = `${result.symbol}-${key}`;
                       const isExpanded = isPanelExpanded(result.symbol, key);
                       return (
                         <div
                           key={panelId}
-                          className={`glass-panel rounded-xl sm:rounded-2xl overflow-hidden flex flex-col border border-slate-800/50 hover:border-slate-700/50 transition-all duration-500`}
+                          className={`glass-panel rounded-xl overflow-hidden flex flex-col border border-slate-800/50 hover:border-slate-700/50 transition-all duration-300`}
                           style={{ animationDelay: `${(resultIndex * 7 + index) * 50}ms` }}
                         >
                           <button
                             onClick={() => togglePanel(result.symbol, key)}
-                            className={`px-4 sm:px-5 py-3 bg-gradient-to-r ${color} flex items-center justify-between cursor-pointer w-full text-left min-h-[48px]`}
+                            className={`px-4 py-2.5 sm:py-3 bg-gradient-to-r ${color} flex items-center justify-between cursor-pointer w-full text-left`}
                           >
-                            <div className="flex items-center gap-2 sm:gap-3">
-                              <span className="text-lg sm:text-xl">{icon}</span>
-                              <h4 className="font-bold text-white text-sm sm:text-base">{label}</h4>
-                            </div>
                             <div className="flex items-center gap-2">
-                              <div className="text-white/80 text-[10px] sm:text-xs font-mono bg-black/20 px-1.5 sm:px-2 py-0.5 rounded-full">
+                              <span className="text-base sm:text-lg">{icon}</span>
+                              <h4 className="font-bold text-white text-xs sm:text-sm">{label}</h4>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <div className="text-white/80 text-[10px] font-mono bg-black/20 px-1.5 py-0.5 rounded-full">
                                 {index + 1}/{panelKeys.length}
                               </div>
                               <svg
                                 xmlns="http://www.w3.org/2000/svg"
-                                width="18"
-                                height="18"
+                                width="14"
+                                height="14"
                                 viewBox="0 0 24 24"
                                 fill="none"
                                 stroke="currentColor"
                                 strokeWidth="2"
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
-                                className={`text-white/80 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
+                                className={`text-white/80 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
                               >
                                 <polyline points="6 9 12 15 18 9"></polyline>
                               </svg>
