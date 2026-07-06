@@ -124,6 +124,18 @@ else
     echo "  ⚠️  NVIDIA_API_KEY is not set (optional)"
 fi
 
+if [ -n "$DEEPSEEK_API_KEY" ]; then
+    echo "  ✅ DEEPSEEK_API_KEY is set"
+else
+    echo "  ⚠️  DEEPSEEK_API_KEY is not set (optional)"
+fi
+
+if [ -n "$BIGMODEL_API_KEY" ]; then
+    echo "  ✅ BIGMODEL_API_KEY is set"
+else
+    echo "  ⚠️  BIGMODEL_API_KEY is not set (optional)"
+fi
+
 # ==================================== 5. Check Port ====================================
 echo ""
 echo "[5/5] Checking port..."

@@ -5,6 +5,8 @@ URL Prefix Mapping:
 - https://zenmux* → ZENMUX_API_KEY
 - https://apihub.agnes-ai* → AGNES_API_KEY
 - https://integrate.api.nvidia* → NVIDIA_API_KEY
+- https://api.deepseek* → DEEPSEEK_API_KEY
+- https://open.bigmodel* → BIGMODEL_API_KEY
 """
 
 import os
@@ -31,6 +33,10 @@ def get_api_key_for_url(url: str) -> str:
         return os.getenv("AGNES_API_KEY")
     elif url_lower.startswith("https://integrate.api.nvidia"):
         return os.getenv("NVIDIA_API_KEY")
+    elif url_lower.startswith("https://api.deepseek"):
+        return os.getenv("DEEPSEEK_API_KEY")
+    elif url_lower.startswith("https://open.bigmodel"):
+        return os.getenv("BIGMODEL_API_KEY")
     else:
         # Fallback to ZENMUX_API_KEY for unknown URLs
         return os.getenv("ZENMUX_API_KEY")
