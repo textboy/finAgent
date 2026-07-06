@@ -7,6 +7,7 @@ Features:
 - No test calls (fails naturally on first use)
 - Automatic fallback to backup LLM
 - Temperature parameter optional (some models don't support it)
+- Provider support for API key selection
 """
 
 import os
@@ -22,7 +23,7 @@ DEFAULT_MODEL_NAME = 'x-ai/grok-beta'
 _llm_cache = {}
 
 
-def get_llm_client(model_env_var: str, url_env_var: str, step_name: str, temperature: float = None) -> ChatOpenAI:
+def get_llm_client(model_env_var: str, url_env_var: str, step_name: str, temperature: float = None, provider_env_var: str = None) -> ChatOpenAI:
     """
     Get or create a cached LLM client for the specified step.
 
@@ -31,6 +32,7 @@ def get_llm_client(model_env_var: str, url_env_var: str, step_name: str, tempera
         url_env_var: Environment variable name for the URL
         step_name: Name of the step (for logging)
         temperature: Temperature parameter (None = don't pass, some models don't support it)
+        provider_env_var: Environment variable name for the provider (optional)
 
     Returns:
         ChatOpenAI instance
@@ -44,6 +46,7 @@ def get_llm_client(model_env_var: str, url_env_var: str, step_name: str, tempera
     # Get configuration
     model = os.getenv(model_env_var, DEFAULT_MODEL_NAME)
     base_url = os.getenv(url_env_var)
+    provider = os.getenv(provider_env_var) if provider_env_var else None
     backup_model = os.getenv('LLM_BACKUP_MODEL', DEFAULT_MODEL_NAME)
     backup_url = os.getenv('LLM_BACKUP_URL')
     backup_key = os.getenv("ZENMUX_API_KEY")  # Backup always uses ZenMux
@@ -63,7 +66,8 @@ def get_llm_client(model_env_var: str, url_env_var: str, step_name: str, tempera
     # Try primary LLM
     try:
         primary_key = get_api_key_for_url(base_url)
-        print(f"DEBUG: {step_name} - Creating LLM client: {model} @ {base_url}")
+        provider_info = f" (provider: {provider})" if provider else ""
+        print(f"DEBUG: {step_name} - Creating LLM client: {model} @ {base_url}{provider_info}")
         llm = ChatOpenAI(**_build_kwargs(model, primary_key, base_url, temperature))
         # Cache and return (no test call - fails naturally on first use)
         _llm_cache[cache_key] = llm
