@@ -214,6 +214,7 @@ function HomePage() {
 
     if (!symbolInput.trim() || !period.trim()) {
       setLog(prev => prev + '⚠️ Please provide symbol(s) and investment period.\n');
+      isSubmittingRef.current = false;
       return;
     }
 
@@ -239,6 +240,7 @@ function HomePage() {
     if (invalidTickers.length > 0) {
       setLog(prev => prev + `❌ Invalid ticker(s): ${invalidTickers.join(', ')}\n`);
       setLog(prev => prev + `💡 Please check the ticker symbol. Example: AAPL, GOOG, MSFT\n`);
+      isSubmittingRef.current = false;
       return;
     }
 
