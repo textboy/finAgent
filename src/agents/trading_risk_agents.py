@@ -8,7 +8,7 @@ load_dotenv(os.path.join('config', '.env'))
 
 
 def get_llm():
-    return get_llm_client('TRADING_MODEL', 'TRADING_URL', 'Trading Plan')
+    return get_llm_client('TRADING_MODEL', 'TRADING_URL', 'Trading Plan', provider_env_var='TRADING_PROVIDER')
 
 
 INFO_SIZE = 1500

@@ -7,7 +7,7 @@ load_dotenv(os.path.join('config', '.env'))
 
 
 def get_llm():
-    return get_llm_client('FUND_HOLDING_MODEL', 'FUND_HOLDING_URL', 'Fund Holdings')
+    return get_llm_client('FUND_HOLDING_MODEL', 'FUND_HOLDING_URL', 'Fund Holdings', provider_env_var='FUND_HOLDING_PROVIDER')
 
 
 FUND_HOLDING_SYSTEM_PROMPT = """You are a senior quantitative financial analyst and fund research expert, fluent in regulatory disclosure systems across global and Chinese markets (such as US SEC 13F and Form N-PORT filings, Chinese mutual fund quarterly/semi-annual reports, and major third-party private fund data platforms).

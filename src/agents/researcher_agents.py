@@ -25,15 +25,15 @@ _debate_llm = None
 
 
 def get_bull_llm():
-    return get_llm_client('BULL_MODEL', 'BULL_URL', 'Bull Analysis')
+    return get_llm_client('BULL_MODEL', 'BULL_URL', 'Bull Analysis', provider_env_var='BULL_PROVIDER')
 
 
 def get_bear_llm():
-    return get_llm_client('BEAR_MODEL', 'BEAR_URL', 'Bear Analysis')
+    return get_llm_client('BEAR_MODEL', 'BEAR_URL', 'Bear Analysis', provider_env_var='BEAR_PROVIDER')
 
 
 def get_debate_llm():
-    return get_llm_client('DEBATE_MODEL', 'DEBATE_URL', 'Research Debate')
+    return get_llm_client('DEBATE_MODEL', 'DEBATE_URL', 'Research Debate', provider_env_var='DEBATE_PROVIDER')
 
 
 def get_llm():
