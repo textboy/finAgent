@@ -315,9 +315,13 @@ function HomePage() {
       if (err.name === 'AbortError') {
         setLog(prev => prev + `\n⏹️ Analysis cancelled.\n`);
       } else if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
-        setLog(prev => prev + `\n❌ Connection failed: Server may be down or unreachable.\n`);
+        setLog(prev => prev + `\n❌ Connection failed: Server may be down or crashed.\n`);
         setLog(prev => prev + `   URL: http://${serverHost}:${uvicornPort}/analyze-batch\n`);
-        setLog(prev => prev + `   Check if server is running and accessible.\n`);
+        setLog(prev => prev + `   Possible causes:\n`);
+        setLog(prev => prev + `   - Server process crashed (check terminal)\n`);
+        setLog(prev => prev + `   - Too many parallel requests\n`);
+        setLog(prev => prev + `   - Memory exhaustion\n`);
+        setLog(prev => prev + `   Try: Restart server with ./start_server_local.sh\n`);
       } else {
         setLog(prev => prev + `\n❌ Error: ${err.message}\n`);
         setLog(prev => prev + `   URL: http://${serverHost}:${uvicornPort}/analyze-batch\n`);

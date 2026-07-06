@@ -37,7 +37,7 @@ from .utils.qdrant_utils import get_past_lessons, store_entry
 
 # Configuration
 STEP_TIMEOUT = 120  # seconds per step
-MAX_WORKERS_INNER = 10  # parallel steps 1-7
+MAX_WORKERS_INNER = 5  # parallel steps 1-7 (reduced for stability)
 MAX_WORKERS_BULL_BEAR = 2  # parallel bull/bear
 
 
@@ -536,27 +536,39 @@ def run_batch_pipeline(symbols: list, investment_period: str) -> list:
     results = []
 
     # Outer parallelism: run each symbol in parallel
-    with ThreadPoolExecutor(max_workers=5) as executor:
-        futures = {
-            executor.submit(run_single_ticket_pipeline, symbol.strip().upper(), investment_period): symbol
-            for symbol in symbols
-        }
+    try:
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            futures = {
+                executor.submit(run_single_ticket_pipeline, symbol.strip().upper(), investment_period): symbol
+                for symbol in symbols
+            }
 
-        for future in as_completed(futures):
-            symbol = futures[future]
-            try:
-                result = future.result(timeout=600)  # 10 min timeout per ticket
-                results.append(result)
-                print(f"BATCH: {symbol} completed ({result['duration_minutes']} min)")
-            except Exception as e:
-                results.append({
-                    "symbol": symbol.strip().upper(),
-                    "error": str(e),
-                    "success": False,
-                    "steps": {},
-                    "errors": [str(e)]
-                })
-                print(f"BATCH: {symbol} failed: {str(e)[:50]}")
+            for future in as_completed(futures):
+                symbol = futures[future]
+                try:
+                    result = future.result(timeout=600)  # 10 min timeout per ticket
+                    results.append(result)
+                    print(f"BATCH: {symbol} completed ({result['duration_minutes']} min)")
+                except Exception as e:
+                    results.append({
+                        "symbol": symbol.strip().upper(),
+                        "error": str(e),
+                        "success": False,
+                        "steps": {},
+                        "errors": [str(e)]
+                    })
+                    print(f"BATCH: {symbol} failed: {str(e)[:50]}")
+    except Exception as e:
+        print(f"BATCH ERROR: {str(e)}")
+        # Return partial results if any
+        if not results:
+            results = [{
+                "symbol": "UNKNOWN",
+                "error": str(e),
+                "success": False,
+                "steps": {},
+                "errors": [str(e)]
+            }]
 
     # Sort results by original order
     symbol_order = {s.strip().upper(): i for i, s in enumerate(symbols)}
