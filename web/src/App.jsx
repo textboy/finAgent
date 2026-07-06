@@ -596,22 +596,22 @@ function HomePage() {
             {multiResults.map((result, resultIndex) => (
               <div key={result.symbol} className="space-y-4">
                 {/* Symbol Session Header */}
-                <div className="glass-panel rounded-2xl p-6 border border-slate-800/50">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center">
-                        <span className="text-2xl font-bold text-white">{result.symbol[0]}</span>
+                <div className="glass-panel rounded-2xl p-4 sm:p-6 border border-slate-800/50">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="flex items-center gap-3 sm:gap-4">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center flex-shrink-0">
+                        <span className="text-xl sm:text-2xl font-bold text-white">{result.symbol[0]}</span>
                       </div>
                       <div>
-                        <h3 className="text-2xl font-bold text-white">{result.symbol}</h3>
-                        <p className="text-slate-500 text-sm">
+                        <h3 className="text-xl sm:text-2xl font-bold text-white">{result.symbol}</h3>
+                        <p className="text-slate-500 text-xs sm:text-sm">
                           Session {resultIndex + 1} of {multiResults.length}
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3 sm:gap-4">
                       {result.timing && (
-                        <div className="text-right text-sm text-slate-400">
+                        <div className="text-left sm:text-right text-xs sm:text-sm text-slate-400">
                           <div>Duration: <span className="text-slate-300 font-mono">{result.timing.duration_minutes} min</span></div>
                           <div className="text-xs text-slate-500">{result.timing.start}</div>
                         </div>
@@ -621,9 +621,9 @@ function HomePage() {
                           href={`http://${serverHost}:${uvicornPort}${result.report_path}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-cyan-400 rounded-lg text-sm font-medium transition-all duration-300 border border-slate-700 hover:border-cyan-500/30"
+                          className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-slate-800 hover:bg-slate-700 text-cyan-400 rounded-lg text-xs sm:text-sm font-medium transition-all duration-300 border border-slate-700 hover:border-cyan-500/30"
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
                           View Report
                         </a>
                       )}
@@ -633,26 +633,26 @@ function HomePage() {
 
                 {/* Panels for this symbol */}
                 {result.reports && (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pl-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 pl-0 sm:pl-4">
                     {panelKeys.map(({ key, label, icon, color }, index) => {
                       const panelId = `${result.symbol}-${key}`;
                       const isExpanded = isPanelExpanded(result.symbol, key);
                       return (
                         <div
                           key={panelId}
-                          className={`glass-panel rounded-2xl overflow-hidden flex flex-col border border-slate-800/50 hover:border-slate-700/50 transition-all duration-500 hover:scale-[1.02]`}
+                          className={`glass-panel rounded-xl sm:rounded-2xl overflow-hidden flex flex-col border border-slate-800/50 hover:border-slate-700/50 transition-all duration-500`}
                           style={{ animationDelay: `${(resultIndex * 7 + index) * 50}ms` }}
                         >
                           <button
                             onClick={() => togglePanel(result.symbol, key)}
-                            className={`px-5 py-3 bg-gradient-to-r ${color} flex items-center justify-between cursor-pointer w-full text-left`}
+                            className={`px-4 sm:px-5 py-3 bg-gradient-to-r ${color} flex items-center justify-between cursor-pointer w-full text-left min-h-[48px]`}
                           >
-                            <div className="flex items-center gap-3">
-                              <span className="text-xl">{icon}</span>
-                              <h4 className="font-bold text-white text-base">{label}</h4>
+                            <div className="flex items-center gap-2 sm:gap-3">
+                              <span className="text-lg sm:text-xl">{icon}</span>
+                              <h4 className="font-bold text-white text-sm sm:text-base">{label}</h4>
                             </div>
                             <div className="flex items-center gap-2">
-                              <div className="text-white/80 text-xs font-mono bg-black/20 px-2 py-0.5 rounded-full">
+                              <div className="text-white/80 text-[10px] sm:text-xs font-mono bg-black/20 px-1.5 sm:px-2 py-0.5 rounded-full">
                                 {index + 1}/{panelKeys.length}
                               </div>
                               <svg
@@ -672,7 +672,7 @@ function HomePage() {
                             </div>
                           </button>
                           {isExpanded && (
-                            <div className={`p-5 text-slate-300 bg-gradient-to-b from-slate-950/50 to-slate-900/30 flex-1 markdown-content`}>
+                            <div className={`p-4 sm:p-5 text-slate-300 bg-gradient-to-b from-slate-950/50 to-slate-900/30 flex-1 markdown-content`}>
                               {result.reports[key] ? (
                                 <ReactMarkdown
                                   remarkPlugins={[remarkGfm]}
@@ -681,9 +681,9 @@ function HomePage() {
                                   {result.reports[key]}
                                 </ReactMarkdown>
                               ) : (
-                                <div className="h-full flex flex-col items-center justify-center text-slate-600 italic text-sm py-12">
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="mb-4 opacity-50"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                                  No data available for this section
+                                <div className="h-full flex flex-col items-center justify-center text-slate-600 italic text-xs sm:text-sm py-8 sm:py-12">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="mb-3 sm:mb-4 opacity-50"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                                  No data available
                                 </div>
                               )}
                             </div>
