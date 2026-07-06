@@ -242,6 +242,50 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         a:hover {{
             text-decoration: underline;
         }}
+        /* Collapsible sections */
+        details {{
+            margin: 1rem 0;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            overflow: hidden;
+        }}
+        details summary {{
+            padding: 1rem 1.5rem;
+            background: #1e293b;
+            cursor: pointer;
+            font-weight: 600;
+            color: #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            user-select: none;
+            transition: background 0.2s;
+        }}
+        details summary:hover {{
+            background: #334155;
+        }}
+        details summary::marker {{
+            content: '';
+        }}
+        details summary::before {{
+            content: '▶';
+            font-size: 0.75rem;
+            transition: transform 0.2s;
+        }}
+        details[open] summary::before {{
+            transform: rotate(90deg);
+        }}
+        details .content {{
+            padding: 1rem 1.5rem;
+            border-top: 1px solid #334155;
+        }}
+        /* Trading plan always open */
+        details.trading-plan {{
+            border-color: #8b5cf6;
+        }}
+        details.trading-plan summary {{
+            background: linear-gradient(90deg, rgba(139, 92, 246, 0.2), rgba(6, 182, 212, 0.2));
+        }}
     </style>
 </head>
 <body>
@@ -259,13 +303,47 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
 
 def md_to_html(md_content: str, symbol: str, period: str, timestamp: str) -> str:
-    """Convert markdown content to styled HTML."""
+    """Convert markdown content to styled HTML with collapsible sections."""
     html_content = markdown.markdown(md_content, extensions=['tables', 'fenced_code'])
+
+    # Wrap h2 sections in collapsible details tags
+    # Split by h2 tags and wrap each section
+    import re
+
+    # Pattern to match h2 headers
+    h2_pattern = r'(<h2[^>]*>.*?</h2>)'
+
+    # Split content by h2 headers
+    parts = re.split(h2_pattern, html_content, flags=re.DOTALL)
+
+    wrapped_content = ''
+    i = 0
+    while i < len(parts):
+        if i + 1 < len(parts) and parts[i].startswith('<h2'):
+            # This is an h2 header, wrap the header and following content in details
+            header = parts[i]
+            content = parts[i + 1] if i + 1 < len(parts) else ''
+
+            # Check if this is the Trading Plan section
+            is_trading = 'trading' in header.lower() or 'Trading Plan' in header
+
+            # Determine if this section should be open by default
+            open_attr = ' open' if is_trading else ''
+
+            wrapped_content += f'<details{open_attr} class="{"trading-plan" if is_trading else ""}">'
+            wrapped_content += f'<summary>{header}</summary>'
+            wrapped_content += f'<div class="content">{content}</div>'
+            wrapped_content += '</details>'
+            i += 2
+        else:
+            wrapped_content += parts[i]
+            i += 1
+
     return HTML_TEMPLATE.format(
         symbol=symbol,
         period=period,
         timestamp=timestamp,
-        content=html_content
+        content=wrapped_content
     )
 
 
