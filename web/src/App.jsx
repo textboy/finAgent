@@ -594,26 +594,25 @@ function HomePage() {
 
             {/* Symbol Sessions */}
             {multiResults.map((result, resultIndex) => (
-              <div key={result.symbol} className="space-y-4">
+              <div key={result.symbol} className="space-y-3">
                 {/* Symbol Session Header */}
-                <div className="glass-panel rounded-2xl p-4 sm:p-6 border border-slate-800/50">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div className="flex items-center gap-3 sm:gap-4">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center flex-shrink-0">
-                        <span className="text-xl sm:text-2xl font-bold text-white">{result.symbol[0]}</span>
+                <div className="glass-panel rounded-xl p-3 sm:p-4 border border-slate-800/50">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center flex-shrink-0">
+                        <span className="text-base sm:text-lg font-bold text-white">{result.symbol[0]}</span>
                       </div>
                       <div>
-                        <h3 className="text-xl sm:text-2xl font-bold text-white">{result.symbol}</h3>
-                        <p className="text-slate-500 text-xs sm:text-sm">
-                          Session {resultIndex + 1} of {multiResults.length}
+                        <h3 className="text-lg sm:text-xl font-bold text-white">{result.symbol}</h3>
+                        <p className="text-slate-500 text-[10px] sm:text-xs">
+                          {resultIndex + 1}/{multiResults.length}
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 sm:gap-4">
+                    <div className="flex items-center gap-2 sm:gap-3">
                       {result.timing && (
-                        <div className="text-left sm:text-right text-xs sm:text-sm text-slate-400">
-                          <div>Duration: <span className="text-slate-300 font-mono">{result.timing.duration_minutes} min</span></div>
-                          <div className="text-xs text-slate-500">{result.timing.start}</div>
+                        <div className="text-right text-[10px] sm:text-xs text-slate-400">
+                          <span className="font-mono">{result.timing.duration_minutes}m</span>
                         </div>
                       )}
                       {result.reports?.trading && (
@@ -621,10 +620,10 @@ function HomePage() {
                           href={`http://${serverHost}:${uvicornPort}${result.report_path}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-slate-800 hover:bg-slate-700 text-cyan-400 rounded-lg text-xs sm:text-sm font-medium transition-all duration-300 border border-slate-700 hover:border-cyan-500/30"
+                          className="inline-flex items-center gap-1 px-2 sm:px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-400 rounded-lg text-[10px] sm:text-xs font-medium transition-all duration-300 border border-slate-700 hover:border-cyan-500/30"
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                          View Report
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                          Report
                         </a>
                       )}
                     </div>
@@ -645,14 +644,14 @@ function HomePage() {
                         >
                           <button
                             onClick={() => togglePanel(result.symbol, key)}
-                            className={`px-4 py-2.5 sm:py-3 bg-gradient-to-r ${color} flex items-center justify-between cursor-pointer w-full text-left`}
+                            className={`px-3 py-2 sm:py-2.5 bg-gradient-to-r ${color} flex items-center justify-between cursor-pointer w-full text-left`}
                           >
-                            <div className="flex items-center gap-2">
-                              <span className="text-base sm:text-lg">{icon}</span>
-                              <h4 className="font-bold text-white text-xs sm:text-sm">{label}</h4>
+                            <div className="flex items-center gap-1.5 sm:gap-2">
+                              <span className="text-sm sm:text-base">{icon}</span>
+                              <h4 className="font-bold text-white text-[11px] sm:text-xs">{label}</h4>
                             </div>
-                            <div className="flex items-center gap-1.5">
-                              <div className="text-white/80 text-[10px] font-mono bg-black/20 px-1.5 py-0.5 rounded-full">
+                            <div className="flex items-center gap-1">
+                              <div className="text-white/80 text-[9px] font-mono bg-black/20 px-1 py-0.5 rounded">
                                 {index + 1}/{panelKeys.length}
                               </div>
                               <svg
