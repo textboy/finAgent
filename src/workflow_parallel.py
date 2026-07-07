@@ -11,7 +11,10 @@ Architecture:
   - Step 10 (Lesson Summary) runs in BACKGROUND after Step 9 (non-blocking)
 """
 
+import os
+import sys
 import time
+import signal
 import logging
 import threading
 import traceback
@@ -21,6 +24,18 @@ from datetime import datetime
 
 # Get logger for this module
 logger = logging.getLogger('finagent')
+
+
+# Signal handler for segmentation faults
+def _segfault_handler(signum, frame):
+    """Handle segmentation fault gracefully."""
+    logger.error("Segmentation fault detected. This may be caused by threading issues or memory problems.")
+    logger.error("Try reducing parallel workers or running fewer symbols at once.")
+    # Don't exit, let the error propagate naturally
+
+
+# Install segfault handler
+signal.signal(signal.SIGSEGV, _segfault_handler)
 
 from .agents.analyst_agents import (
     FundamentalsAnalyst,
@@ -36,8 +51,8 @@ from .agents.lesson_summary_agent import LessonSummaryAgent
 from .utils.qdrant_utils import get_past_lessons, store_entry
 
 # Configuration
-STEP_TIMEOUT = 120  # seconds per step
-MAX_WORKERS_INNER = 5  # parallel steps 1-7 (reduced for stability)
+STEP_TIMEOUT = 180  # seconds per step
+MAX_WORKERS_INNER = 3  # parallel steps 1-7
 MAX_WORKERS_BULL_BEAR = 2  # parallel bull/bear
 
 
@@ -62,6 +77,11 @@ def _run_step_with_timeout(func, *args, timeout: int = STEP_TIMEOUT, **kwargs) -
         result = func(*args, **kwargs)
         duration = time.time() - start
         return StepResult(result=result, duration=duration)
+    except MemoryError:
+        duration = time.time() - start
+        error_msg = "MemoryError: Not enough memory to complete this step"
+        logger.error(f" Step failed (memory): {error_msg}")
+        return StepResult(error=error_msg, duration=duration)
     except Exception as e:
         duration = time.time() - start
         error_msg = f"{type(e).__name__}: {str(e)}"
@@ -164,10 +184,15 @@ def _run_steps_1_to_7(symbol: str, investment_period: str, step_logs: list) -> D
                 display_name = step_display_names.get(step_name, step_name)
                 step_logs.append(f"✅ [{symbol}] {display_name} completed ({duration_min} min)")
                 logger.debug(f" [{symbol}] Step {step_name} {status} ({result.duration:.1f}s)")
+            except MemoryError:
+                results[step_name] = StepResult(error="MemoryError: Not enough memory")
+                step_logs.append(f"❌ [{symbol}] {step_display_names.get(step_name, step_name)} failed (memory)")
+                logger.error(f" [{symbol}] Step {step_name} ✗ (memory error)")
             except Exception as e:
-                results[step_name] = StepResult(error=f"Future error: {str(e)}")
+                error_msg = f"Future error: {type(e).__name__}: {str(e)}"
+                results[step_name] = StepResult(error=error_msg)
                 step_logs.append(f"❌ [{symbol}] {step_display_names.get(step_name, step_name)} failed")
-                logger.debug(f" [{symbol}] Step {step_name} ✗ (future error)")
+                logger.debug(f" [{symbol}] Step {step_name} ✗ ({error_msg})")
 
     duration = time.time() - start
     logger.debug(f" [{symbol}] Steps 1-7 completed in {duration:.1f}s")
@@ -262,8 +287,21 @@ def _run_steps_8_1_and_8_2(symbol: str, investment_period: str, steps_1_to_7: Di
                 status = "✓" if result.success else "✗"
                 logger.debug(f" [{symbol}] Step {step_name} {status} ({result.duration:.1f}s)")
             except Exception as e:
-                results[step_name] = StepResult(error=f"Future error: {str(e)}")
-                logger.debug(f" [{symbol}] Step {step_name} ✗ (future error)")
+                error_msg = f"Future error: {type(e).__name__}: {str(e)}"
+                results[step_name] = StepResult(error=error_msg)
+                logger.debug(f" [{symbol}] Step {step_name} ✗ ({error_msg})")
+                # Add specific error context for common errors
+                if "broken pipe" in str(e).lower():
+                    detail = "Connection closed by server. Possible causes: timeout, server overload, or network issue."
+                    step_logs.append(f"❌ [{symbol}] {step_display_names.get(step_name, step_name)} failed: {detail}")
+                elif "timeout" in str(e).lower():
+                    detail = f"Request timed out after {STEP_TIMEOUT}s"
+                    step_logs.append(f"❌ [{symbol}] {step_display_names.get(step_name, step_name)} failed: {detail}")
+                elif "connection" in str(e).lower():
+                    detail = "Network connection issue"
+                    step_logs.append(f"❌ [{symbol}] {step_display_names.get(step_name, step_name)} failed: {detail}")
+                else:
+                    step_logs.append(f"❌ [{symbol}] {step_display_names.get(step_name, step_name)} failed: {error_msg}")
 
     duration = time.time() - start
     logger.debug(f" [{symbol}] Steps 8.1-8.2 completed in {duration:.1f}s")
@@ -394,8 +432,15 @@ def run_single_ticket_pipeline(symbol: str, investment_period: str) -> Dict[str,
             if not steps_1_to_7.get(step, StepResult()).success:
                 result["errors"].append(f"Critical step {step} failed")
                 result["success"] = False
+    except MemoryError:
+        result["errors"].append("Phase 1 failed: Out of memory")
+        result["success"] = False
+        result["end_time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        result["duration_minutes"] = round((time.time() - pipeline_start) / 60, 2)
+        return result
     except Exception as e:
-        result["errors"].append(f"Phase 1 failed: {str(e)}")
+        error_msg = f"{type(e).__name__}: {str(e)}"
+        result["errors"].append(f"Phase 1 failed: {error_msg}")
         result["success"] = False
         result["end_time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         result["duration_minutes"] = round((time.time() - pipeline_start) / 60, 2)
@@ -415,20 +460,34 @@ def run_single_ticket_pipeline(symbol: str, investment_period: str) -> Dict[str,
         if bull_result.success:
             step_logs.append(f"✅ [{symbol}] Bull Analysis completed ({round(bull_result.duration / 60, 2)} min)")
         else:
-            step_logs.append(f"❌ [{symbol}] Bull Analysis failed")
+            error_detail = bull_result.error[:200] if bull_result.error else "Unknown error"
+            step_logs.append(f"❌ [{symbol}] Bull Analysis failed: {error_detail}")
         if bear_result.success:
             step_logs.append(f"✅ [{symbol}] Bear Analysis completed ({round(bear_result.duration / 60, 2)} min)")
         else:
-            step_logs.append(f"❌ [{symbol}] Bear Analysis failed")
+            error_detail = bear_result.error[:200] if bear_result.error else "Unknown error"
+            step_logs.append(f"❌ [{symbol}] Bear Analysis failed: {error_detail}")
 
         if not bull_result.success or not bear_result.success:
-            result["errors"].append("Bull/Bear analysis partially failed")
+            # Add specific error context
+            if not bull_result.success and not bear_result.success:
+                result["errors"].append("Both Bull and Bear analysis failed")
+            elif not bull_result.success:
+                result["errors"].append("Bull analysis failed, Bear may have partial results")
+            else:
+                result["errors"].append("Bear analysis failed, Bull may have partial results")
+    except MemoryError:
+        result["errors"].append("Phase 2 failed: Out of memory")
+        bull_result = StepResult(error="MemoryError")
+        bear_result = StepResult(error="MemoryError")
     except Exception as e:
-        result["errors"].append(f"Phase 2 failed: {str(e)}")
-        bull_result = StepResult(error=str(e))
-        bear_result = StepResult(error=str(e))
+        error_msg = f"{type(e).__name__}: {str(e)}"
+        result["errors"].append(f"Phase 2 failed: {error_msg}")
+        bull_result = StepResult(error=error_msg)
+        bear_result = StepResult(error=error_msg)
 
     # Phase 3: Debate (requires bull/bear)
+    debate_result = StepResult(error="Skipped")
     try:
         if bull_result.success and bear_result.success:
             debate_name, debate_result = _step_8_3_debate(
@@ -439,15 +498,23 @@ def run_single_ticket_pipeline(symbol: str, investment_period: str) -> Dict[str,
             if debate_result.success:
                 step_logs.append(f"✅ [{symbol}] Research Debate completed ({round(debate_result.duration / 60, 2)} min)")
             else:
-                step_logs.append(f"❌ [{symbol}] Research Debate failed")
+                error_detail = debate_result.error[:200] if debate_result.error else "Unknown error"
+                step_logs.append(f"❌ [{symbol}] Research Debate failed: {error_detail}")
                 result["errors"].append(f"Debate failed: {debate_result.error}")
         else:
             result["steps"]["debate"] = "[ERROR] Skipped due to bull/bear failure"
             debate_result = StepResult(error="Skipped")
-            step_logs.append(f"❌ [{symbol}] Research Debate skipped (bull/bear failed)")
+            if not bull_result.success:
+                step_logs.append(f"❌ [{symbol}] Research Debate skipped (bull failed)")
+            else:
+                step_logs.append(f"❌ [{symbol}] Research Debate skipped (bear failed)")
+    except MemoryError:
+        result["errors"].append("Phase 3 failed: Out of memory")
+        debate_result = StepResult(error="MemoryError")
     except Exception as e:
-        result["errors"].append(f"Phase 3 failed: {str(e)}")
-        debate_result = StepResult(error=str(e))
+        error_msg = f"{type(e).__name__}: {str(e)}"
+        result["errors"].append(f"Phase 3 failed: {error_msg}")
+        debate_result = StepResult(error=error_msg)
 
     # Phase 4: Trading Plan (requires debate)
     try:
@@ -460,15 +527,20 @@ def run_single_ticket_pipeline(symbol: str, investment_period: str) -> Dict[str,
             if trading_result.success:
                 step_logs.append(f"✅ [{symbol}] Trading Plan completed ({round(trading_result.duration / 60, 2)} min)")
             else:
-                step_logs.append(f"❌ [{symbol}] Trading Plan failed")
+                error_detail = trading_result.error[:200] if trading_result.error else "Unknown error"
+                step_logs.append(f"❌ [{symbol}] Trading Plan failed: {error_detail}")
                 result["errors"].append(f"Trading plan failed: {trading_result.error}")
         else:
             result["steps"]["trading"] = "[ERROR] Skipped due to debate failure"
             trading_result = StepResult(error="Skipped")
             step_logs.append(f"❌ [{symbol}] Trading Plan skipped (debate failed)")
+    except MemoryError:
+        result["errors"].append("Phase 4 failed: Out of memory")
+        trading_result = StepResult(error="MemoryError")
     except Exception as e:
-        result["errors"].append(f"Phase 4 failed: {str(e)}")
-        trading_result = StepResult(error=str(e))
+        error_msg = f"{type(e).__name__}: {str(e)}"
+        result["errors"].append(f"Phase 4 failed: {error_msg}")
+        trading_result = StepResult(error=error_msg)
 
     # Phase 5: Lesson Summary (runs in background, non-blocking)
     # Launch background thread for lesson summary

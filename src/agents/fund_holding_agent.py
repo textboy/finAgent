@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage, SystemMessage
-from ..utils.llm_client import get_llm_client
+from ..utils.llm_client import get_llm_client, invoke_llm_with_retry
 
 load_dotenv(os.path.join('config', '.env'))
 
@@ -65,8 +65,7 @@ Use markdown tables and bullet points for clear presentation."""
         ]
 
         try:
-            response = get_llm().invoke(messages)
-            return response.content
+            return invoke_llm_with_retry(get_llm(), messages, "Fund Holdings")
         except Exception as e:
             print(f"ERROR: FundHoldingAnalyst failed: {e}")
             return f"Fund holding analysis unavailable: {str(e)}"

@@ -99,17 +99,15 @@ if [ -f "$SCRIPT_DIR/config/.env" ]; then
     set +a
 fi
 
-if [ -n "$ZENMUX_API_KEY" ]; then
+if [ -n "$FINAGENT_ZENMUX_API_KEY" ]; then
+    export ZENMUX_API_KEY="$FINAGENT_ZENMUX_API_KEY"
+    echo "  ✅ ZENMUX_API_KEY set from FINAGENT_ZENMUX_API_KEY"
+elif [ -n "$ZENMUX_API_KEY" ]; then
     echo "  ✅ ZENMUX_API_KEY is set"
 else
-    if [ -n "$FINAGENT_ZENMUX_API_KEY" ]; then
-        export ZENMUX_API_KEY="$FINAGENT_ZENMUX_API_KEY"
-        echo "  ✅ ZENMUX_API_KEY set from FINAGENT_ZENMUX_API_KEY"
-    else
-        echo "  ❌ ZENMUX_API_KEY is not set"
-        echo "  Set it with: export ZENMUX_API_KEY=your-key"
-        exit 1
-    fi
+    echo "  ❌ ZENMUX_API_KEY is not set"
+    echo "  Set it with: export FINAGENT_ZENMUX_API_KEY=your-key"
+    exit 1
 fi
 
 if [ -n "$AGNES_API_KEY" ]; then

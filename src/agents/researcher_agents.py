@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage, SystemMessage
 from ..utils.qdrant_utils import get_past_lessons
-from ..utils.llm_client import get_llm_client
+from ..utils.llm_client import get_llm_client, invoke_llm_with_retry
 
 load_dotenv(os.path.join('config', '.env'))
 
@@ -79,7 +79,7 @@ Focus your analysis on the {period_desc} timeframe.
             SystemMessage(content=BULL_SYSTEM_PROMPT),
             HumanMessage(content=user_prompt)
         ]
-        return get_bull_llm().invoke(messages).content
+        return invoke_llm_with_retry(get_bull_llm(), messages, "Bull Analysis")
 
 class BearishResearcher:
     @staticmethod
@@ -101,7 +101,7 @@ Focus your analysis on the {period_desc} timeframe.
             SystemMessage(content=BEAR_SYSTEM_PROMPT),
             HumanMessage(content=user_prompt)
         ]
-        return get_bear_llm().invoke(messages).content
+        return invoke_llm_with_retry(get_bear_llm(), messages, "Bear Analysis")
 
 class DebateAgent:
     @staticmethod
@@ -115,7 +115,7 @@ Bear: {bear_analysis[:3000]}"""
             SystemMessage(content="You are a debate moderator. Summarize the key points from both sides and provide a balanced debate result."),
             HumanMessage(content=user_prompt)
         ]
-        return get_debate_llm().invoke(messages).content
+        return invoke_llm_with_retry(get_debate_llm(), messages, "Research Debate")
 
 def researcher_team(analyst_insights: dict, symbol: str, investment_period: str, past_lessons: str = "") -> dict:
     print('DEBUG: researcher_team')

@@ -7,6 +7,7 @@ URL Prefix Mapping:
 - https://integrate.api.nvidia* → NVIDIA_API_KEY
 - https://api.deepseek* → DEEPSEEK_API_KEY
 - https://open.bigmodel* → BIGMODEL_API_KEY
+- https://api.minimax* → MINIMAX_API_KEY
 """
 
 import os
@@ -37,6 +38,8 @@ def get_api_key_for_url(url: str) -> str:
         return os.getenv("DEEPSEEK_API_KEY")
     elif url_lower.startswith("https://open.bigmodel"):
         return os.getenv("BIGMODEL_API_KEY")
+    elif url_lower.startswith("https://api.minimax"):
+        return os.getenv("MINIMAX_API_KEY")
     else:
         # Fallback to ZENMUX_API_KEY for unknown URLs
         return os.getenv("ZENMUX_API_KEY")

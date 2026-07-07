@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage, SystemMessage
 from ..tools.analyst_tools import get_close_price
-from ..utils.llm_client import get_llm_client
+from ..utils.llm_client import get_llm_client, invoke_llm_with_retry
 
 load_dotenv(os.path.join('config', '.env'))
 
@@ -63,4 +63,4 @@ long focus on fundamental analysis and macro news sentiment analysis."""
             SystemMessage(content=system_prompt),
             HumanMessage(content=user_prompt)
         ]
-        return get_llm().invoke(messages).content
+        return invoke_llm_with_retry(get_llm(), messages, "Trading Plan")

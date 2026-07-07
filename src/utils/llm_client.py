@@ -8,19 +8,29 @@ Features:
 - Automatic fallback to backup LLM
 - Temperature parameter optional (some models don't support it)
 - Provider support for API key selection
+- Retry mechanism for connection errors
 """
 
 import os
+import time
+import logging
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from .api_key_selector import get_api_key_for_url
 
 load_dotenv(os.path.join('config', '.env'))
 
+# Get logger for this module
+logger = logging.getLogger('finagent')
+
 DEFAULT_MODEL_NAME = 'x-ai/grok-beta'
 
 # Global cache for LLM clients
 _llm_cache = {}
+
+# Retry configuration
+MAX_RETRIES = 2
+RETRY_DELAY = 2  # seconds
 
 
 def get_llm_client(model_env_var: str, url_env_var: str, step_name: str, temperature: float = None, provider_env_var: str = None) -> ChatOpenAI:
@@ -57,6 +67,8 @@ def get_llm_client(model_env_var: str, url_env_var: str, step_name: str, tempera
             "model": model_name,
             "api_key": api_key,
             "base_url": url,
+            "timeout": 120.0,
+            "max_retries": 2,
         }
         # Only add temperature if explicitly provided
         if temp is not None:
@@ -87,6 +99,35 @@ def get_llm_client(model_env_var: str, url_env_var: str, step_name: str, tempera
         except Exception as e2:
             print(f"DEBUG: {step_name} - Backup LLM also failed: {e2}")
             raise Exception(f"Both LLM providers failed for {step_name}. Primary: {e}, Backup: {e2}")
+
+
+def invoke_llm_with_retry(llm, messages, step_name: str, max_retries: int = MAX_RETRIES) -> str:
+    """
+    Invoke LLM with retry logic for connection errors.
+
+    Args:
+        llm: ChatOpenAI instance
+        messages: List of messages to send
+        step_name: Name of the step (for logging)
+        max_retries: Maximum number of retries
+
+    Returns:
+        Response content string
+    """
+    for attempt in range(max_retries + 1):
+        try:
+            response = llm.invoke(messages)
+            return response.content
+        except Exception as e:
+            error_msg = str(e).lower()
+            # Check if it's a retryable error (connection issues)
+            if any(err in error_msg for err in ['broken pipe', 'connection reset', 'connection aborted', 'timeout']):
+                if attempt < max_retries:
+                    logger.warning(f" [{step_name}] Connection error (attempt {attempt + 1}/{max_retries + 1}): {e}")
+                    time.sleep(RETRY_DELAY * (attempt + 1))  # Exponential backoff
+                    continue
+            # Non-retryable error or max retries exceeded
+            raise
 
 
 def clear_llm_cache():

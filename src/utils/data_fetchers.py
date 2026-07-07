@@ -5,6 +5,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 import yfinance as yf
 import time
+from .yfinance_compat import YahooFinanceCompat
 
 load_dotenv(os.path.join('config', '.env'))
 
@@ -122,10 +123,19 @@ class DataFetcher:
         return bbands, meta
 
     def get_yf_history(self, symbol: str, period: str = '2y', interval: str = '1d') -> pd.DataFrame:
-        ticker = yf.Ticker(symbol)
-        hist = ticker.history(period=period, interval=interval)
-        return hist
+        """Get historical data using YahooFinanceCompat for Python 3.13 compatibility."""
+        try:
+            yf_compat = YahooFinanceCompat(symbol)
+            # Convert period format for YahooFinanceCompat
+            period_map = {'1d': '1d', '5d': '5d', '1mo': '1mo', '3mo': '3mo', '6mo': '6mo', '1y': '1y', '2y': '2y', '5y': '5y', 'max': 'max'}
+            yf_period = period_map.get(period, '1y')
+            return yf_compat.get_history(period=yf_period, interval=interval)
+        except Exception as e:
+            print(f"Error in get_yf_history for {symbol}: {e}")
+            return pd.DataFrame()
 
     def get_close_price(self, symbol: str) -> float:
         hist = self.get_yf_history(symbol, interval='1d', period='5d')
+        if hist.empty:
+            return 0.0
         return hist['Close'].iloc[-1]
