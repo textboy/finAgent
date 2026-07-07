@@ -6,6 +6,7 @@ import xml.etree.ElementTree as ET
 import time
 from ..utils.data_fetchers import DataFetcher
 from ..utils.technical_indicators import calculate_macd, calculate_vwap
+from ..utils.yfinance_compat import YahooFinanceCompat
 
 fetcher = DataFetcher()
 
@@ -44,24 +45,39 @@ def get_company_overview(symbol: str) -> str:
 
 def get_income_statement(symbol: str) -> str:
     """Get annual and quarterly income statements."""
-    data, meta = fetcher.get_income_statement(symbol)
-    if data is None:
+    try:
+        yf_compat = YahooFinanceCompat(symbol)
+        data = yf_compat.get_financials('income_stmt')
+        if data is None or data.empty:
+            return "No data"
+        return f"Data shape: {data.shape}\\nLatest: {data.iloc[0].to_dict() if not data.empty else 'No data'}"
+    except Exception as e:
+        print(f"Error getting income statement for {symbol}: {e}")
         return "No data"
-    return f"Data shape: {data.shape}\\nLatest: {data.iloc[0].to_dict() if not data.empty else 'No data'}"
 
 def get_balance_sheet(symbol: str) -> str:
     """Get annual and quarterly balance sheets."""
-    data, meta = fetcher.get_balance_sheet(symbol)
-    if data is None:
+    try:
+        yf_compat = YahooFinanceCompat(symbol)
+        data = yf_compat.get_financials('balance_sheet')
+        if data is None or data.empty:
+            return "No data"
+        return f"Data shape: {data.shape}\\nLatest: {data.iloc[0].to_dict() if not data.empty else 'No data'}"
+    except Exception as e:
+        print(f"Error getting balance sheet for {symbol}: {e}")
         return "No data"
-    return f"Data shape: {data.shape}\\nLatest: {data.iloc[0].to_dict() if not data.empty else 'No data'}"
 
 def get_cash_flow(symbol: str) -> str:
     """Get annual and quarterly cash flow statements."""
-    data, meta = fetcher.get_cash_flow(symbol)
-    if data is None:
+    try:
+        yf_compat = YahooFinanceCompat(symbol)
+        data = yf_compat.get_financials('cashflow')
+        if data is None or data.empty:
+            return "No data"
+        return f"Data shape: {data.shape}\\nLatest: {data.iloc[0].to_dict() if not data.empty else 'No data'}"
+    except Exception as e:
+        print(f"Error getting cash flow for {symbol}: {e}")
         return "No data"
-    return f"Data shape: {data.shape}\\nLatest: {data.iloc[0].to_dict() if not data.empty else 'No data'}"
 
 def get_earnings(symbol: str) -> str:
     """Get earnings data."""
@@ -124,9 +140,17 @@ def get_macro_news_sentiment(topic: str) -> str:
     return "\n".join(news_items)
 
 def download_yf_data(symbol: str) -> pd.DataFrame:
-    print(f'DEBUG: Download historical market data from yFinance - symbol {symbol}')
-    data = fetcher.download_yf_data(symbol)
-    return data
+    """Download historical market data using compatibility layer."""
+    print(f'DEBUG: Download historical market data - symbol {symbol}')
+    try:
+        yf_compat = YahooFinanceCompat(symbol)
+        data = yf_compat.get_history(period='1y', interval='1d')
+        if data.empty:
+            print(f"WARNING: No data returned for {symbol}")
+        return data
+    except Exception as e:
+        print(f"Error downloading data for {symbol}: {e}")
+        return pd.DataFrame()
 
 def get_sma(data: pd.DataFrame, time_period: int = 36) -> str:
     """Get Simple Moving Average."""

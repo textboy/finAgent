@@ -86,7 +86,7 @@ class MarketAnalyst:
     @staticmethod
     def analyze(investment_period: str) -> str:
         """Fetch market-level data from yfinance API."""
-        import yfinance as yf
+        from ..utils.yfinance_compat import YahooFinanceCompat
         import pandas as pd
 
         # Get period string for yfinance
@@ -98,15 +98,15 @@ class MarketAnalyst:
         }
         period = period_map.get(investment_period, "6mo")
 
-        # Major indices
-        spy = yf.Ticker("SPY")
-        qqq = yf.Ticker("QQQ")
-        vix = yf.Ticker("^VIX")
+        # Major indices using YahooFinanceCompat
+        spy_compat = YahooFinanceCompat("SPY")
+        qqq_compat = YahooFinanceCompat("QQQ")
+        vix_compat = YahooFinanceCompat("^VIX")
 
         # Get historical data
-        spy_hist = spy.history(period=period)
-        qqq_hist = qqq.history(period=period)
-        vix_hist = vix.history(period="5d")  # VIX only needs short term
+        spy_hist = spy_compat.get_history(period=period)
+        qqq_hist = qqq_compat.get_history(period=period)
+        vix_hist = vix_compat.get_history(period="5d")  # VIX only needs short term
 
         # S&P 500 analysis
         spy_current = spy_hist['Close'].iloc[-1] if not spy_hist.empty else "N/A"
@@ -122,25 +122,8 @@ class MarketAnalyst:
         vix_current = vix_hist['Close'].iloc[-1] if not vix_hist.empty else "N/A"
         vix_prev = vix_hist['Close'].iloc[0] if len(vix_hist) > 1 else vix_current
 
-        # Market breadth (advance/decline from SPY components)
-        try:
-            spy_tickers = spy.component_symbols if hasattr(spy, 'component_symbols') else []
-            advancers = 0
-            decliners = 0
-            for ticker in spy_tickers[:50]:  # Sample top 50
-                try:
-                    t = yf.Ticker(ticker)
-                    h = t.history(period="2d")
-                    if len(h) >= 2:
-                        if h['Close'].iloc[-1] > h['Close'].iloc[-2]:
-                            advancers += 1
-                        else:
-                            decliners += 1
-                except:
-                    pass
-            breadth = f"Advancers: {advancers}, Decliners: {decliners}, A/D Ratio: {advancers/decliners if decliners > 0 else 'N/A'}"
-        except:
-            breadth = "Market breadth data unavailable"
+        # Market breadth (simplified - skip component symbols to avoid crashes)
+        breadth = "Market breadth data unavailable (simplified mode)"
 
         # Sector performance (XLK, XLF, XLV, XLE, XLI, XLC, XLY, XLP, XLU, XLRE, XLB)
         sectors = {
@@ -159,8 +142,8 @@ class MarketAnalyst:
         sector_perf = []
         for ticker, name in sectors.items():
             try:
-                t = yf.Ticker(ticker)
-                h = t.history(period="1mo")
+                compat = YahooFinanceCompat(ticker)
+                h = compat.get_history(period="1mo")
                 if len(h) >= 2:
                     perf = (h['Close'].iloc[-1] - h['Close'].iloc[0]) / h['Close'].iloc[0] * 100
                     sector_perf.append(f"{name}: {perf:.2f}%")
@@ -169,8 +152,8 @@ class MarketAnalyst:
 
         # Interest rates (10-year Treasury)
         try:
-            tnx = yf.Ticker("^TNX")
-            tnx_hist = tnx.history(period="1mo")
+            tnx_compat = YahooFinanceCompat("^TNX")
+            tnx_hist = tnx_compat.get_history(period="1mo")
             rate_10y = tnx_hist['Close'].iloc[-1] if not tnx_hist.empty else "N/A"
         except:
             rate_10y = "N/A"

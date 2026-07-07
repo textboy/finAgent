@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage, SystemMessage
-from ..utils.llm_client import get_llm_client
+from ..utils.llm_client import get_llm_client, invoke_llm_with_retry
 
 load_dotenv(os.path.join('config', '.env'))
 
@@ -57,8 +57,7 @@ Please create a structured lesson summary under 800 words that captures the key 
         ]
 
         try:
-            response = get_llm().invoke(messages)
-            return response.content
+            return invoke_llm_with_retry(get_llm(), messages, "Lesson Summary")
         except Exception as e:
             print(f"ERROR: LessonSummaryAgent failed: {e}")
             return f"Lesson summary generation failed: {str(e)}"
