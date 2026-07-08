@@ -358,15 +358,15 @@ function HomePage() {
   };
 
   const panelKeys = [
-    { key: 'fundamentals', label: 'Fundamentals', icon: '📊', color: 'from-blue-500 to-cyan-500' },
-    { key: 'sentiment', label: 'Sentiment & Social', icon: '💬', color: 'from-emerald-500 to-teal-500' },
-    { key: 'technical', label: 'Technical', icon: '📈', color: 'from-purple-500 to-pink-500' },
-    { key: 'market', label: 'Market Overview', icon: '🌍', color: 'from-orange-500 to-red-500' },
-    { key: 'globalEconomic', label: 'Global Economy', icon: '🌐', color: 'from-cyan-500 to-blue-500' },
-    { key: 'fundHolding', label: 'Fund Holdings', icon: '🏦', color: 'from-teal-500 to-cyan-500' },
-    { key: 'pastLessons', label: 'Past Lessons', icon: '📚', color: 'from-yellow-500 to-amber-500' },
-    { key: 'research', label: 'Research Debate', icon: '🧠', color: 'from-amber-500 to-orange-500' },
-    { key: 'trading', label: 'Trading Plan', icon: '🎯', color: 'from-indigo-500 to-blue-500' },
+    { key: 'fundamentals', label: 'Fundamentals', icon: '📊', color: 'from-slate-700 to-slate-600' },
+    { key: 'sentiment', label: 'Sentiment & Social', icon: '💬', color: 'from-slate-700 to-slate-600' },
+    { key: 'technical', label: 'Technical', icon: '📈', color: 'from-slate-700 to-slate-600' },
+    { key: 'market', label: 'Market Overview', icon: '🌍', color: 'from-slate-700 to-slate-600' },
+    { key: 'globalEconomic', label: 'Global Economy', icon: '🌐', color: 'from-slate-700 to-slate-600' },
+    { key: 'fundHolding', label: 'Fund Holdings', icon: '🏦', color: 'from-slate-700 to-slate-600' },
+    { key: 'pastLessons', label: 'Past Lessons', icon: '📚', color: 'from-slate-700 to-slate-600' },
+    { key: 'research', label: 'Research Debate', icon: '🧠', color: 'from-slate-700 to-slate-600' },
+    { key: 'trading', label: 'Trading Plan', icon: '🎯', color: 'from-slate-600 to-cyan-600' },
   ];
 
   const markdownComponents = {

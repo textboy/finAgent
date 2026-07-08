@@ -1,14 +1,14 @@
 @echo off
 setlocal enabledelayedexpansion
 
-echo =================================== FinAgent Backend (Development) ===================================
+echo =================================== FinAgent Backend (Local) ===================================
 
 :: Get script directory
 cd /d "%~dp0"
 
-:: =================================== 1. Check/Install Virtual Environment ===================================
+:: ==================================== 1. Check/Install Virtual Environment ====================================
 echo.
-echo [1/4] Checking virtual environment...
+echo [1/5] Checking virtual environment...
 
 set "VENV_DIR=finagent"
 set "VENV_ACTIVATE=%VENV_DIR%\Scripts\activate.bat"
@@ -25,16 +25,38 @@ if not exist "%VENV_ACTIVATE%" (
 :: Activate virtual environment
 call "%VENV_ACTIVATE%"
 
-:: =================================== 2. Install/Update Dependencies ===================================
+:: ==================================== 2. Install/Update Dependencies ====================================
 echo.
-echo [2/4] Installing dependencies...
+echo [2/5] Installing dependencies...
 
 pip install -r requirements.txt -q
-echo   [OK] Dependencies installed
+echo   [OK] Python dependencies installed
 
-:: =================================== 3. Check/Install Vector DB (Qdrant) ===================================
+:: Build frontend
 echo.
-echo [3/4] Checking vector database (Qdrant)...
+echo   Building frontend...
+if exist "web\package.json" (
+    cd web
+    echo   Cleaning old build files...
+    if exist dist rmdir /s /q dist
+    if exist node_modules\.vite rmdir /s /q node_modules\.vite
+    echo   Installing npm dependencies...
+    call npm install 2>nul
+    echo   Running build...
+    call npm run build
+    if exist dist (
+        echo   [OK] Frontend built successfully
+    ) else (
+        echo   [ERROR] Frontend build failed
+    )
+    cd ..
+) else (
+    echo   [WARNING] web\package.json not found, skipping frontend build
+)
+
+:: ==================================== 3. Check/Install Docker & Qdrant ====================================
+echo.
+echo [3/5] Checking Docker and Qdrant...
 
 :: Check if Qdrant is already running
 curl -s http://localhost:6333/health >nul 2>&1
@@ -60,9 +82,9 @@ if %ERRORLEVEL% equ 0 (
     )
 )
 
-:: =================================== 4. Check Environment Variables ===================================
+:: ==================================== 4. Check Environment Variables ====================================
 echo.
-echo [4/4] Checking environment variables...
+echo [4/5] Checking environment variables...
 
 if defined ZENMUX_API_KEY (
     echo   [OK] ZENMUX_API_KEY is set
@@ -93,7 +115,27 @@ if defined NVIDIA_API_KEY (
     echo   [WARNING] NVIDIA_API_KEY is not set ^(optional^)
 )
 
-:: =================================== Start Server ===================================
+:: ==================================== 5. Stop Existing Server & Start New ====================================
 echo.
-echo =================================== Starting Development Server ===================================
+echo [5/5] Checking port...
+
+:: Check if port 8000 is in use
+netstat -ano | findstr ":8000" | findstr "LISTENING" >nul 2>&1
+if %ERRORLEVEL% equ 0 (
+    echo   [WARNING] Port 8000 is already in use. Stopping existing process...
+    for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":8000" ^| findstr "LISTENING"') do (
+        taskkill /PID %%a /F 2>nul
+    )
+    timeout /t 2 /nobreak >nul
+    echo   [OK] Existing process stopped
+)
+
+:: ==================================== Start Server ====================================
+echo.
+echo =================================== Starting Local Server ===================================
+echo   Access URL: http://localhost:8000
+echo   API Docs: http://localhost:8000/docs
+echo   Press Ctrl+C to stop
+echo.
+
 python finagent_api.py
