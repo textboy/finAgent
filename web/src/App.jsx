@@ -1,8 +1,10 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react'
 import { Routes, Route, Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import Introduction from './Introduction.jsx'
+
+// Lazy load Introduction component
+const Introduction = lazy(() => import('./Introduction.jsx'))
 
 function HomePage() {
   // Use current browser host/port for API calls
@@ -842,10 +844,19 @@ function HomePage() {
 
 function App() {
   return (
-    <Routes>
-      <Route path="/" element={<HomePage />} />
-      <Route path="/introduction" element={<Introduction />} />
-    </Routes>
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-400">Loading...</p>
+        </div>
+      </div>
+    }>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/introduction" element={<Introduction />} />
+      </Routes>
+    </Suspense>
   );
 }
 
