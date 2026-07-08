@@ -22,10 +22,11 @@ function HomePage() {
   const [suggestions, setSuggestions] = useState([]);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [justSelected, setJustSelected] = useState(false);
   const [historyReports, setHistoryReports] = useState([]);
+  const justSelectedRef = useRef(false);
   const [selectedReport, setSelectedReport] = useState('');
   const [viewingHistory, setViewingHistory] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
   const abortControllerRef = useRef(null);
   const isSubmittingRef = useRef(false);
   const logEndRef = useRef(null);
@@ -62,8 +63,10 @@ function HomePage() {
   // Filter suggestions based on input
   useEffect(() => {
     // Skip if a suggestion was just selected
-    if (justSelected) {
-      setJustSelected(false);
+    if (justSelectedRef.current) {
+      justSelectedRef.current = false;
+      setSuggestions([]);
+      setShowSuggestions(false);
       return;
     }
 
@@ -86,12 +89,12 @@ function HomePage() {
     setSuggestions(filtered);
     setShowSuggestions(filtered.length > 0);
     setHighlightedIndex(-1);
-  }, [symbolInput, tickerMapping, justSelected]);
+  }, [symbolInput, tickerMapping]);
 
   const selectSuggestion = (ticker) => {
     const parts = symbolInput.split(/[,;]/);
     parts[parts.length - 1] = ticker;
-    setJustSelected(true);
+    justSelectedRef.current = true;
     setSymbolInput(parts.join(','));
     setShowSuggestions(false);
     setHighlightedIndex(-1);
@@ -171,9 +174,29 @@ function HomePage() {
     return expandedPanels[`${symbol}-${key}`] === true;
   };
 
-  // Auto-scroll log
+  // Scroll to top on page load/refresh
   useEffect(() => {
-    logEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    window.scrollTo(0, 0);
+  }, []);
+
+  // Show/hide scroll to top button based on scroll position
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 300);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Auto-scroll log (only when there's content)
+  useEffect(() => {
+    if (log && log.length > 10) {
+      logEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [log]);
 
   const validateTicker = (ticker) => {
@@ -449,7 +472,10 @@ function HomePage() {
                     }}
                     onKeyDown={handleKeyDown}
                     onFocus={() => {
-                      if (suggestions.length > 0) setShowSuggestions(true);
+                      // Only show suggestions if not just selected and there are suggestions
+                      if (!justSelectedRef.current && suggestions.length > 0) {
+                        setShowSuggestions(true);
+                      }
                     }}
                     className="input-field text-sm sm:text-base tracking-wide uppercase pr-16"
                     placeholder="AAPL,GOOG,MSFT"
@@ -790,6 +816,19 @@ function HomePage() {
           </div>
         </section>
       </main>
+
+      {/* Floating Go To Top Button */}
+      {showScrollTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-6 right-6 z-50 w-12 h-12 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white rounded-full shadow-lg shadow-purple-900/50 flex items-center justify-center transition-all duration-300 hover:scale-110 animate-fade-in"
+          aria-label="Go to top"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="18 15 12 9 6 15"></polyline>
+          </svg>
+        </button>
+      )}
 
       <footer className="relative z-10 mt-auto py-6 sm:py-10 text-center text-slate-600 text-sm sm:text-base border-t border-slate-900/50">
         <div className="max-w-7xl mx-auto px-4">

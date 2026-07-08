@@ -11,85 +11,99 @@ FinAgents is a multi-agent trading framework that mirrors real-world trading fir
 
 ### 🚀 Parallel Processing
 - **Multi-Stock Analysis**: Analyze 1-5 stocks simultaneously
-- **Inner Parallelism**: Steps 1-7 run in parallel per stock
+- **Inner Parallelism**: Steps 1-7 run in parallel per stock (7 workers)
 - **Bull/Bear Parallel**: Step 8.1 and 8.2 run concurrently
 
 ### 🔍 Searchable Ticker Input
 - Type company name, alias, or ticker to search
 - Example: "google" → shows GOOG, GOOGL
-- Keyboard navigation (↑/↓/Enter)
+- Keyboard navigation (↑/↓/Enter/Tab)
 - Supports comma/semicolon separators
+- Maximum 5 symbols per analysis
 
 ### 📊 10-Step Analysis Pipeline
-| Step | Name | Data Source | LLM |
-|------|------|-------------|-----|
+| Step | Name | Data Source | LLM Provider |
+|------|------|-------------|--------------|
 | 1 | Fundamentals | yfinance | - |
 | 2 | Sentiment & Social | yfinance + Reddit | - |
 | 3 | Technical | yfinance | - |
 | 4 | Market Overview | yfinance | - |
 | 5 | Global Economy | World Bank API | - |
-| 6 | Fund Holdings | - | ✅ agnes-2.0-flash |
+| 6 | Fund Holdings | - | agnes-2.0-flash (Agnes AI) |
 | 7 | Past Lessons | Qdrant DB | - |
-| 8.1 | Bull Analysis | - | ✅ xiaomi/mimo-v2.5 |
-| 8.2 | Bear Analysis | - | ✅ anthropic/claude-sonnet-5-free |
-| 8.3 | Research Debate | - | ✅ anthropic/claude-fable-5-free |
-| 9 | Trading Plan | - | ✅ anthropic/claude-fable-5-free |
-| 10 | Lesson Summary | - | ✅ agnes-2.0-flash (background) |
+| 8.1 | Bull Analysis | - | xiaomi/mimo-v2.5 (ZenMux) |
+| 8.2 | Bear Analysis | - | minimax/minimax-m3 (ZenMux) |
+| 8.3 | Research Debate | - | z-ai/glm-5.2 (ZenMux) |
+| 9 | Trading Plan | - | z-ai/glm-5.2 (ZenMux) |
+| 10 | Lesson Summary | - | agnes-2.0-flash (Agnes AI, background) |
 
 ### 🤖 Multi-Provider LLM Support
-- **ZenMux**: https://zenmux.ai/api/v1
-- **Agnes AI**: https://apihub.agnes-ai.com/v1
-- **NVIDIA**: https://integrate.api.nvidia.com/v1
+| Provider | URL | API Key |
+|----------|-----|---------|
+| ZenMux | https://zenmux.ai/api/v1 | ZENMUX_API_KEY |
+| Agnes AI | https://apihub.agnes-ai.com/v1 | AGNES_API_KEY |
+| NVIDIA | https://integrate.api.nvidia.com/v1 | NVIDIA_API_KEY |
+
 - API key automatically selected based on URL prefix
+- Each step can use different models/providers
+
+### 📱 Mobile Responsive UI
+- Responsive design for iOS/Android devices
+- Touch-friendly buttons (48px minimum)
+- Collapsible panels for easy navigation
+- Floating "Go to Top" button
 
 ### 📈 Additional Features
 - Warren Buffett's 5 core principles for long-term analysis
 - Reddit sentiment integration
-- HTML report generation
-- Step progress logs in UI
+- HTML report generation with collapsible sections
+- Step progress logs in System Logs
 - Stop button for analysis cancellation
 - Server-side logging
+- History reports viewer
 
 ## Installation
 
-### Environment Setup
+### Quick Start (Linux/Mac)
+```shell
+# Clone repository
+git clone https://github.com/textboy/finAgent.git
+cd finAgent
 
-#### Windows
-```cmd
-./setup.cmd
+# Run local server (handles everything)
+./start_server_local.sh
 ```
 
-#### Linux/Mac
+### Quick Start (Windows)
+```cmd
+finagent_cli.cmd
+```
+
+### Manual Setup
+
+#### Virtual Environment
 ```shell
-./setup.sh
+python3 -m venv finagent
+source finagent/bin/activate
+pip install -r requirements.txt
 ```
 
 #### Frontend
 ```shell
 cd web
 npm install
+npm run build
 ```
 
 ### Vector DB Setup (Optional)
-
-#### Windows
-```cmd
-./vector-db-setup.cmd
-```
-
-#### Linux/Mac
 ```shell
-./vector-db-setup.sh
+# Requires Docker
+docker run -d --name qdrant-finagent -p 6333:6333 qdrant/qdrant:1.16.0
 ```
 
 ## Configuration
 
-### 1. Copy and edit .env file
-```shell
-cp config/.env.example config/.env
-```
-
-### 2. API Keys (Environment Variables)
+### 1. Environment Variables
 ```shell
 # Required
 export ZENMUX_API_KEY="your-zenmux-api-key"
@@ -99,7 +113,7 @@ export AGNES_API_KEY="your-agnes-api-key"
 export NVIDIA_API_KEY="your-nvidia-api-key"
 ```
 
-### 3. LLM Configuration (config/.env)
+### 2. LLM Configuration (config/.env)
 Each step can use different models and providers:
 
 ```env
@@ -112,46 +126,48 @@ BULL_MODEL=xiaomi/mimo-v2.5
 BULL_URL=https://zenmux.ai/api/v1
 
 # Step 8.2: Bear Analysis
-BEAR_MODEL=anthropic/claude-sonnet-5-free
+BEAR_MODEL=minimax/minimax-m3
 BEAR_URL=https://zenmux.ai/api/v1
 
-# ... etc
+# Step 8.3: Research Debate
+DEBATE_MODEL=z-ai/glm-5.2
+DEBATE_URL=https://zenmux.ai/api/v1
+
+# Step 9: Trading Plan
+TRADING_MODEL=z-ai/glm-5.2
+TRADING_URL=https://zenmux.ai/api/v1
+
+# Step 10: Lesson Summary
+LESSON_MODEL=agnes-2.0-flash
+LESSON_URL=https://apihub.agnes-ai.com/v1
 ```
 
 ## Execution
 
-### Web UI
+### Web UI (Recommended)
 
-#### Backend
+#### Start Server
 ```shell
-# Development
-python finagent_api.py
+# Local development
+./start_server_local.sh
 
-# Production
-./start_backend.sh
+# Production (remote server)
+./start_server.sh
 ```
-- http://localhost:8000
 
-#### Frontend
-```shell
-cd web
-
-# Development
-npm run dev
-
-# Production
-npm run build
-npm run preview
-```
-- http://localhost:3001
+- **Backend**: http://localhost:8000 (local) or http://5ngc.s.time4vps.cloud:8000 (production)
+- **Frontend**: Automatically built and served by backend
 
 ### CLI
 ```shell
-# Python
-python finagent.py --symbol AAPL,GOOG --period medium
+# Single symbol
+./finagent_cli.sh AAPL short
 
-# Shell
-./finagent.sh AAPL,GOOG medium
+# Multiple symbols
+./finagent_cli.sh AAPL,GOOG,MSFT medium
+
+# Windows
+finagent_cli.cmd AAPL short
 ```
 
 **Parameters:**
@@ -182,7 +198,7 @@ Analyze multiple stocks in parallel.
     {
       "symbol": "AAPL",
       "reports": { ... },
-      "report_path": "/static/result_AAPL_20260705_1200.html",
+      "report_path": "/static/result_AAPL_20260708_1200.html",
       "timing": { "start": "...", "end": "...", "duration_minutes": 2.5 },
       "step_logs": ["✅ [AAPL] Fundamentals completed (0.18 min)", ...],
       "errors": [],
@@ -192,48 +208,94 @@ Analyze multiple stocks in parallel.
 }
 ```
 
+### GET /api/history-reports
+List available HTML reports.
+
+### GET /
+API status and available endpoints.
+
 ## Project Structure
 ```
 finAgent/
 ├── config/
-│   └── .env              # Configuration
+│   └── .env                  # LLM & API configuration
 ├── src/
 │   ├── agents/
-│   │   ├── analyst_agents.py
-│   │   ├── fund_holding_agent.py
-│   │   ├── global_economic_agent.py
-│   │   ├── lesson_summary_agent.py
-│   │   ├── researcher_agents.py
-│   │   └── trading_risk_agents.py
+│   │   ├── analyst_agents.py      # Steps 1-4: Data analysis
+│   │   ├── fund_holding_agent.py  # Step 6: Fund holdings
+│   │   ├── global_economic_agent.py # Step 5: Global economy
+│   │   ├── lesson_summary_agent.py # Step 10: Lesson summary
+│   │   ├── researcher_agents.py   # Steps 8.1-8.3: Bull/Bear/Debate
+│   │   └── trading_risk_agents.py # Step 9: Trading plan
 │   ├── tools/
-│   │   └── analyst_tools.py
+│   │   └── analyst_tools.py   # Data fetching utilities
 │   ├── utils/
-│   │   ├── api_key_selector.py
-│   │   ├── data_fetchers.py
-│   │   └── qdrant_utils.py
-│   └── workflow_parallel.py
+│   │   ├── api_key_selector.py    # API key routing by URL
+│   │   ├── data_fetchers.py       # yfinance wrapper
+│   │   ├── llm_client.py          # Shared LLM client
+│   │   ├── qdrant_utils.py        # Vector DB utilities
+│   │   └── yfinance_compat.py     # yfinance compatibility
+│   └── workflow_parallel.py   # Parallel pipeline orchestration
 ├── web/
 │   ├── public/
-│   │   └── ticket_mapping.json
+│   │   └── ticket_mapping.json    # Ticker search database
 │   └── src/
-│       └── App.jsx
-├── logs/                  # Server logs
-├── results/               # Analysis reports (HTML)
-├── finagent_api.py        # FastAPI backend
+│       ├── App.jsx                # Main UI
+│       ├── Introduction.jsx       # Pipeline documentation
+│       └── main.jsx               # React entry
+├── test/
+│   └── test_regression.py     # Pipeline regression tests
+├── logs/                       # Server logs (gitignored)
+├── results/                    # Analysis reports (gitignored)
+├── finagent_api.py             # FastAPI backend
+├── finagent_cli.py             # CLI interface
+├── finagent_cli.sh             # Shell wrapper
+├── start_server.sh             # Production startup
+├── start_server_local.sh       # Local development startup
 └── requirements.txt
 ```
+
+## Testing
+
+### Run Regression Tests
+```shell
+# All steps
+python test/test_regression.py
+
+# Specific steps
+python test/test_regression.py --step 1,2,3
+python test/test_regression.py --step 8.1,8.2
+
+# Different symbol
+python test/test_regression.py --symbol NVDA --period medium
+```
+
+### Available Test Steps
+| Step | Name |
+|------|------|
+| 1 | Fundamentals |
+| 2 | Sentiment & Social |
+| 3 | Technical |
+| 4 | Market Overview |
+| 5 | Global Economy |
+| 6 | Fund Holdings |
+| 7 | Past Lessons |
+| 8.1 | Bull Analysis |
+| 8.2 | Bear Analysis |
+| 8.3 | Research Debate |
+| 9 | Trading Plan |
 
 ## Logging
 Server logs are stored in `logs/` folder:
 ```
-logs/finagent_20260705.log
+logs/finagent_20260708.log
 ```
 
 ## Reports
 Analysis reports are generated in both Markdown and HTML formats:
 ```
-results/result_AAPL_20260705_1200.md
-results/result_AAPL_20260705_1200.html
+results/result_AAPL_20260708_1200.md
+results/result_AAPL_20260708_1200.html
 ```
 
 ## Disclaimer
