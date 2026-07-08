@@ -59,7 +59,7 @@ def get_llm_client(model_env_var: str, url_env_var: str, step_name: str, tempera
     provider = os.getenv(provider_env_var) if provider_env_var else None
     backup_model = os.getenv('LLM_BACKUP_MODEL', DEFAULT_MODEL_NAME)
     backup_url = os.getenv('LLM_BACKUP_URL')
-    backup_key = os.getenv("ZENMUX_API_KEY")  # Backup always uses ZenMux
+    backup_key = os.getenv("FINAGENT_ZENMUX_API_KEY") or os.getenv("ZENMUX_API_KEY")  # Backup always uses ZenMux
 
     # Build kwargs for ChatOpenAI
     def _build_kwargs(model_name, api_key, url, temp):

@@ -40,7 +40,7 @@ FinAgents is a multi-agent trading framework that mirrors real-world trading fir
 ### 🤖 Multi-Provider LLM Support
 | Provider | URL | API Key |
 |----------|-----|---------|
-| ZenMux | https://zenmux.ai/api/v1 | ZENMUX_API_KEY |
+| ZenMux | https://zenmux.ai/api/v1 | FINAGENT_ZENMUX_API_KEY |
 | Agnes AI | https://apihub.agnes-ai.com/v1 | AGNES_API_KEY |
 | NVIDIA | https://integrate.api.nvidia.com/v1 | NVIDIA_API_KEY |
 
@@ -106,7 +106,7 @@ docker run -d --name qdrant-finagent -p 6333:6333 qdrant/qdrant:1.16.0
 ### 1. Environment Variables
 ```shell
 # Required
-export ZENMUX_API_KEY="your-zenmux-api-key"
+export FINAGENT_ZENMUX_API_KEY="your-zenmux-api-key"
 
 # Optional (for additional providers)
 export AGNES_API_KEY="your-agnes-api-key"

@@ -2,7 +2,7 @@
 API Key Selector - Selects the correct API key based on the URL prefix.
 
 URL Prefix Mapping:
-- https://zenmux* → ZENMUX_API_KEY
+- https://zenmux* → FINAGENT_ZENMUX_API_KEY (fallback: ZENMUX_API_KEY)
 - https://apihub.agnes-ai* → AGNES_API_KEY
 - https://integrate.api.nvidia* → NVIDIA_API_KEY
 - https://api.deepseek* → DEEPSEEK_API_KEY
@@ -29,7 +29,7 @@ def get_api_key_for_url(url: str) -> str:
     url_lower = url.lower()
 
     if url_lower.startswith("https://zenmux"):
-        return os.getenv("ZENMUX_API_KEY")
+        return os.getenv("FINAGENT_ZENMUX_API_KEY") or os.getenv("ZENMUX_API_KEY")
     elif url_lower.startswith("https://apihub.agnes-ai"):
         return os.getenv("AGNES_API_KEY")
     elif url_lower.startswith("https://integrate.api.nvidia"):
@@ -41,8 +41,8 @@ def get_api_key_for_url(url: str) -> str:
     elif url_lower.startswith("https://api.minimax"):
         return os.getenv("MINIMAX_API_KEY")
     else:
-        # Fallback to ZENMUX_API_KEY for unknown URLs
-        return os.getenv("ZENMUX_API_KEY")
+        # Fallback to FINAGENT_ZENMUX_API_KEY for unknown URLs
+        return os.getenv("FINAGENT_ZENMUX_API_KEY") or os.getenv("ZENMUX_API_KEY")
 
 
 def get_api_key_for_url_with_fallback(url: str) -> tuple:
@@ -61,11 +61,11 @@ def get_api_key_for_url_with_fallback(url: str) -> tuple:
     url_lower = url.lower()
 
     if url_lower.startswith("https://zenmux"):
-        return os.getenv("ZENMUX_API_KEY"), "ZenMux"
+        return os.getenv("FINAGENT_ZENMUX_API_KEY") or os.getenv("ZENMUX_API_KEY"), "ZenMux"
     elif url_lower.startswith("https://apihub.agnes-ai"):
         return os.getenv("AGNES_API_KEY"), "Agnes AI"
     elif url_lower.startswith("https://integrate.api.nvidia"):
         return os.getenv("NVIDIA_API_KEY"), "NVIDIA"
     else:
-        # Fallback to ZENMUX_API_KEY for unknown URLs
-        return os.getenv("ZENMUX_API_KEY"), "ZenMux (fallback)"
+        # Fallback to FINAGENT_ZENMUX_API_KEY for unknown URLs
+        return os.getenv("FINAGENT_ZENMUX_API_KEY") or os.getenv("ZENMUX_API_KEY"), "ZenMux (fallback)"
