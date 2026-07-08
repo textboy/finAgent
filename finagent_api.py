@@ -316,6 +316,29 @@ def md_to_html(md_content: str, symbol: str, period: str, timestamp: str) -> str
     # Split content by h2 headers
     parts = re.split(h2_pattern, html_content, flags=re.DOTALL)
 
+    # Sections that should be collapsible (pipeline steps)
+    collapsible_keywords = [
+        'fundamentals',
+        'sentiment',
+        'technical',
+        'market overview',
+        'global economic',
+        'fund holding',
+        'past lesson',
+        'research',
+        'trading',
+        'execution info'
+    ]
+
+    # Sections that should NOT be collapsed (sub-sections within pipeline steps)
+    no_collapse_keywords = [
+        'key points summary',
+        'balanced debate result',
+        'debate result',
+        'bull case',
+        'bear case'
+    ]
+
     wrapped_content = ''
     i = 0
     while i < len(parts):
@@ -324,16 +347,25 @@ def md_to_html(md_content: str, symbol: str, period: str, timestamp: str) -> str
             header = parts[i]
             content = parts[i + 1] if i + 1 < len(parts) else ''
 
-            # Check if this is the Trading Plan section
-            is_trading = 'trading' in header.lower() or 'Trading Plan' in header
+            # Check if this section should be collapsible
+            header_lower = header.lower()
+            is_collapsible = any(keyword in header_lower for keyword in collapsible_keywords)
+            is_no_collapse = any(keyword in header_lower for keyword in no_collapse_keywords)
 
-            # Determine if this section should be open by default
-            open_attr = ' open' if is_trading else ''
+            # Don't collapse if it's in the no_collapse list
+            if is_no_collapse:
+                is_collapsible = False
 
-            wrapped_content += f'<details{open_attr} class="{"trading-plan" if is_trading else ""}">'
-            wrapped_content += f'<summary>{header}</summary>'
-            wrapped_content += f'<div class="content">{content}</div>'
-            wrapped_content += '</details>'
+            if is_collapsible:
+                # Wrap in details tag (collapsed by default)
+                wrapped_content += f'<details>'
+                wrapped_content += f'<summary>{header}</summary>'
+                wrapped_content += f'<div class="content">{content}</div>'
+                wrapped_content += '</details>'
+            else:
+                # Don't wrap - just output header and content directly
+                wrapped_content += header
+                wrapped_content += content
             i += 2
         else:
             wrapped_content += parts[i]

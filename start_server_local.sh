@@ -36,7 +36,7 @@ pip install -r requirements.txt -q 2>/dev/null || {
 }
 echo "  ✅ Python dependencies installed"
 
-# Build frontend if needed
+# Build frontend
 echo ""
 echo "  Building frontend..."
 if [ -f "$SCRIPT_DIR/web/package.json" ]; then
@@ -65,15 +65,29 @@ else
     echo "  ⚠️  web/package.json not found, skipping frontend build"
 fi
 
-# ==================================== 3. Check/Install Vector DB (Qdrant) ====================================
+# ==================================== 3. Check/Install Docker & Qdrant ====================================
 echo ""
-echo "[3/5] Checking vector database (Qdrant)..."
+echo "[3/5] Checking Docker and Qdrant..."
+
+# Install Docker if not present
+if ! command -v docker &> /dev/null; then
+    echo "  Docker not found. Installing..."
+    if command -v apt-get &> /dev/null; then
+        apt-get update -qq 2>/dev/null || true
+        apt-get install -y -qq docker.io 2>/dev/null || {
+            echo "  ⚠️  Could not install Docker automatically"
+        }
+    fi
+    if command -v docker &> /dev/null; then
+        echo "  ✅ Docker installed"
+    fi
+fi
 
 # Check if Qdrant is already running
 if curl -s http://localhost:6333/health > /dev/null 2>&1; then
     echo "  ✅ Qdrant is already running"
 elif command -v docker &> /dev/null; then
-    echo "  Docker found. Starting Qdrant..."
+    echo "  Starting Qdrant..."
     docker pull qdrant/qdrant:1.16.0 -q 2>/dev/null || true
     docker stop qdrant-finagent 2>/dev/null || true
     docker rm qdrant-finagent 2>/dev/null || true
@@ -122,22 +136,33 @@ else
     echo "  ⚠️  NVIDIA_API_KEY is not set (optional)"
 fi
 
-if [ -n "$DEEPSEEK_API_KEY" ]; then
-    echo "  ✅ DEEPSEEK_API_KEY is set"
-else
-    echo "  ⚠️  DEEPSEEK_API_KEY is not set (optional)"
-fi
-
-if [ -n "$BIGMODEL_API_KEY" ]; then
-    echo "  ✅ BIGMODEL_API_KEY is set"
-else
-    echo "  ⚠️  BIGMODEL_API_KEY is not set (optional)"
-fi
-
-# ==================================== 5. Check Port ====================================
+# ==================================== 5. Setup Systemd Service (if running as root) ====================================
 echo ""
-echo "[5/5] Checking port..."
+echo "[5/5] Checking systemd service..."
 
+if [ "$EUID" -eq 0 ]; then
+    # Running as root - setup systemd service
+    SERVICE_FILE="finagent.service"
+    if [ -f "$SCRIPT_DIR/$SERVICE_FILE" ]; then
+        cp "$SCRIPT_DIR/$SERVICE_FILE" /etc/systemd/system/
+        systemctl daemon-reload
+        systemctl enable finagent 2>/dev/null || true
+        echo "  ✅ Systemd service configured"
+        echo ""
+        echo "  To set API keys for the service:"
+        echo "    sudo systemctl import-environment ZENMUX_API_KEY"
+        echo "    sudo systemctl import-environment AGNES_API_KEY"
+        echo "    sudo systemctl import-environment NVIDIA_API_KEY"
+    fi
+else
+    echo "  ⏭️  Skipping systemd setup (not running as root)"
+fi
+
+# ==================================== Stop Existing Server & Start New ====================================
+echo ""
+echo "Stopping existing server..."
+
+# Stop existing server if running
 if lsof -Pi :8000 -sTCP:LISTEN -t >/dev/null 2>&1 ; then
     echo "  ⚠️  Port 8000 is already in use. Stopping existing process..."
     lsof -ti :8000 | xargs kill -9 2>/dev/null || true
