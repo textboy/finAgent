@@ -11,8 +11,8 @@ import uuid
 DEFAULT_EMBEDDING_MODEL_NAME = 'qwen/qwen3-embedding-8b'
 load_dotenv(os.path.join('config', '.env'))
 
-# Get embedding API key - use ZENMUX_API_KEY for embeddings
-embedding_api_key = os.getenv("ZENMUX_API_KEY") or os.getenv("FINAGENT_ZENMUX_API_KEY")
+# Get embedding API key - use FINAGENT_ZENMUX_API_KEY for embeddings
+embedding_api_key = os.getenv("FINAGENT_ZENMUX_API_KEY") or os.getenv("ZENMUX_API_KEY")
 embedding_base = os.getenv("LLM_BASE_URL", "https://zenmux.ai/api/v1")
 COLL_NAME = 'finagent_reports'
 

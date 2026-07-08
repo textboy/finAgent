@@ -148,7 +148,7 @@ def test_step_6_fund_holdings(symbol, period):
     from src.agents.fund_holding_agent import FundHoldingAnalyst
 
     # Check if API key is configured
-    api_key = os.getenv('ZENMUX_API_KEY') or os.getenv('FINAGENT_ZENMUX_API_KEY')
+    api_key = os.getenv('FINAGENT_ZENMUX_API_KEY') or os.getenv('ZENMUX_API_KEY')
     if not api_key:
         print("⚠️  SKIPPED: ZENMUX_API_KEY not configured")
         return ""
@@ -189,7 +189,7 @@ def test_step_8_1_bull(symbol, period):
     print("="*60)
 
     # Check if API key is configured
-    api_key = os.getenv('ZENMUX_API_KEY') or os.getenv('FINAGENT_ZENMUX_API_KEY')
+    api_key = os.getenv('FINAGENT_ZENMUX_API_KEY') or os.getenv('ZENMUX_API_KEY')
     if not api_key:
         print("⚠️  SKIPPED: ZENMUX_API_KEY not configured")
         return ""
@@ -224,7 +224,7 @@ def test_step_8_2_bear(symbol, period):
     print("="*60)
 
     # Check if API key is configured
-    api_key = os.getenv('ZENMUX_API_KEY') or os.getenv('FINAGENT_ZENMUX_API_KEY')
+    api_key = os.getenv('FINAGENT_ZENMUX_API_KEY') or os.getenv('ZENMUX_API_KEY')
     if not api_key:
         print("⚠️  SKIPPED: ZENMUX_API_KEY not configured")
         return ""
@@ -259,7 +259,7 @@ def test_step_8_3_debate(symbol, period, bull_result, bear_result):
     print("="*60)
 
     # Check if API key is configured
-    api_key = os.getenv('ZENMUX_API_KEY') or os.getenv('FINAGENT_ZENMUX_API_KEY')
+    api_key = os.getenv('FINAGENT_ZENMUX_API_KEY') or os.getenv('ZENMUX_API_KEY')
     if not api_key:
         print("⚠️  SKIPPED: ZENMUX_API_KEY not configured")
         return ""
@@ -284,7 +284,7 @@ def test_step_9_trading(symbol, period, debate_result):
     print("="*60)
 
     # Check if API key is configured
-    api_key = os.getenv('ZENMUX_API_KEY') or os.getenv('FINAGENT_ZENMUX_API_KEY')
+    api_key = os.getenv('FINAGENT_ZENMUX_API_KEY') or os.getenv('ZENMUX_API_KEY')
     if not api_key:
         print("⚠️  SKIPPED: ZENMUX_API_KEY not configured")
         return ""
