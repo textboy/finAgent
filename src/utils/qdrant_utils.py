@@ -54,14 +54,14 @@ except Exception as e:
     print(f"⚠️  Qdrant HTTP server not available: {e}")
     print("📦 Falling back to local file-based Qdrant...")
     try:
-        local_client = QdrantClient(path=QDRANT_PATH)
-        # Test local client by checking/creating collection
-        if not local_client.collection_exists(COLL_NAME):
-            local_client.create_collection(
+        # Initialize client ONCE at module load (prevents concurrent access errors)
+        _local_client = QdrantClient(path=QDRANT_PATH)
+        if not _local_client.collection_exists(COLL_NAME):
+            _local_client.create_collection(
                 collection_name=COLL_NAME,
                 vectors_config=VectorParams(size=EMBED_DIM, distance=Distance.COSINE),
             )
-            local_client.create_payload_index(
+            _local_client.create_payload_index(
                 collection_name=COLL_NAME,
                 field_name="analysis_datetime",
                 field_schema="datetime"
@@ -74,13 +74,10 @@ except Exception as e:
         print("WARNING: Memory features will be unavailable.")
 
 def get_client():
-    """Get a Qdrant client. Local mode uses a thread-safe singleton."""
+    """Get a Qdrant client. Local mode uses the singleton initialized at module load."""
     global _local_client
     if use_local_qdrant:
-        with _qdrant_lock:
-            if _local_client is None:
-                _local_client = QdrantClient(path=QDRANT_PATH)
-            return _local_client
+        return _local_client
     else:
         return QdrantClient(url=QDRANT_URL, timeout=10)
 
@@ -97,8 +94,6 @@ def init_collection():
             field_name="analysis_datetime",
             field_schema="datetime"
         )
-    else:
-        print(f"Collection '{COLL_NAME}' already exists.")
 
 def store_entry(symbol: str, report_type: str, content: str, analysis_datetime: str, metadata: Dict[str, Any] = None):
     """Store an entry in Qdrant with embedding for semantic search."""
