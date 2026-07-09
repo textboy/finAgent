@@ -229,8 +229,9 @@ if [ "$RUN_MODE" = "production" ]; then
     PRODUCTION_HOST=$(grep -E "^PRODUCTION_HOST=" "$SCRIPT_DIR/config/.env" 2>/dev/null | cut -d'=' -f2)
     PRODUCTION_HOST="${PRODUCTION_HOST:-5ngc.s.time4vps.cloud}"
 
-    # Detect if HTTPS is configured (check for SSL certificate)
-    if [ -f "/etc/letsencrypt/live/${PRODUCTION_HOST}/fullchain.pem" ]; then
+    # Detect if HTTPS is configured (check for SSL certificate via nginx)
+    if grep -q "ssl_certificate" /etc/nginx/sites-available/finagent 2>/dev/null || \
+       grep -q "ssl_certificate" /etc/nginx/sites-enabled/finagent 2>/dev/null; then
         echo ""
         echo "  🌐 Access URL: https://${PRODUCTION_HOST}"
         echo "  📊 API Docs: https://${PRODUCTION_HOST}/docs"
