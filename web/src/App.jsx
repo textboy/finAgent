@@ -28,6 +28,14 @@ function HomePage() {
   const justSelectedRef = useRef(false);
   const [selectedReport, setSelectedReport] = useState('');
   const [viewingHistory, setViewingHistory] = useState(false);
+  // Date range filter for history reports (default: latest 10 days)
+  const getDefaultStartDate = () => {
+    const d = new Date();
+    d.setDate(d.getDate() - 10);
+    return d.toISOString().split('T')[0];
+  };
+  const [startDate, setStartDate] = useState(getDefaultStartDate);
+  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const abortControllerRef = useRef(null);
   const isSubmittingRef = useRef(false);
@@ -238,6 +246,16 @@ function HomePage() {
   useEffect(() => {
     fetchHistoryReports();
   }, []);
+
+  // Filter reports by date range
+  const filteredReports = useMemo(() => {
+    return historyReports.filter((report) => {
+      if (!report.date || report.date === 'Unknown') return false;
+      if (startDate && report.date < startDate) return false;
+      if (endDate && report.date > endDate) return false;
+      return true;
+    });
+  }, [historyReports, startDate, endDate]);
 
   const handleSubmit = async () => {
     // Prevent duplicate submissions
@@ -791,6 +809,30 @@ function HomePage() {
               Refresh
             </button>
           </div>
+          {/* Date Range Filter */}
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-slate-400 whitespace-nowrap">From</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="input-field text-sm px-3 py-1.5"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-slate-400 whitespace-nowrap">To</label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="input-field text-sm px-3 py-1.5"
+              />
+            </div>
+            <span className="text-xs text-slate-500">
+              {filteredReports.length} report{filteredReports.length !== 1 ? 's' : ''}
+            </span>
+          </div>
           <div className="flex items-center gap-4">
             <select
               value={selectedReport}
@@ -798,7 +840,7 @@ function HomePage() {
               className="input-field flex-1 text-sm"
             >
               <option value="">-- Select a report --</option>
-              {historyReports.map((report) => (
+              {filteredReports.map((report) => (
                 <option key={report.filename} value={report.filename}>
                   {report.display}
                 </option>
