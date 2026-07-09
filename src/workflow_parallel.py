@@ -49,6 +49,7 @@ from .agents.researcher_agents import BullishResearcher, BearishResearcher, Deba
 from .agents.trading_risk_agents import TradingAgent
 from .agents.lesson_summary_agent import LessonSummaryAgent
 from .utils.qdrant_utils import get_past_lessons, store_entry
+from .utils.cost_tracker import cost_tracker
 
 # Configuration
 STEP_TIMEOUT = 180  # seconds per step
@@ -401,6 +402,8 @@ def run_single_ticket_pipeline(symbol: str, investment_period: str) -> Dict[str,
     """
     pipeline_start = time.time()
     step_logs = []
+    # Reset cost tracker for this analysis run
+    cost_tracker.reset()
     logger.info(f"PIPELINE START: {symbol} ({investment_period})")
 
     step_display_names = {
@@ -572,6 +575,7 @@ def run_single_ticket_pipeline(symbol: str, investment_period: str) -> Dict[str,
 
     result["end_time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     result["duration_minutes"] = round((time.time() - pipeline_start) / 60, 2)
+    result["cost_summary"] = cost_tracker.get_summary()
 
     print(f"\n{'='*60}")
     print(f"  PIPELINE END: {symbol} ({result['duration_minutes']} min)")

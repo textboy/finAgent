@@ -400,6 +400,37 @@ function HomePage() {
         setLog(prev => prev + `\n⚠️ Pipeline Warnings:${errorLog}`);
       }
 
+      // Log cost summary for all results
+      let totalCost = 0;
+      let totalInputTokens = 0;
+      let totalOutputTokens = 0;
+      let costByModel = {};
+
+      data.results.forEach(result => {
+        if (result.cost_summary) {
+          totalCost += result.cost_summary.total_cost || 0;
+          totalInputTokens += result.cost_summary.total_input_tokens || 0;
+          totalOutputTokens += result.cost_summary.total_output_tokens || 0;
+          if (result.cost_summary.by_model) {
+            Object.entries(result.cost_summary.by_model).forEach(([model, info]) => {
+              if (!costByModel[model]) costByModel[model] = { input: 0, output: 0, cost: 0 };
+              costByModel[model].input += info.input_tokens || 0;
+              costByModel[model].output += info.output_tokens || 0;
+              costByModel[model].cost += info.cost || 0;
+            });
+          }
+        }
+      });
+
+      if (totalCost > 0 || totalInputTokens > 0) {
+        let costLog = `\n💰 LLM Cost Summary:\n`;
+        costLog += `   Total: $${totalCost.toFixed(4)} (${totalInputTokens.toLocaleString()} input, ${totalOutputTokens.toLocaleString()} output tokens)\n`;
+        Object.entries(costByModel).forEach(([model, info]) => {
+          costLog += `   ${model}: $${info.cost.toFixed(4)} (${info.input.toLocaleString()} in / ${info.output.toLocaleString()} out)\n`;
+        });
+        setLog(prev => prev + costLog);
+      }
+
       setLog(prev => prev + `\n✅ Analysis complete for ${data.results.length} symbol(s).\n`);
     } catch (err) {
       if (err.name === 'AbortError') {

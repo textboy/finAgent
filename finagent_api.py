@@ -518,7 +518,13 @@ def format_pipeline_result(pipeline_result: dict) -> dict:
         },
         "step_logs": pipeline_result.get("step_logs", []),
         "errors": step_errors,
-        "success": pipeline_result.get("success", False)
+        "success": pipeline_result.get("success", False),
+        "cost_summary": pipeline_result.get("cost_summary", {
+            "total_cost": 0.0,
+            "total_input_tokens": 0,
+            "total_output_tokens": 0,
+            "by_model": {}
+        })
     }
 
 
