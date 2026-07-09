@@ -388,7 +388,10 @@ function HomePage() {
         }
 
         try {
-          const statusResponse = await fetch(`http://${serverHost}:${uvicornPort}/analyze-status/${job_id}`);
+          // Add cache-busting timestamp to prevent mobile browser caching
+          const statusResponse = await fetch(`http://${serverHost}:${uvicornPort}/analyze-status/${job_id}?t=${Date.now()}`, {
+            cache: 'no-store',
+          });
           if (!statusResponse.ok) continue;
 
           const statusData = await statusResponse.json();
