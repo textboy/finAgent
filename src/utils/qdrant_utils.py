@@ -35,22 +35,44 @@ QDRANT_PORT = os.getenv("QDRANT_PORT", "6333")
 QDRANT_PATH = os.getenv("QDRANT_PATH", "./qdrant")
 QDRANT_URL = f"http://{QDRANT_HOST}:{QDRANT_PORT}"
 qrant_server_health_status = False
+use_local_qdrant = False
 
-# Qdrant is optional for testing - will bypass memory if not available
+# Try HTTP Qdrant first, fall back to local file-based Qdrant
 try:
     response = requests.get(f"{QDRANT_URL}/health", timeout=5)
     if response.status_code == 200:
         qrant_server_health_status = True
+        print("✅ Connected to Qdrant server (HTTP)")
     else:
-        print("WARNING: Qdrant server is not started, bypassing memory processing.")
+        raise Exception("Qdrant server not healthy")
 except Exception as e:
-    print("WARNING: Qdrant server is not started, bypassing memory processing.")
+    print(f"⚠️  Qdrant HTTP server not available: {e}")
+    print("📦 Falling back to local file-based Qdrant...")
+    try:
+        local_client = QdrantClient(path=QDRANT_PATH)
+        # Test local client by checking/creating collection
+        if not local_client.collection_exists(COLL_NAME):
+            local_client.create_collection(
+                collection_name=COLL_NAME,
+                vectors_config=VectorParams(size=EMBED_DIM, distance=Distance.COSINE),
+            )
+            local_client.create_payload_index(
+                collection_name=COLL_NAME,
+                field_name="analysis_datetime",
+                field_schema="datetime"
+            )
+        qrant_server_health_status = True
+        use_local_qdrant = True
+        print(f"✅ Using local file-based Qdrant at {QDRANT_PATH}")
+    except Exception as e2:
+        print(f"❌ Could not initialize local Qdrant: {e2}")
+        print("WARNING: Memory features will be unavailable.")
 
 def get_client():
-    if QDRANT_URL:
-        return QdrantClient(url=QDRANT_URL, timeout=10)
-    else:
+    if use_local_qdrant:
         return QdrantClient(path=QDRANT_PATH)
+    else:
+        return QdrantClient(url=QDRANT_URL, timeout=10)
 
 def init_collection():
     client = get_client()
