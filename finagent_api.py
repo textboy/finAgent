@@ -560,21 +560,28 @@ async def analyze_batch(req: AnalyzeRequest):
 
 @app.get("/analyze-status/{job_id}")
 async def analyze_status(job_id: str):
-    """Poll for analysis job status."""
+    """Poll for analysis job status. No-cache headers prevent mobile browser caching."""
+    from fastapi.responses import JSONResponse
+
     with _jobs_lock:
         job = _jobs.get(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
 
     if job["status"] == "completed":
-        # Clean up old job
         with _jobs_lock:
             _jobs.pop(job_id, None)
-        return {"status": "completed", "results": job["result"]}
+        return JSONResponse(
+            content={"status": "completed", "results": job["result"]},
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"}
+        )
     elif job["status"] == "failed":
         with _jobs_lock:
             _jobs.pop(job_id, None)
-        return {"status": "failed", "error": job["error"]}
+        return JSONResponse(
+            content={"status": "failed", "error": job["error"]},
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"}
+        )
     else:
         return {"status": "running"}
 
