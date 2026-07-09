@@ -89,43 +89,17 @@ else
     echo "  ⚠️  web/package.json not found at $SCRIPT_DIR/web/package.json"
 fi
 
-# ==================================== 3. Check/Install Docker & Qdrant ====================================
+# ==================================== 3. Check Qdrant (lightweight) ====================================
 echo ""
-echo "[3/5] Checking Docker and Qdrant..."
+echo "[3/5] Checking Qdrant..."
 
-# Install Docker if not present
-if ! command -v docker &> /dev/null; then
-    echo "  Docker not found. Installing..."
-    if command -v apt-get &> /dev/null; then
-        apt-get update -qq 2>/dev/null || true
-        apt-get install -y -qq docker.io 2>/dev/null || {
-            echo "  ⚠️  Could not install Docker automatically"
-        }
-    fi
-    if command -v docker &> /dev/null; then
-        systemctl enable docker 2>/dev/null || true
-        systemctl start docker 2>/dev/null || true
-        echo "  ✅ Docker installed"
-    fi
-fi
-
-# Check if Qdrant is already running
+# Check if Qdrant HTTP server is already running (e.g. external Docker, remote server)
 if curl -s http://localhost:6333/health > /dev/null 2>&1; then
-    echo "  ✅ Qdrant is already running"
-elif command -v docker &> /dev/null; then
-    echo "  Starting Qdrant..."
-    docker pull qdrant/qdrant:1.16.0 -q 2>/dev/null || true
-    docker stop qdrant-finagent 2>/dev/null || true
-    docker rm qdrant-finagent 2>/dev/null || true
-    docker run -d --name qdrant-finagent -p 6333:6333 -p 6334:6334 qdrant/qdrant:1.16.0 2>/dev/null || true
-    sleep 2
-    if curl -s http://localhost:6333/health > /dev/null 2>&1; then
-        echo "  ✅ Qdrant started successfully"
-    else
-        echo "  ⚠️  Qdrant failed to start. Memory features will be limited."
-    fi
+    echo "  ✅ Qdrant server is running (HTTP mode)"
 else
-    echo "  ⚠️  Docker not found. Memory features will be limited."
+    echo "  ℹ️  Qdrant HTTP server not available"
+    echo "  📦 Using local file-based Qdrant (lightweight, no Docker needed)"
+    echo "  📁 Data stored in: ./qdrant/"
 fi
 
 # ==================================== 4. Check Environment Variables ====================================
