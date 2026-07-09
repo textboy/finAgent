@@ -90,7 +90,7 @@ function HomePage() {
       .then(res => res.json())
       .then(data => setTickerMapping(data))
       .catch(err => console.error('Failed to load ticker mapping:', err));
-  }, [serverHost, uvicornPort]);
+  }, [serverHost, apiUrl]);
 
   // Close suggestions when clicking outside
   useEffect(() => {
@@ -283,13 +283,13 @@ function HomePage() {
     } catch (err) {
       console.error('Failed to fetch history reports:', err);
     }
-  }, [serverHost, uvicornPort]);
+  }, [serverHost, apiUrl]);
 
   const viewReport = useCallback(() => {
     if (selectedReport) {
       window.open(`${apiUrl}/static/${selectedReport}`, '_blank');
     }
-  }, [selectedReport, serverHost, uvicornPort]);
+  }, [selectedReport, serverHost, apiUrl]);
 
   // Load history reports on mount
   useEffect(() => {
@@ -481,7 +481,7 @@ function HomePage() {
       isSubmittingRef.current = false;
       abortControllerRef.current = null;
     }
-  }, [loading, isAnalyzing, symbolInput, period, validateTicker, serverHost, uvicornPort]);
+  }, [loading, isAnalyzing, symbolInput, period, validateTicker, serverHost, apiUrl]);
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-200 font-sans">
@@ -743,7 +743,7 @@ function HomePage() {
                       )}
                       {result.reports?.trading && (
                         <a
-                          href={`http://${serverHost}:${uvicornPort}${result.report_path}`}
+                          href={`${apiUrl}${result.report_path}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 px-2 sm:px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-400 rounded-lg text-[10px] sm:text-xs font-medium transition-all duration-300 border border-slate-700 hover:border-cyan-500/30"
