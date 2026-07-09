@@ -39,6 +39,9 @@ fi
 echo ""
 echo "[3/4] Configuring nginx..."
 
+# Create directory if it doesn't exist
+mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
+
 cat > /etc/nginx/sites-available/finagent << EOF
 server {
     listen 80;
@@ -76,9 +79,10 @@ ln -sf /etc/nginx/sites-available/finagent /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default
 
 # Test nginx config
-nginx -t 2>/dev/null
-if [ $? -ne 0 ]; then
+echo "  Testing nginx config..."
+if ! nginx -t 2>&1; then
     echo "  ❌ Nginx config test failed"
+    echo "  Check: nginx -t"
     exit 1
 fi
 
