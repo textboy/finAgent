@@ -349,8 +349,13 @@ function HomePage() {
     setExpandedPanels({});
     setLog(`🚀 Starting analysis for ${symbols.join(', ')} (${period})...\n`);
 
-    // Create new AbortController for this request
+    // Create new AbortController for this request with 10-minute timeout
     abortControllerRef.current = new AbortController();
+    const fetchTimeout = setTimeout(() => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    }, 600000); // 10 minutes
 
     try {
       const response = await fetch(`http://${serverHost}:${uvicornPort}/analyze-batch`, {
@@ -434,7 +439,12 @@ function HomePage() {
       setLog(prev => prev + `\n✅ Analysis complete for ${data.results.length} symbol(s).\n`);
     } catch (err) {
       if (err.name === 'AbortError') {
-        setLog(prev => prev + `\n⏹️ Analysis cancelled.\n`);
+        // Check if it was user-initiated or timeout
+        if (abortControllerRef.current?.signal?.aborted) {
+          setLog(prev => prev + `\n⏹️ Analysis cancelled by user.\n`);
+        } else {
+          setLog(prev => prev + `\n⏱️ Request timed out (10 min limit). The server may still be processing.\n`);
+        }
       } else if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
         setLog(prev => prev + `\n❌ Connection failed: Server may be down or crashed.\n`);
         setLog(prev => prev + `   URL: http://${serverHost}:${uvicornPort}/analyze-batch\n`);
@@ -448,6 +458,7 @@ function HomePage() {
         setLog(prev => prev + `   URL: http://${serverHost}:${uvicornPort}/analyze-batch\n`);
       }
     } finally {
+      clearTimeout(fetchTimeout);
       setLoading(false);
       setIsAnalyzing(false);
       isSubmittingRef.current = false;
