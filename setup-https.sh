@@ -111,23 +111,61 @@ fi
 systemctl reload nginx
 echo "  ✅ Nginx configured"
 
-# Get SSL certificate
+# Get SSL certificate using standalone mode (more reliable)
 echo ""
 echo "[4/4] Obtaining SSL certificate..."
 
+# Stop nginx temporarily for standalone mode
+systemctl stop nginx 2>/dev/null || true
+
 if [ -n "$EMAIL" ]; then
-    certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos --email "$EMAIL"
+    certbot certonly --standalone -d "$DOMAIN" --non-interactive --agree-tos --email "$EMAIL"
 else
-    certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos --register-unsafely-without-email
+    certbot certonly --standalone -d "$DOMAIN" --non-interactive --agree-tos --register-unsafely-without-email
 fi
 
-if [ $? -eq 0 ]; then
+CERTBOT_EXIT=$?
+
+# Restart nginx
+systemctl start nginx 2>/dev/null || true
+
+if [ $CERTBOT_EXIT -eq 0 ]; then
     echo "  ✅ SSL certificate obtained"
-    # Remove backup
     rm -f /etc/nginx/sites-available/finagent.bak
+
+    # Configure nginx with SSL
+    cat > /etc/nginx/sites-available/finagent << EOF
+server {
+    listen 80;
+    server_name $DOMAIN;
+    return 301 https://\$host\$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name $DOMAIN;
+
+    ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_read_timeout 600s;
+        proxy_send_timeout 600s;
+    }
+}
+EOF
+    systemctl reload nginx
+    echo "  ✅ Nginx configured with SSL"
 else
-    echo "  ⚠️  SSL certificate failed. Try: certbot --nginx -d $DOMAIN"
-    # Restore backup if exists
+    echo "  ⚠️  SSL certificate failed. Try: certbot certonly --standalone -d $DOMAIN"
     [ -f /etc/nginx/sites-available/finagent.bak ] && mv /etc/nginx/sites-available/finagent.bak /etc/nginx/sites-available/finagent
     systemctl reload nginx
 fi
