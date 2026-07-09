@@ -123,17 +123,15 @@ if [ -f "$SCRIPT_DIR/config/.env" ]; then
     set +a
 fi
 
-if [ -n "$ZENMUX_API_KEY" ]; then
+if [ -n "$FINAGENT_ZENMUX_API_KEY" ]; then
+    export ZENMUX_API_KEY="$FINAGENT_ZENMUX_API_KEY"
+    echo "  ✅ ZENMUX_API_KEY set from FINAGENT_ZENMUX_API_KEY"
+elif [ -n "$ZENMUX_API_KEY" ]; then
     echo "  ✅ ZENMUX_API_KEY is set"
 else
-    if [ -n "$FINAGENT_ZENMUX_API_KEY" ]; then
-        export ZENMUX_API_KEY="$FINAGENT_ZENMUX_API_KEY"
-        echo "  ✅ ZENMUX_API_KEY set from FINAGENT_ZENMUX_API_KEY"
-    else
-        echo "  ❌ ZENMUX_API_KEY is not set"
-        echo "  Set it with: export ZENMUX_API_KEY=your-key"
-        exit 1
-    fi
+    echo "  ❌ ZENMUX_API_KEY is not set"
+    echo "  Set it with: export FINAGENT_ZENMUX_API_KEY=your-key"
+    exit 1
 fi
 
 if [ -n "$AGNES_API_KEY" ]; then
@@ -178,18 +176,39 @@ echo "Stopping existing server..."
 if systemctl is-active --quiet finagent 2>/dev/null; then
     echo "  Stopping systemd service..."
     systemctl stop finagent 2>/dev/null || true
+    systemctl disable finagent 2>/dev/null || true
 fi
 
-# Kill any process on port 8000
+# Kill ALL gunicorn processes (not just finagent-specific)
+if pgrep -f gunicorn > /dev/null 2>&1; then
+    echo "  Killing all gunicorn processes..."
+    pkill -9 -f gunicorn 2>/dev/null || true
+    sleep 1
+fi
+
+# Kill anything on port 8000 (multiple methods for reliability)
 if lsof -Pi :8000 -sTCP:LISTEN -t >/dev/null 2>&1 ; then
-    echo "  Killing process on port 8000..."
+    echo "  Killing processes on port 8000..."
     lsof -ti :8000 | xargs kill -9 2>/dev/null || true
-    sleep 2
+    sleep 1
 fi
 
-# Kill any gunicorn processes
-pkill -f "gunicorn.*finagent_api" 2>/dev/null || true
-sleep 1
+# Backup: use fuser if available
+if command -v fuser > /dev/null 2>&1; then
+    fuser -k 8000/tcp 2>/dev/null || true
+    sleep 1
+fi
+
+# Kill any python finagent processes
+pkill -9 -f "finagent_api" 2>/dev/null || true
+
+# Verify port is free
+sleep 2
+if lsof -Pi :8000 -sTCP:LISTEN -t >/dev/null 2>&1; then
+    echo "  ❌ Port 8000 still in use after cleanup!"
+    lsof -i :8000
+    exit 1
+fi
 
 echo "  ✅ Existing server stopped"
 
