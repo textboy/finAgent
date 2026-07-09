@@ -1,10 +1,54 @@
-import { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from 'react'
 import { Routes, Route, Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
 // Lazy load Introduction component
 const Introduction = lazy(() => import('./Introduction.jsx'))
+
+// Constants - defined outside component to avoid recreation on every render
+const PANEL_KEYS = [
+  { key: 'fundamentals', label: 'Fundamentals', icon: '📊', color: 'from-slate-700 to-slate-600' },
+  { key: 'sentiment', label: 'Sentiment & Social', icon: '💬', color: 'from-slate-700 to-slate-600' },
+  { key: 'technical', label: 'Technical', icon: '📈', color: 'from-slate-700 to-slate-600' },
+  { key: 'market', label: 'Market Overview', icon: '🌍', color: 'from-slate-700 to-slate-600' },
+  { key: 'globalEconomic', label: 'Global Economy', icon: '🌐', color: 'from-slate-700 to-slate-600' },
+  { key: 'fundHolding', label: 'Fund Holdings', icon: '🏦', color: 'from-slate-700 to-slate-600' },
+  { key: 'pastLessons', label: 'Past Lessons', icon: '📚', color: 'from-slate-700 to-slate-600' },
+  { key: 'research', label: 'Research Debate', icon: '🧠', color: 'from-slate-700 to-slate-600' },
+  { key: 'trading', label: 'Trading Plan', icon: '🎯', color: 'from-slate-600 to-cyan-600' },
+];
+
+const MARKDOWN_COMPONENTS = {
+  h1: ({children}) => <h1 className="text-xl font-bold mb-5 text-white border-b border-slate-700 pb-3">{children}</h1>,
+  h2: ({children}) => <h2 className="text-lg font-semibold mb-4 text-slate-200 mt-6 flex items-center gap-2"><div className="w-2 h-2 bg-purple-500 rounded-full"></div>{children}</h2>,
+  h3: ({children}) => <h3 className="text-base font-medium mb-3 text-slate-300 mt-4">{children}</h3>,
+  h4: ({children}) => <h4 className="text-sm font-semibold mb-2 text-slate-300 mt-3 uppercase tracking-wide">{children}</h4>,
+  p: ({children}) => <p className="mb-4 leading-relaxed text-slate-400 text-sm">{children}</p>,
+  ul: ({children}) => <ul className="list-disc ml-5 mb-4 space-y-2 text-slate-400 text-sm">{children}</ul>,
+  ol: ({children}) => <ol className="list-decimal ml-5 mb-4 space-y-2 text-slate-400 text-sm">{children}</ol>,
+  li: ({children}) => <li className="pl-1 leading-relaxed">{children}</li>,
+  strong: ({children}) => <strong className="font-semibold text-white">{children}</strong>,
+  em: ({children}) => <em className="italic text-slate-300">{children}</em>,
+  code: ({children}) => <code className="bg-slate-800/50 px-2 py-1 rounded-lg font-mono text-cyan-300 text-xs border border-slate-700">{children}</code>,
+  pre: ({children}) => <pre className="bg-slate-900/80 p-4 rounded-xl overflow-x-auto font-mono text-slate-300 text-xs my-4 border border-slate-700 shadow-inner">{children}</pre>,
+  blockquote: ({children}) => <blockquote className="border-l-4 border-purple-500 bg-gradient-to-r from-slate-900/50 to-transparent pl-4 py-3 italic my-4 text-slate-400 text-sm rounded-r-lg">{children}</blockquote>,
+  table: ({children}) => <div className="overflow-x-auto my-4 rounded-lg border border-slate-800"><table className="w-full border-collapse text-sm text-left">{children}</table></div>,
+  thead: ({children}) => <thead className="bg-slate-900/50">{children}</thead>,
+  tbody: ({children}) => <tbody className="divide-y divide-slate-800">{children}</tbody>,
+  th: ({children}) => <th className="border-b border-slate-700 p-3 font-semibold text-slate-300 bg-slate-900/80">{children}</th>,
+  td: ({children}) => <td className="border-b border-slate-800 p-3 text-slate-400">{children}</td>,
+  hr: () => <hr className="border-slate-800 my-6" />,
+  a: ({href, children}) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:text-cyan-300 underline underline-offset-2">{children}</a>,
+};
+
+// Pre-compute default dates (only once)
+const DEFAULT_START_DATE = (() => {
+  const d = new Date();
+  d.setDate(d.getDate() - 10);
+  return d.toISOString().split('T')[0];
+})();
+const DEFAULT_END_DATE = new Date().toISOString().split('T')[0];
 
 function HomePage() {
   // Use current browser host/port for API calls
@@ -28,14 +72,8 @@ function HomePage() {
   const justSelectedRef = useRef(false);
   const [selectedReport, setSelectedReport] = useState('');
   const [viewingHistory, setViewingHistory] = useState(false);
-  // Date range filter for history reports (default: latest 10 days)
-  const getDefaultStartDate = () => {
-    const d = new Date();
-    d.setDate(d.getDate() - 10);
-    return d.toISOString().split('T')[0];
-  };
-  const [startDate, setStartDate] = useState(getDefaultStartDate);
-  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+  const [startDate, setStartDate] = useState(DEFAULT_START_DATE);
+  const [endDate, setEndDate] = useState(DEFAULT_END_DATE);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const abortControllerRef = useRef(null);
   const isSubmittingRef = useRef(false);
@@ -101,17 +139,19 @@ function HomePage() {
     setHighlightedIndex(-1);
   }, [symbolInput, tickerMapping]);
 
-  const selectSuggestion = (ticker) => {
-    const parts = symbolInput.split(/[,;]/);
-    parts[parts.length - 1] = ticker;
+  const selectSuggestion = useCallback((ticker) => {
+    setSymbolInput(prev => {
+      const parts = prev.split(/[,;]/);
+      parts[parts.length - 1] = ticker;
+      return parts.join(',');
+    });
     justSelectedRef.current = true;
-    setSymbolInput(parts.join(','));
     setShowSuggestions(false);
     setHighlightedIndex(-1);
     inputRef.current?.focus();
-  };
+  }, []);
 
-  const handleKeyDown = (e) => {
+  const handleKeyDown = useCallback((e) => {
     // Handle Escape to close suggestions
     if (e.key === 'Escape') {
       setShowSuggestions(false);
@@ -171,36 +211,43 @@ function HomePage() {
           break;
       }
     }
-  };
+  }, [symbolInput, period, showSuggestions, suggestions, highlightedIndex, selectSuggestion]);
 
-  const togglePanel = (symbol, key) => {
+  const togglePanel = useCallback((symbol, key) => {
     const panelId = `${symbol}-${key}`;
     setExpandedPanels(prev => ({ ...prev, [panelId]: !prev[panelId] }));
-  };
+  }, []);
 
-  const isPanelExpanded = (symbol, key) => {
+  const isPanelExpanded = useCallback((symbol, key) => {
     // Trading panel (step 7) is expanded by default
     if (key === 'trading') return expandedPanels[`${symbol}-${key}`] !== false;
     return expandedPanels[`${symbol}-${key}`] === true;
-  };
+  }, [expandedPanels]);
 
   // Scroll to top on page load/refresh
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
-  // Show/hide scroll to top button based on scroll position
+  // Show/hide scroll to top button based on scroll position (throttled)
   useEffect(() => {
+    let ticking = false;
     const handleScroll = () => {
-      setShowScrollTop(window.scrollY > 300);
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setShowScrollTop(window.scrollY > 300);
+          ticking = false;
+        });
+        ticking = true;
+      }
     };
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const scrollToTop = () => {
+  const scrollToTop = useCallback(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, []);
 
   // Auto-scroll log (only when there's content)
   useEffect(() => {
@@ -209,12 +256,12 @@ function HomePage() {
     }
   }, [log]);
 
-  const validateTicker = (ticker) => {
+  const validateTicker = useCallback((ticker) => {
     if (!ticker || ticker.length === 0) return false;
     return tickerMapping.some(item => item.ticker === ticker.toUpperCase());
-  };
+  }, [tickerMapping]);
 
-  const handleStop = () => {
+  const handleStop = useCallback(() => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
@@ -222,9 +269,9 @@ function HomePage() {
     setIsAnalyzing(false);
     setLoading(false);
     setLog(prev => prev + `\n⏹️ Analysis stopped by user.\n`);
-  };
+  }, []);
 
-  const fetchHistoryReports = async () => {
+  const fetchHistoryReports = useCallback(async () => {
     try {
       const response = await fetch(`http://${serverHost}:${uvicornPort}/api/history-reports`);
       if (response.ok) {
@@ -234,13 +281,13 @@ function HomePage() {
     } catch (err) {
       console.error('Failed to fetch history reports:', err);
     }
-  };
+  }, [serverHost, uvicornPort]);
 
-  const viewReport = () => {
+  const viewReport = useCallback(() => {
     if (selectedReport) {
       window.open(`http://${serverHost}:${uvicornPort}/static/${selectedReport}`, '_blank');
     }
-  };
+  }, [selectedReport, serverHost, uvicornPort]);
 
   // Load history reports on mount
   useEffect(() => {
@@ -257,7 +304,7 @@ function HomePage() {
     });
   }, [historyReports, startDate, endDate]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     // Prevent duplicate submissions
     if (loading || isAnalyzing || isSubmittingRef.current) {
       return;
@@ -375,42 +422,7 @@ function HomePage() {
       isSubmittingRef.current = false;
       abortControllerRef.current = null;
     }
-  };
-
-  const panelKeys = [
-    { key: 'fundamentals', label: 'Fundamentals', icon: '📊', color: 'from-slate-700 to-slate-600' },
-    { key: 'sentiment', label: 'Sentiment & Social', icon: '💬', color: 'from-slate-700 to-slate-600' },
-    { key: 'technical', label: 'Technical', icon: '📈', color: 'from-slate-700 to-slate-600' },
-    { key: 'market', label: 'Market Overview', icon: '🌍', color: 'from-slate-700 to-slate-600' },
-    { key: 'globalEconomic', label: 'Global Economy', icon: '🌐', color: 'from-slate-700 to-slate-600' },
-    { key: 'fundHolding', label: 'Fund Holdings', icon: '🏦', color: 'from-slate-700 to-slate-600' },
-    { key: 'pastLessons', label: 'Past Lessons', icon: '📚', color: 'from-slate-700 to-slate-600' },
-    { key: 'research', label: 'Research Debate', icon: '🧠', color: 'from-slate-700 to-slate-600' },
-    { key: 'trading', label: 'Trading Plan', icon: '🎯', color: 'from-slate-600 to-cyan-600' },
-  ];
-
-  const markdownComponents = {
-    h1: ({children}) => <h1 className="text-xl font-bold mb-5 text-white border-b border-slate-700 pb-3">{children}</h1>,
-    h2: ({children}) => <h2 className="text-lg font-semibold mb-4 text-slate-200 mt-6 flex items-center gap-2"><div className="w-2 h-2 bg-purple-500 rounded-full"></div>{children}</h2>,
-    h3: ({children}) => <h3 className="text-base font-medium mb-3 text-slate-300 mt-4">{children}</h3>,
-    h4: ({children}) => <h4 className="text-sm font-semibold mb-2 text-slate-300 mt-3 uppercase tracking-wide">{children}</h4>,
-    p: ({children}) => <p className="mb-4 leading-relaxed text-slate-400 text-sm">{children}</p>,
-    ul: ({children}) => <ul className="list-disc ml-5 mb-4 space-y-2 text-slate-400 text-sm">{children}</ul>,
-    ol: ({children}) => <ol className="list-decimal ml-5 mb-4 space-y-2 text-slate-400 text-sm">{children}</ol>,
-    li: ({children}) => <li className="pl-1 leading-relaxed">{children}</li>,
-    strong: ({children}) => <strong className="font-semibold text-white">{children}</strong>,
-    em: ({children}) => <em className="italic text-slate-300">{children}</em>,
-    code: ({children}) => <code className="bg-slate-800/50 px-2 py-1 rounded-lg font-mono text-cyan-300 text-xs border border-slate-700">{children}</code>,
-    pre: ({children}) => <pre className="bg-slate-900/80 p-4 rounded-xl overflow-x-auto font-mono text-slate-300 text-xs my-4 border border-slate-700 shadow-inner">{children}</pre>,
-    blockquote: ({children}) => <blockquote className="border-l-4 border-purple-500 bg-gradient-to-r from-slate-900/50 to-transparent pl-4 py-3 italic my-4 text-slate-400 text-sm rounded-r-lg">{children}</blockquote>,
-    table: ({children}) => <div className="overflow-x-auto my-4 rounded-lg border border-slate-800"><table className="w-full border-collapse text-sm text-left">{children}</table></div>,
-    thead: ({children}) => <thead className="bg-slate-900/50">{children}</thead>,
-    tbody: ({children}) => <tbody className="divide-y divide-slate-800">{children}</tbody>,
-    th: ({children}) => <th className="border-b border-slate-700 p-3 font-semibold text-slate-300 bg-slate-900/80">{children}</th>,
-    td: ({children}) => <td className="border-b border-slate-800 p-3 text-slate-400">{children}</td>,
-    hr: () => <hr className="border-slate-800 my-6" />,
-    a: ({href, children}) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:text-cyan-300 underline underline-offset-2">{children}</a>,
-  };
+  }, [loading, isAnalyzing, symbolInput, period, validateTicker, serverHost, uvicornPort]);
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-200 font-sans">
@@ -688,7 +700,7 @@ function HomePage() {
                 {/* Panels for this symbol */}
                 {result.reports && (
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 pl-0 sm:pl-4">
-                    {panelKeys.map(({ key, label, icon, color }, index) => {
+                    {PANEL_KEYS.map(({ key, label, icon, color }, index) => {
                       const panelId = `${result.symbol}-${key}`;
                       const isExpanded = isPanelExpanded(result.symbol, key);
                       return (
@@ -707,7 +719,7 @@ function HomePage() {
                             </div>
                             <div className="flex items-center gap-1">
                               <div className="text-white/80 text-[9px] font-mono bg-black/20 px-1 py-0.5 rounded">
-                                {index + 1}/{panelKeys.length}
+                                {index + 1}/{PANEL_KEYS.length}
                               </div>
                               <svg
                                 xmlns="http://www.w3.org/2000/svg"
@@ -730,7 +742,7 @@ function HomePage() {
                               {result.reports[key] ? (
                                 <ReactMarkdown
                                   remarkPlugins={[remarkGfm]}
-                                  components={markdownComponents}
+                                  components={MARKDOWN_COMPONENTS}
                                 >
                                   {result.reports[key]}
                                 </ReactMarkdown>
