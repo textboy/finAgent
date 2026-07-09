@@ -9,8 +9,8 @@ MODEL_PRICING = {
     "minimax/minimax-m3": (0.20, 0.60),
     "z-ai/glm-5.2": (0.15, 0.45),
     "x-ai/grok-beta": (0.10, 0.30),
-    # Agnes AI models
-    "agnes-2.0-flash": (0.05, 0.15),
+    # Agnes AI models (free)
+    "agnes-2.0-flash": (0.0, 0.0),
     # Default fallback
     "default": (0.10, 0.30),
 }
