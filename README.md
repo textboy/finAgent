@@ -71,7 +71,7 @@ git clone https://github.com/textboy/finAgent.git
 cd finAgent
 
 # Run local server (handles everything)
-./start_server_local.sh
+./start_server.sh local
 ```
 
 ### Quick Start (Windows)
@@ -149,10 +149,10 @@ LESSON_URL=https://apihub.agnes-ai.com/v1
 #### Start Server
 ```shell
 # Local development
-./start_server_local.sh
+./start_server.sh local
 
 # Production (remote server)
-./start_server.sh
+./start_server.sh production
 ```
 
 - **Backend**: http://localhost:8000 (local) or http://5ngc.s.time4vps.cloud:8000 (production)
@@ -250,8 +250,7 @@ finAgent/
 ├── finagent_api.py             # FastAPI backend
 ├── finagent_cli.py             # CLI interface
 ├── finagent_cli.sh             # Shell wrapper
-├── start_server.sh             # Production startup
-├── start_server_local.sh       # Local development startup
+├── start_server.sh             # Server startup (local | production)
 └── requirements.txt
 ```
 
