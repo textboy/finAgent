@@ -17,6 +17,7 @@ import logging
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from .api_key_selector import get_api_key_for_url
+from .cost_tracker import cost_tracker
 
 load_dotenv(os.path.join('config', '.env'))
 
@@ -104,6 +105,7 @@ def get_llm_client(model_env_var: str, url_env_var: str, step_name: str, tempera
 def invoke_llm_with_retry(llm, messages, step_name: str, max_retries: int = MAX_RETRIES) -> str:
     """
     Invoke LLM with retry logic for connection errors.
+    Tracks token usage for cost calculation.
 
     Args:
         llm: ChatOpenAI instance
@@ -117,6 +119,32 @@ def invoke_llm_with_retry(llm, messages, step_name: str, max_retries: int = MAX_
     for attempt in range(max_retries + 1):
         try:
             response = llm.invoke(messages)
+
+            # Track token usage from response metadata
+            try:
+                usage = getattr(response, 'usage_metadata', None)
+                if usage:
+                    model = getattr(llm, 'model', 'unknown')
+                    cost_tracker.track(
+                        model=model,
+                        input_tokens=usage.get('input_tokens', 0),
+                        output_tokens=usage.get('output_tokens', 0),
+                    )
+                else:
+                    # Fallback: check response_metadata for usage info
+                    meta = getattr(response, 'response_metadata', {})
+                    if 'token_usage' in meta:
+                        tu = meta['token_usage']
+                        model = getattr(llm, 'model', 'unknown')
+                        cost_tracker.track(
+                            model=model,
+                            input_tokens=tu.get('prompt_tokens', 0),
+                            output_tokens=tu.get('completion_tokens', 0),
+                        )
+            except Exception as tracking_error:
+                # Don't fail the request if tracking fails
+                logger.debug(f"Cost tracking failed for {step_name}: {tracking_error}")
+
             return response.content
         except Exception as e:
             error_msg = str(e).lower()
@@ -134,4 +162,5 @@ def clear_llm_cache():
     """Clear the LLM client cache."""
     global _llm_cache
     _llm_cache.clear()
-    print("DEBUG: LLM cache cleared")
+    cost_tracker.reset()
+    print("DEBUG: LLM cache and cost tracker cleared")
