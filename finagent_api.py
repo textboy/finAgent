@@ -5,6 +5,8 @@ import json
 import time
 import logging
 import markdown
+import threading
+import uuid
 from datetime import datetime
 from typing import List
 from fastapi import FastAPI, HTTPException
@@ -14,6 +16,10 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 from src.workflow_parallel import run_single_ticket_pipeline, run_batch_pipeline
 import uvicorn
+
+# Background job storage
+_jobs = {}  # job_id -> {"status": "running"|"completed"|"failed", "result": ..., "error": ...}
+_jobs_lock = threading.Lock()
 
 # Setup logging
 os.makedirs('logs', exist_ok=True)
@@ -529,13 +535,48 @@ async def analyze_batch(req: AnalyzeRequest):
     if not req.symbols:
         raise HTTPException(status_code=400, detail="At least one symbol is required")
 
-    # Run parallel pipeline
-    pipeline_results = run_batch_pipeline(req.symbols, req.period)
+    # Create job and run in background
+    job_id = str(uuid.uuid4())
+    with _jobs_lock:
+        _jobs[job_id] = {"status": "running", "result": None, "error": None}
 
-    # Format results
-    results = [format_pipeline_result(pr) for pr in pipeline_results]
+    def _run_job():
+        try:
+            pipeline_results = run_batch_pipeline(req.symbols, req.period)
+            results = [format_pipeline_result(pr) for pr in pipeline_results]
+            with _jobs_lock:
+                _jobs[job_id]["status"] = "completed"
+                _jobs[job_id]["result"] = results
+        except Exception as e:
+            with _jobs_lock:
+                _jobs[job_id]["status"] = "failed"
+                _jobs[job_id]["error"] = str(e)
 
-    return {"results": results}
+    thread = threading.Thread(target=_run_job, daemon=True)
+    thread.start()
+
+    return {"job_id": job_id, "status": "running"}
+
+
+@app.get("/analyze-status/{job_id}")
+async def analyze_status(job_id: str):
+    """Poll for analysis job status."""
+    with _jobs_lock:
+        job = _jobs.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    if job["status"] == "completed":
+        # Clean up old job
+        with _jobs_lock:
+            _jobs.pop(job_id, None)
+        return {"status": "completed", "results": job["result"]}
+    elif job["status"] == "failed":
+        with _jobs_lock:
+            _jobs.pop(job_id, None)
+        return {"status": "failed", "error": job["error"]}
+    else:
+        return {"status": "running"}
 
 
 @app.post("/analyze")

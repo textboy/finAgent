@@ -358,104 +358,116 @@ function HomePage() {
     }, 600000); // 10 minutes
 
     try {
-      const response = await fetch(`http://${serverHost}:${uvicornPort}/analyze-batch`, {
+      // Start analysis job (returns immediately with job_id)
+      const startResponse = await fetch(`http://${serverHost}:${uvicornPort}/analyze-batch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ symbols, period }),
-        signal: abortControllerRef.current.signal,
       });
 
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+      if (!startResponse.ok) {
+        throw new Error(`API error: ${startResponse.status}`);
       }
 
-      const data = await response.json();
-      setMultiResults(data.results);
-      // Use timing from first result for display
-      if (data.results.length > 0 && data.results[0].timing) {
-        setTiming(data.results[0].timing);
-      }
+      const { job_id } = await startResponse.json();
+      setLog(prev => prev + `\n⏳ Job started. Polling for results...\n`);
 
-      // Log step completion for all results
-      let stepLog = '';
-      data.results.forEach(result => {
-        if (result.step_logs && result.step_logs.length > 0) {
-          result.step_logs.forEach(log => {
-            stepLog += `${log}\n`;
-          });
-        }
-      });
+      // Poll for results every 5 seconds
+      const pollInterval = 5000;
+      const maxPolls = 120; // 10 minutes max
+      let polls = 0;
 
-      if (stepLog) {
-        setLog(prev => prev + `\n📊 Step Progress:\n${stepLog}`);
-      }
+      while (polls < maxPolls) {
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+        polls++;
 
-      // Log errors from all results
-      let errorLog = '';
-      data.results.forEach(result => {
-        if (result.errors && result.errors.length > 0) {
-          errorLog += `\n📋 ${result.symbol}:\n`;
-          result.errors.forEach(err => {
-            errorLog += `  ${err}\n`;
-          });
-        }
-      });
-
-      if (errorLog) {
-        setLog(prev => prev + `\n⚠️ Pipeline Warnings:${errorLog}`);
-      }
-
-      // Log cost summary for all results
-      let totalCost = 0;
-      let totalInputTokens = 0;
-      let totalOutputTokens = 0;
-      let costByModel = {};
-
-      data.results.forEach(result => {
-        if (result.cost_summary) {
-          totalCost += result.cost_summary.total_cost || 0;
-          totalInputTokens += result.cost_summary.total_input_tokens || 0;
-          totalOutputTokens += result.cost_summary.total_output_tokens || 0;
-          if (result.cost_summary.by_model) {
-            Object.entries(result.cost_summary.by_model).forEach(([model, info]) => {
-              if (!costByModel[model]) costByModel[model] = { input: 0, output: 0, cost: 0 };
-              costByModel[model].input += info.input_tokens || 0;
-              costByModel[model].output += info.output_tokens || 0;
-              costByModel[model].cost += info.cost || 0;
-            });
-          }
-        }
-      });
-
-      if (totalCost > 0 || totalInputTokens > 0) {
-        let costLog = `\n💰 LLM Cost Summary:\n`;
-        costLog += `   Total: HK$${totalCost.toFixed(1)} (${totalInputTokens.toLocaleString()} input, ${totalOutputTokens.toLocaleString()} output tokens)\n`;
-        Object.entries(costByModel).forEach(([model, info]) => {
-          costLog += `   ${model}: HK$${info.cost.toFixed(1)} (${info.input.toLocaleString()} in / ${info.output.toLocaleString()} out)\n`;
-        });
-        setLog(prev => prev + costLog);
-      }
-
-      setLog(prev => prev + `\n✅ Analysis complete for ${data.results.length} symbol(s).\n`);
-    } catch (err) {
-      if (err.name === 'AbortError') {
-        // Check if it was user-initiated or timeout
+        // Check if cancelled
         if (abortControllerRef.current?.signal?.aborted) {
           setLog(prev => prev + `\n⏹️ Analysis cancelled by user.\n`);
-        } else {
-          setLog(prev => prev + `\n⏱️ Request timed out (10 min limit). The server may still be processing.\n`);
+          return;
         }
+
+        try {
+          const statusResponse = await fetch(`http://${serverHost}:${uvicornPort}/analyze-status/${job_id}`);
+          if (!statusResponse.ok) continue;
+
+          const statusData = await statusResponse.json();
+
+          if (statusData.status === 'completed') {
+            // Process results
+            const data = { results: statusData.results };
+            setMultiResults(data.results);
+            if (data.results.length > 0 && data.results[0].timing) {
+              setTiming(data.results[0].timing);
+            }
+
+            // Log step completion
+            let stepLog = '';
+            data.results.forEach(result => {
+              if (result.step_logs && result.step_logs.length > 0) {
+                result.step_logs.forEach(log => { stepLog += `${log}\n`; });
+              }
+            });
+            if (stepLog) setLog(prev => prev + `\n📊 Step Progress:\n${stepLog}`);
+
+            // Log errors
+            let errorLog = '';
+            data.results.forEach(result => {
+              if (result.errors && result.errors.length > 0) {
+                errorLog += `\n📋 ${result.symbol}:\n`;
+                result.errors.forEach(err => { errorLog += `  ${err}\n`; });
+              }
+            });
+            if (errorLog) setLog(prev => prev + `\n⚠️ Pipeline Warnings:${errorLog}`);
+
+            // Log cost summary
+            let totalCost = 0, totalInputTokens = 0, totalOutputTokens = 0, costByModel = {};
+            data.results.forEach(result => {
+              if (result.cost_summary) {
+                totalCost += result.cost_summary.total_cost || 0;
+                totalInputTokens += result.cost_summary.total_input_tokens || 0;
+                totalOutputTokens += result.cost_summary.total_output_tokens || 0;
+                if (result.cost_summary.by_model) {
+                  Object.entries(result.cost_summary.by_model).forEach(([model, info]) => {
+                    if (!costByModel[model]) costByModel[model] = { input: 0, output: 0, cost: 0 };
+                    costByModel[model].input += info.input_tokens || 0;
+                    costByModel[model].output += info.output_tokens || 0;
+                    costByModel[model].cost += info.cost || 0;
+                  });
+                }
+              }
+            });
+            if (totalCost > 0 || totalInputTokens > 0) {
+              let costLog = `\n💰 LLM Cost Summary:\n`;
+              costLog += `   Total: HK$${totalCost.toFixed(1)} (${totalInputTokens.toLocaleString()} input, ${totalOutputTokens.toLocaleString()} output tokens)\n`;
+              Object.entries(costByModel).forEach(([model, info]) => {
+                costLog += `   ${model}: HK$${info.cost.toFixed(1)} (${info.input.toLocaleString()} in / ${info.output.toLocaleString()} out)\n`;
+              });
+              setLog(prev => prev + costLog);
+            }
+
+            setLog(prev => prev + `\n✅ Analysis complete for ${data.results.length} symbol(s).\n`);
+            return;
+          } else if (statusData.status === 'failed') {
+            setLog(prev => prev + `\n❌ Analysis failed: ${statusData.error}\n`);
+            return;
+          }
+          // else status is "running", continue polling
+        } catch (pollErr) {
+          // Poll request failed, continue trying
+          console.error('Poll error:', pollErr);
+        }
+      }
+
+      setLog(prev => prev + `\n⏱️ Polling timed out. The server may still be processing.\n`);
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        setLog(prev => prev + `\n⏹️ Analysis cancelled by user.\n`);
       } else if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
         setLog(prev => prev + `\n❌ Connection failed: Server may be down or crashed.\n`);
         setLog(prev => prev + `   URL: http://${serverHost}:${uvicornPort}/analyze-batch\n`);
-        setLog(prev => prev + `   Possible causes:\n`);
-        setLog(prev => prev + `   - Server process crashed (check terminal)\n`);
-        setLog(prev => prev + `   - Too many parallel requests\n`);
-        setLog(prev => prev + `   - Memory exhaustion\n`);
-        setLog(prev => prev + `   Try: Restart server with ./start_server_local.sh\n`);
       } else {
         setLog(prev => prev + `\n❌ Error: ${err.message}\n`);
-        setLog(prev => prev + `   URL: http://${serverHost}:${uvicornPort}/analyze-batch\n`);
       }
     } finally {
       clearTimeout(fetchTimeout);
