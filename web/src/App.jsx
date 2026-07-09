@@ -822,7 +822,7 @@ function HomePage() {
             </button>
           </div>
           {/* Date Range Filter */}
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex flex-wrap items-center gap-3 mb-4">
             <div className="flex items-center gap-2">
               <label className="text-sm text-slate-400 whitespace-nowrap">From</label>
               <input
@@ -841,7 +841,7 @@ function HomePage() {
                 className="input-field text-sm px-3 py-1.5"
               />
             </div>
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-slate-500 whitespace-nowrap">
               {filteredReports.length} report{filteredReports.length !== 1 ? 's' : ''}
             </span>
           </div>
