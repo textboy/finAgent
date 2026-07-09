@@ -424,9 +424,9 @@ function HomePage() {
 
       if (totalCost > 0 || totalInputTokens > 0) {
         let costLog = `\n💰 LLM Cost Summary:\n`;
-        costLog += `   Total: $${totalCost.toFixed(4)} (${totalInputTokens.toLocaleString()} input, ${totalOutputTokens.toLocaleString()} output tokens)\n`;
+        costLog += `   Total: HK$${totalCost.toFixed(1)} (${totalInputTokens.toLocaleString()} input, ${totalOutputTokens.toLocaleString()} output tokens)\n`;
         Object.entries(costByModel).forEach(([model, info]) => {
-          costLog += `   ${model}: $${info.cost.toFixed(4)} (${info.input.toLocaleString()} in / ${info.output.toLocaleString()} out)\n`;
+          costLog += `   ${model}: HK$${info.cost.toFixed(1)} (${info.input.toLocaleString()} in / ${info.output.toLocaleString()} out)\n`;
         });
         setLog(prev => prev + costLog);
       }
