@@ -229,9 +229,18 @@ if [ "$RUN_MODE" = "production" ]; then
     PRODUCTION_HOST=$(grep -E "^PRODUCTION_HOST=" "$SCRIPT_DIR/config/.env" 2>/dev/null | cut -d'=' -f2)
     PRODUCTION_HOST="${PRODUCTION_HOST:-5ngc.s.time4vps.cloud}"
 
-    echo ""
-    echo "  🌐 Access URL: http://${PRODUCTION_HOST}:8000"
-    echo "  📊 API Docs: http://${PRODUCTION_HOST}:8000/docs"
+    # Detect if HTTPS is configured (nginx + certbot)
+    if certbot certificates 2>/dev/null | grep -q "$PRODUCTION_HOST"; then
+        echo ""
+        echo "  🌐 Access URL: https://${PRODUCTION_HOST}"
+        echo "  📊 API Docs: https://${PRODUCTION_HOST}/docs"
+        echo ""
+        echo "  ℹ️  Gunicorn binds to 127.0.0.1:8000 (nginx proxies HTTPS → HTTP)"
+    else
+        echo ""
+        echo "  🌐 Access URL: http://${PRODUCTION_HOST}:8000"
+        echo "  📊 API Docs: http://${PRODUCTION_HOST}:8000/docs"
+    fi
     echo ""
 
     # Check if we should run as systemd service or directly
