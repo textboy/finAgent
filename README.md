@@ -155,7 +155,7 @@ LESSON_URL=https://apihub.agnes-ai.com/v1
 ./start_server.sh production
 ```
 
-- **Backend**: http://localhost:8000 (local) or http://5ngc.s.time4vps.cloud:8000 (production)
+- **Backend**: http://localhost:8000 (local) or https://5ngc.s.time4vps.cloud (production with HTTPS)
 - **Frontend**: Automatically built and served by backend
 
 ### CLI

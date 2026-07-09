@@ -418,4 +418,4 @@ uvicorn[standard]==0.35.0
 gunicorn==24.1.1
 
 # Appendix: testing
-curl -X POST http://localhost:8000/analyze -H "Content-Type: application/json" -d '{"model": "x-ai/grok-4.1-fast", "symbol": "AAPL", "period": "medium"}'
+curl -X POST http://localhost:8000/analyze -H "Content-Type: application/json" -d '{"symbol": "AAPL", "period": "medium"}'
