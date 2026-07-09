@@ -48,15 +48,8 @@ except (ValueError, TypeError) as e:
 
 app = FastAPI(title="FinAgent API")
 
-# CORS configuration
-cors_origins = ["*"] if RUN_MODE == "local" else [
-    f"http://{PRODUCTION_HOST}",
-    f"https://{PRODUCTION_HOST}",
-    f"http://{PRODUCTION_HOST}:{UVICORN_PORT}",
-    f"https://{PRODUCTION_HOST}:{UVICORN_PORT}",
-    "http://localhost:3001",
-    "http://localhost:5173",
-]
+# CORS configuration - allow all origins (public API, no auth)
+cors_origins = ["*"]
 
 app.add_middleware(
     CORSMiddleware,
