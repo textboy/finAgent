@@ -42,12 +42,12 @@ echo "[3/4] Configuring nginx..."
 # Create directory if it doesn't exist
 mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
 
-# Remove old finagent configs
-rm -f /etc/nginx/sites-available/finagent
-rm -f /etc/nginx/sites-enabled/finagent
-
-# Step 1: Configure HTTP only (certbot will add SSL later)
-cat > /etc/nginx/sites-available/finagent << EOF
+# Check if finagent config already exists
+if [ -f /etc/nginx/sites-available/finagent ]; then
+    echo "  ✅ Existing nginx config found, will add SSL with certbot"
+else
+    # Create new HTTP-only config (certbot will add SSL)
+    cat > /etc/nginx/sites-available/finagent << EOF
 server {
     listen 80;
     server_name $DOMAIN;
@@ -58,28 +58,53 @@ server {
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
-
-        # WebSocket support (if needed)
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
-
-        # Timeout settings
         proxy_read_timeout 600s;
         proxy_send_timeout 600s;
     }
 }
 EOF
+    echo "  ✅ New nginx config created"
+fi
 
 # Enable site
 ln -sf /etc/nginx/sites-available/finagent /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default
 
+# Temporarily use HTTP-only config for certbot
+if grep -q "listen 443 ssl" /etc/nginx/sites-available/finagent; then
+    echo "  Temporarily switching to HTTP-only for certificate setup..."
+    cp /etc/nginx/sites-available/finagent /etc/nginx/sites-available/finagent.bak
+    # Create HTTP-only version for certbot
+    cat > /etc/nginx/sites-available/finagent << EOF
+server {
+    listen 80;
+    server_name $DOMAIN;
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_read_timeout 600s;
+        proxy_send_timeout 600s;
+    }
+}
+EOF
+fi
+
 # Test nginx config
 echo "  Testing nginx config..."
 if ! nginx -t 2>&1; then
     echo "  ❌ Nginx config test failed"
-    echo "  Check: nginx -t"
+    # Restore backup if exists
+    [ -f /etc/nginx/sites-available/finagent.bak ] && mv /etc/nginx/sites-available/finagent.bak /etc/nginx/sites-available/finagent
     exit 1
 fi
 
@@ -98,8 +123,13 @@ fi
 
 if [ $? -eq 0 ]; then
     echo "  ✅ SSL certificate obtained"
+    # Remove backup
+    rm -f /etc/nginx/sites-available/finagent.bak
 else
     echo "  ⚠️  SSL certificate failed. Try: certbot --nginx -d $DOMAIN"
+    # Restore backup if exists
+    [ -f /etc/nginx/sites-available/finagent.bak ] && mv /etc/nginx/sites-available/finagent.bak /etc/nginx/sites-available/finagent
+    systemctl reload nginx
 fi
 
 # Setup auto-renewal
