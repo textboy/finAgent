@@ -15,19 +15,22 @@ MODEL_PRICING = {
     "default": (0.10, 0.30),
 }
 
+# Exchange rate USD -> HKD
+USD_TO_HKD = 7.8
+
 DEFAULT_PRICING = MODEL_PRICING["default"]
 
 
 def get_model_pricing(model_name: str) -> tuple:
-    """Get pricing for a model. Returns (input_price_per_1m, output_price_per_1m)."""
+    """Get pricing for a model in HKD. Returns (input_price_per_1m, output_price_per_1m)."""
     if not model_name:
-        return DEFAULT_PRICING
+        return (DEFAULT_PRICING[0] * USD_TO_HKD, DEFAULT_PRICING[1] * USD_TO_HKD)
     # Try exact match first, then prefix match
     model_lower = model_name.lower()
     for key, pricing in MODEL_PRICING.items():
         if key in model_lower:
-            return pricing
-    return DEFAULT_PRICING
+            return (pricing[0] * USD_TO_HKD, pricing[1] * USD_TO_HKD)
+    return (DEFAULT_PRICING[0] * USD_TO_HKD, DEFAULT_PRICING[1] * USD_TO_HKD)
 
 
 class CostTracker:
@@ -60,8 +63,8 @@ class CostTracker:
         return round(sum(e["total_cost"] for e in self.entries), 6)
 
     def get_summary(self) -> dict:
-        """Return cost summary for API response."""
-        total_cost = self.get_total_cost()
+        """Return cost summary for API response (costs in HKD, rounded to 1 decimal)."""
+        total_cost = round(self.get_total_cost(), 1)
         # Aggregate by model
         by_model = {}
         for e in self.entries:
@@ -70,7 +73,7 @@ class CostTracker:
                 by_model[m] = {"input_tokens": 0, "output_tokens": 0, "cost": 0.0}
             by_model[m]["input_tokens"] += e["input_tokens"]
             by_model[m]["output_tokens"] += e["output_tokens"]
-            by_model[m]["cost"] = round(by_model[m]["cost"] + e["total_cost"], 6)
+            by_model[m]["cost"] = round(by_model[m]["cost"] + e["total_cost"], 1)
 
         return {
             "total_cost": total_cost,
