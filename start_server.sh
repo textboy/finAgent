@@ -187,6 +187,13 @@ if pgrep -f gunicorn > /dev/null 2>&1; then
     sleep 1
 fi
 
+# Kill ALL uvicorn processes (leftover from direct python runs)
+if pgrep -f uvicorn > /dev/null 2>&1; then
+    echo "  Killing all uvicorn processes..."
+    pkill -9 -f uvicorn 2>/dev/null || true
+    sleep 1
+fi
+
 # Kill anything on port 8000 (multiple methods for reliability)
 if lsof -Pi :8000 -sTCP:LISTEN -t >/dev/null 2>&1 ; then
     echo "  Killing processes on port 8000..."
