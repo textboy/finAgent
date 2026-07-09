@@ -51,9 +51,11 @@ const DEFAULT_START_DATE = (() => {
 const DEFAULT_END_DATE = new Date().toISOString().split('T')[0];
 
 function HomePage() {
-  // Use current browser host/port for API calls
+  // Use current browser protocol/host/port for API calls
+  const protocol = window.location.protocol; // http: or https:
   const serverHost = window.location.hostname;
-  const uvicornPort = window.location.port || '8000';
+  const serverPort = window.location.port || (protocol === 'https:' ? '443' : '8000');
+  const apiUrl = `${protocol}//${serverHost}${serverPort !== '443' && serverPort !== '80' ? ':' + serverPort : ''}`;
 
   const [symbolInput, setSymbolInput] = useState('');
   const [period, setPeriod] = useState('medium');
@@ -84,7 +86,7 @@ function HomePage() {
 
   // Load ticker mapping on mount
   useEffect(() => {
-    fetch(`http://${serverHost}:${uvicornPort}/public/ticket_mapping.json`)
+    fetch(`${apiUrl}/public/ticket_mapping.json`)
       .then(res => res.json())
       .then(data => setTickerMapping(data))
       .catch(err => console.error('Failed to load ticker mapping:', err));
@@ -273,7 +275,7 @@ function HomePage() {
 
   const fetchHistoryReports = useCallback(async () => {
     try {
-      const response = await fetch(`http://${serverHost}:${uvicornPort}/api/history-reports`);
+      const response = await fetch(`${apiUrl}/api/history-reports`);
       if (response.ok) {
         const data = await response.json();
         setHistoryReports(data.reports || []);
@@ -285,7 +287,7 @@ function HomePage() {
 
   const viewReport = useCallback(() => {
     if (selectedReport) {
-      window.open(`http://${serverHost}:${uvicornPort}/static/${selectedReport}`, '_blank');
+      window.open(`${apiUrl}/static/${selectedReport}`, '_blank');
     }
   }, [selectedReport, serverHost, uvicornPort]);
 
@@ -359,7 +361,7 @@ function HomePage() {
 
     try {
       // Start analysis job (returns immediately with job_id)
-      const startResponse = await fetch(`http://${serverHost}:${uvicornPort}/analyze-batch`, {
+      const startResponse = await fetch(`${apiUrl}/analyze-batch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ symbols, period }),
@@ -389,7 +391,7 @@ function HomePage() {
 
         try {
           // Add cache-busting timestamp to prevent mobile browser caching
-          const statusResponse = await fetch(`http://${serverHost}:${uvicornPort}/analyze-status/${job_id}?t=${Date.now()}`, {
+          const statusResponse = await fetch(`${apiUrl}/analyze-status/${job_id}?t=${Date.now()}`, {
             cache: 'no-store',
           });
           if (!statusResponse.ok) continue;
@@ -468,7 +470,7 @@ function HomePage() {
         setLog(prev => prev + `\n⏹️ Analysis cancelled by user.\n`);
       } else if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
         setLog(prev => prev + `\n❌ Connection failed: Server may be down or crashed.\n`);
-        setLog(prev => prev + `   URL: http://${serverHost}:${uvicornPort}/analyze-batch\n`);
+        setLog(prev => prev + `   URL: ${apiUrl}/analyze-batch\n`);
       } else {
         setLog(prev => prev + `\n❌ Error: ${err.message}\n`);
       }
