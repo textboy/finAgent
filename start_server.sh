@@ -106,22 +106,24 @@ fi
 echo ""
 echo "[4/5] Checking environment variables..."
 
-# Load from .env file if exists
+# Load from .env file if exists (non-exported, to avoid overriding script exports)
 if [ -f "$SCRIPT_DIR/config/.env" ]; then
-    set -a
+    set +a  # Temporarily disable auto-export
     source "$SCRIPT_DIR/config/.env" 2>/dev/null || true
-    set +a
+    set -a
 fi
 
 # Export RUN_MODE so finagent_api.py reads it
 export RUN_MODE="$RUN_MODE"
 
-# Set SERVER_HOST based on mode
+# Set SERVER_HOST based on mode (overrides any .env value)
 if [ "$RUN_MODE" = "production" ]; then
     export SERVER_HOST="0.0.0.0"
 else
     export SERVER_HOST="localhost"
 fi
+
+echo "  ℹ️  RUN_MODE=$RUN_MODE, SERVER_HOST=$SERVER_HOST"
 
 if [ -n "$FINAGENT_ZENMUX_API_KEY" ]; then
     export ZENMUX_API_KEY="$FINAGENT_ZENMUX_API_KEY"
