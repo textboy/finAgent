@@ -273,6 +273,11 @@ def _run_steps_8_1_and_8_2(symbol: str, investment_period: str, steps_1_to_7: Di
     logger.debug(f" [{symbol}] Running steps 8.1 (bull) and 8.2 (bear) in parallel")
     start = time.time()
 
+    step_display_names = {
+        "bull": "Bull Analysis",
+        "bear": "Bear Analysis",
+    }
+
     results = {}
     with ThreadPoolExecutor(max_workers=MAX_WORKERS_BULL_BEAR) as executor:
         futures = {
@@ -450,6 +455,8 @@ def run_single_ticket_pipeline(symbol: str, investment_period: str) -> Dict[str,
         return result
 
     # Phase 2: Run bull/bear in parallel (requires steps 1-7)
+    logger.info(f" [{symbol}] Phase 2: Starting Bull/Bear analysis...")
+    step_logs.append(f"🔄 [{symbol}] Starting Bull/Bear analysis...")
     try:
         steps_8_1_and_8_2 = _run_steps_8_1_and_8_2(symbol, investment_period, steps_1_to_7)
 
@@ -490,6 +497,8 @@ def run_single_ticket_pipeline(symbol: str, investment_period: str) -> Dict[str,
         bear_result = StepResult(error=error_msg)
 
     # Phase 3: Debate (requires bull/bear)
+    logger.info(f" [{symbol}] Phase 3: Starting Research Debate...")
+    step_logs.append(f"🔄 [{symbol}] Starting Research Debate...")
     debate_result = StepResult(error="Skipped")
     try:
         if bull_result.success and bear_result.success:
@@ -520,6 +529,8 @@ def run_single_ticket_pipeline(symbol: str, investment_period: str) -> Dict[str,
         debate_result = StepResult(error=error_msg)
 
     # Phase 4: Trading Plan (requires debate)
+    logger.info(f" [{symbol}] Phase 4: Starting Trading Plan...")
+    step_logs.append(f"🔄 [{symbol}] Starting Trading Plan...")
     try:
         if debate_result.success:
             trading_name, trading_result = _step_9_trading(
