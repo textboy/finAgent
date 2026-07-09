@@ -42,18 +42,15 @@ echo "[3/4] Configuring nginx..."
 # Create directory if it doesn't exist
 mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
 
+# Remove old finagent configs
+rm -f /etc/nginx/sites-available/finagent
+rm -f /etc/nginx/sites-enabled/finagent
+
+# Step 1: Configure HTTP only (certbot will add SSL later)
 cat > /etc/nginx/sites-available/finagent << EOF
 server {
     listen 80;
     server_name $DOMAIN;
-    return 301 https://\$host\$request_uri;
-}
-
-server {
-    listen 443 ssl http2;
-    server_name $DOMAIN;
-
-    # SSL will be configured by certbot
 
     location / {
         proxy_pass http://127.0.0.1:8000;
