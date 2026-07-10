@@ -171,6 +171,7 @@ if [ "$RUN_MODE" = "production" ]; then
         fi
         echo ""
         echo "  To use systemd (persists after SSH close):"
+        echo "    sudo systemctl import-environment FINAGENT_ZENMUX_API_KEY AGNES_API_KEY NVIDIA_API_KEY"
         echo "    sudo systemctl start finagent"
         echo "    sudo systemctl status finagent"
         echo "    sudo journalctl -u finagent -f"
