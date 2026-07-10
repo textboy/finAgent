@@ -152,21 +152,31 @@ fi
 echo ""
 echo "[5/5] Checking systemd service..."
 
-if [ "$RUN_MODE" = "production" ] && [ "$EUID" -eq 0 ]; then
+if [ "$RUN_MODE" = "production" ]; then
     SERVICE_FILE="finagent.service"
     if [ -f "$SCRIPT_DIR/$SERVICE_FILE" ]; then
-        cp "$SCRIPT_DIR/$SERVICE_FILE" /etc/systemd/system/
-        systemctl daemon-reload
-        systemctl enable finagent 2>/dev/null || true
-        echo "  ✅ Systemd service configured"
+        if [ "$EUID" -eq 0 ]; then
+            # Running as root - install system service
+            cp "$SCRIPT_DIR/$SERVICE_FILE" /etc/systemd/system/
+            systemctl daemon-reload
+            systemctl enable finagent 2>/dev/null || true
+            echo "  ✅ Systemd service installed"
+        else
+            # Not root - check if service is available
+            if systemctl list-unit-files | grep -q finagent.service; then
+                echo "  ✅ Systemd service available"
+            else
+                echo "  ⚠️  Run as root to install systemd service: sudo ./start_server.sh production"
+            fi
+        fi
         echo ""
-        echo "  To set API keys for the service:"
-        echo "    sudo systemctl import-environment FINAGENT_ZENMUX_API_KEY"
-        echo "    sudo systemctl import-environment AGNES_API_KEY"
-        echo "    sudo systemctl import-environment NVIDIA_API_KEY"
+        echo "  To use systemd (persists after SSH close):"
+        echo "    sudo systemctl start finagent"
+        echo "    sudo systemctl status finagent"
+        echo "    sudo journalctl -u finagent -f"
     fi
 else
-    echo "  ⏭️  Skipping systemd setup (not running as root, or local mode)"
+    echo "  ⏭️  Skipping systemd setup (local mode)"
 fi
 
 # ==================================== Stop Existing Server ====================================

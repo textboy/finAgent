@@ -1,30 +1,16 @@
 [Unit]
 Description=FinAgent Backend API
-After=network.target docker.service
-Wants=docker.service
+After=network.target
 
 [Service]
 Type=simple
-User=ubuntu
+User=mk
 WorkingDirectory=/app/workspace/finAgent
 Environment="PATH=/app/workspace/finAgent/finagent/bin:/usr/local/bin:/usr/bin:/bin"
 
-# Environment variable sources (in order of priority):
-# 1. /etc/finagent/env file (for static config)
-# 2. Systemd imported environment (via systemctl import-environment)
-# 3. /etc/environment (system-wide)
+# Environment variables
 EnvironmentFile=-/etc/finagent/env
 EnvironmentFile=-/etc/environment
-
-# Import variables from systemd environment at startup
-# This allows: sudo systemctl import-environment ZENMUX_API_KEY AGNES_API_KEY NVIDIA_API_KEY
-ExecStartPre=/bin/bash -c '\
-  for key in ZENMUX_API_KEY AGNES_API_KEY NVIDIA_API_KEY FINAGENT_ZENMUX_API_KEY; do \
-    val=$$(printenv $$key 2>/dev/null); \
-    if [ -n "$$val" ]; then \
-      echo "Found $$key in environment"; \
-    fi; \
-  done'
 
 ExecStart=/app/workspace/finAgent/finagent/bin/gunicorn -w 2 -k uvicorn.workers.UvicornWorker finagent_api:app --bind 0.0.0.0:8000 --timeout 480 --log-level info
 ExecReload=/bin/kill -s HUP $MAINPID
