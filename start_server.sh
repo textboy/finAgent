@@ -126,12 +126,11 @@ fi
 echo "  ℹ️  RUN_MODE=$RUN_MODE, SERVER_HOST=$SERVER_HOST"
 
 if [ -n "$FINAGENT_ZENMUX_API_KEY" ]; then
-    export ZENMUX_API_KEY="$FINAGENT_ZENMUX_API_KEY"
-    echo "  ✅ ZENMUX_API_KEY set from FINAGENT_ZENMUX_API_KEY"
+    echo "  ✅ FINAGENT_ZENMUX_API_KEY is set"
 elif [ -n "$ZENMUX_API_KEY" ]; then
     echo "  ✅ ZENMUX_API_KEY is set"
 else
-    echo "  ❌ ZENMUX_API_KEY is not set"
+    echo "  ❌ No API key set"
     echo "  Set it with: export FINAGENT_ZENMUX_API_KEY=your-key"
     exit 1
 fi
@@ -171,10 +170,9 @@ if [ "$RUN_MODE" = "production" ]; then
         fi
         echo ""
         echo "  To use systemd (persists after SSH close):"
-        echo "    sudo systemctl import-environment FINAGENT_ZENMUX_API_KEY AGNES_API_KEY NVIDIA_API_KEY"
+        echo "    sudo systemctl import-environment FINAGENT_ZENMUX_API_KEY AGNES_API_KEY"
+        echo "    sudo systemctl daemon-reload"
         echo "    sudo systemctl start finagent"
-        echo "    sudo systemctl status finagent"
-        echo "    sudo journalctl -u finagent -f"
     fi
 else
     echo "  ⏭️  Skipping systemd setup (local mode)"
