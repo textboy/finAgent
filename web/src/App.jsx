@@ -50,7 +50,7 @@ const DEFAULT_START_DATE = (() => {
 })();
 const DEFAULT_END_DATE = new Date().toISOString().split('T')[0];
 
-function HomePage() {
+function HomePage({ onLogout }) {
   // Use current browser protocol/host/port for API calls
   const protocol = window.location.protocol; // http: or https:
   const serverHost = window.location.hostname;
@@ -515,9 +515,26 @@ function HomePage() {
                 </svg>
                 <span className="text-[10px] sm:text-xs font-mono text-slate-400 hidden sm:inline">Introduction</span>
               </Link>
-              <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 bg-slate-900/50 rounded-lg border border-slate-800">
-                <div className="w-1.5 sm:w-2 h-1.5 sm:h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                <span className="text-[10px] sm:text-xs font-mono text-slate-400 hidden sm:inline">Online</span>
+              {/* Profile & Logout */}
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 bg-slate-900/50 rounded-lg border border-slate-800">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-400">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                  <span className="text-[10px] sm:text-xs font-mono text-slate-400 hidden sm:inline">carina666</span>
+                </div>
+                <button
+                  onClick={onLogout}
+                  className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 bg-slate-900/50 rounded-lg border border-slate-800 hover:border-red-500/50 hover:bg-slate-800/50 transition-all duration-300 cursor-pointer"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-400">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                  </svg>
+                  <span className="text-[10px] sm:text-xs font-mono text-slate-400 hidden sm:inline">Logout</span>
+                </button>
               </div>
             </div>
           </div>
@@ -956,6 +973,76 @@ function HomePage() {
 }
 
 function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [checkingSession, setCheckingSession] = useState(true)
+
+  // Check session on mount
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const protocol = window.location.protocol
+        const host = window.location.hostname
+        const port = window.location.port || (protocol === 'https:' ? '443' : '8000')
+        const apiUrl = `${protocol}//${host}${port !== '443' && port !== '80' ? ':' + port : ''}`
+
+        const response = await fetch(`${apiUrl}/api/session`)
+        if (response.ok) {
+          setIsLoggedIn(true)
+        }
+      } catch (err) {
+        // Not logged in
+      } finally {
+        setCheckingSession(false)
+      }
+    }
+    checkSession()
+  }, [])
+
+  const handleLogin = (username) => {
+    setIsLoggedIn(true)
+  }
+
+  const handleLogout = async () => {
+    try {
+      const protocol = window.location.protocol
+      const host = window.location.hostname
+      const port = window.location.port || (protocol === 'https:' ? '443' : '8000')
+      const apiUrl = `${protocol}//${host}${port !== '443' && port !== '80' ? ':' + port : ''}`
+
+      await fetch(`${apiUrl}/api/logout`, { method: 'POST' })
+    } catch (err) {
+      // Ignore error
+    }
+    setIsLoggedIn(false)
+  }
+
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-400">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!isLoggedIn) {
+    const LoginPage = lazy(() => import('./LoginPage.jsx'))
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-slate-400">Loading...</p>
+          </div>
+        </div>
+      }>
+        <LoginPage onLogin={handleLogin} />
+      </Suspense>
+    )
+  }
+
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
@@ -966,7 +1053,7 @@ function App() {
       </div>
     }>
       <Routes>
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={<HomePage onLogout={handleLogout} />} />
         <Route path="/introduction" element={<Introduction />} />
       </Routes>
     </Suspense>

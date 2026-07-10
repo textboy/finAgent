@@ -7,15 +7,21 @@ import logging
 import markdown
 import threading
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from src.workflow_parallel import run_single_ticket_pipeline, run_batch_pipeline
 import uvicorn
+
+# Hardcoded credentials
+VALID_USERNAME = "carina666"
+VALID_PASSWORD = "calcutta"
+SESSION_COOKIE_NAME = "finagent_session"
+SESSION_EXPIRY_DAYS = 30
 
 # Background job storage
 _jobs = {}  # job_id -> {"status": "running"|"completed"|"failed", "result": ..., "error": ...}
@@ -64,6 +70,41 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ============ Authentication ============
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+@app.post("/api/login")
+async def login(req: LoginRequest, response: Response):
+    """Login with hardcoded credentials. Sets session cookie."""
+    if req.username == VALID_USERNAME and req.password == VALID_PASSWORD:
+        session_token = str(uuid.uuid4())
+        response.set_cookie(
+            key=SESSION_COOKIE_NAME,
+            value=session_token,
+            max_age=SESSION_EXPIRY_DAYS * 24 * 3600,  # 30 days
+            httponly=True,
+            samesite="lax",
+        )
+        return {"status": "ok", "username": req.username}
+    raise HTTPException(status_code=401, detail="Invalid credentials")
+
+@app.get("/api/session")
+async def get_session(request: Request):
+    """Check if user is logged in via session cookie."""
+    token = request.cookies.get(SESSION_COOKIE_NAME)
+    if token:
+        return {"status": "ok", "username": VALID_USERNAME}
+    raise HTTPException(status_code=401, detail="Not logged in")
+
+@app.post("/api/logout")
+async def logout(response: Response):
+    """Clear session cookie."""
+    response.delete_cookie(key=SESSION_COOKIE_NAME)
+    return {"status": "ok"}
 
 app.mount("/static", StaticFiles(directory="results"), name="static")
 
