@@ -16,6 +16,7 @@ const PANEL_KEYS = [
   { key: 'fundHolding', label: 'Fund Holdings', icon: '🏦', color: 'from-slate-700 to-slate-600' },
   { key: 'pastLessons', label: 'Past Lessons', icon: '📚', color: 'from-slate-700 to-slate-600' },
   { key: 'research', label: 'Research Debate', icon: '🧠', color: 'from-slate-700 to-slate-600' },
+  { key: 'quant', label: 'Quant Signals', icon: '📐', color: 'from-slate-700 to-cyan-600' },
   { key: 'trading', label: 'Trading Plan', icon: '🎯', color: 'from-slate-600 to-cyan-600' },
 ];
 

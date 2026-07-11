@@ -477,6 +477,7 @@ def format_pipeline_result(pipeline_result: dict) -> dict:
         "fundHolding": steps.get("fund_holding", "No data"),
         "pastLessons": steps.get("past_lessons", "No data"),
         "research": steps.get("debate", "No data"),
+        "quant": steps.get("quant", "No data"),
         "trading": trading_formatted,
         # Note: lessonSummary runs in background, stored in Qdrant for next analysis
     }
@@ -493,6 +494,7 @@ def format_pipeline_result(pipeline_result: dict) -> dict:
         "past_lessons": "Step 7: Past Lessons",
         "bull": "Step 8.1: Bull Analysis",
         "bear": "Step 8.2: Bear Analysis",
+        "quant": "Step 8.Q: Quant Analysis",
         "debate": "Step 8.3: Debate",
         "trading": "Step 9: Trading Plan",
     }
