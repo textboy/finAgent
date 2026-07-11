@@ -48,6 +48,7 @@ from .agents.fund_holding_agent import FundHoldingAnalyst
 from .agents.researcher_agents import BullishResearcher, BearishResearcher, DebateAgent
 from .agents.trading_risk_agents import TradingAgent
 from .agents.lesson_summary_agent import LessonSummaryAgent
+from .agents.quant_agent import QuantAgent
 from .utils.qdrant_utils import get_past_lessons, store_entry
 from .utils.cost_tracker import cost_tracker
 
@@ -146,6 +147,14 @@ def _step_7_past_lessons(symbol: str) -> Tuple[str, StepResult]:
             logger.warning(f"Past lessons unavailable: {str(e)}")
             return "Past lessons unavailable. (Qdrant may not be running)"
     return ("past_lessons", _run_step_with_timeout(_run))
+
+
+def _step_quant(symbol: str, investment_period: str, phase1_data: Dict) -> Tuple[str, StepResult]:
+    """Quant Analysis: Triple-barrier + trend analysis."""
+    def _run():
+        agent = QuantAgent()
+        return agent.analyze(symbol, investment_period, phase1_data)
+    return ("quant", _run_step_with_timeout(_run))
 
 
 def _run_steps_1_to_7(symbol: str, investment_period: str, step_logs: list) -> Dict[str, StepResult]:
@@ -356,10 +365,32 @@ Please incorporate these principles into your long-term investment debate summar
     return ("debate", _run_step_with_timeout(_run))
 
 
-def _step_9_trading(symbol: str, investment_period: str, debate_result: str) -> Tuple[str, StepResult]:
-    """Step 9: Trading Plan."""
+def _step_9_trading(symbol: str, investment_period: str, debate_result: str,
+                    quant_result: str = None) -> Tuple[str, StepResult]:
+    """Step 9: Trading Plan (with optional quant data)."""
     def _run():
-        return TradingAgent.decide(symbol, investment_period, debate_result)
+        # Combine debate and quant for comprehensive trading decision
+        combined_input = debate_result
+        if quant_result and quant_result != "[ERROR] Quant analysis failed":
+            combined_input = f"""{debate_result}
+
+---
+
+## QUANT SIGNALS (Objective Rules-Based Analysis)
+
+{quant_result}
+
+---
+
+Please incorporate the above quant signals into your trading decision. The quant analysis provides:
+- Triple-barrier entry/stop/target levels
+- Trend regime (trending vs ranging)
+- Volatility regime
+- Support/resistance levels
+- Meta-label confidence scores
+
+Use this data to validate or adjust your qualitative analysis."""
+        return TradingAgent.decide(symbol, investment_period, combined_input)
     return ("trading", _run_step_with_timeout(_run))
 
 
@@ -454,32 +485,68 @@ def run_single_ticket_pipeline(symbol: str, investment_period: str) -> Dict[str,
         result["duration_minutes"] = round((time.time() - pipeline_start) / 60, 2)
         return result
 
-    # Phase 2: Run bull/bear in parallel (requires steps 1-7)
-    logger.info(f" [{symbol}] Phase 2: Starting Bull/Bear analysis...")
-    step_logs.append(f"🔄 [{symbol}] Starting Bull/Bear analysis...")
+    # Phase 2+Quant: Run bull/bear AND quant in parallel (requires steps 1-7)
+    logger.info(f" [{symbol}] Phase 2+Quant: Starting Bull/Bear + Quant analysis...")
+    step_logs.append(f"🔄 [{symbol}] Starting Bull/Bear + Quant analysis...")
+    bull_result = StepResult(error="Not started")
+    bear_result = StepResult(error="Not started")
+    quant_result = StepResult(error="Not started")
+
     try:
-        steps_8_1_and_8_2 = _run_steps_8_1_and_8_2(symbol, investment_period, steps_1_to_7)
+        # Run bull/bear and quant in parallel
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            futures = {
+                executor.submit(_step_8_1_bull, symbol, investment_period, steps_1_to_7): "bull",
+                executor.submit(_step_8_2_bear, symbol, investment_period, steps_1_to_7): "bear",
+                executor.submit(_step_quant, symbol, investment_period, steps_1_to_7): "quant",
+            }
 
-        bull_result = steps_8_1_and_8_2.get("bull", StepResult(error="Bull not computed"))
-        bear_result = steps_8_1_and_8_2.get("bear", StepResult(error="Bear not computed"))
+            for future in as_completed(futures):
+                step_name = futures[future]
+                try:
+                    name, step_result = future.result(timeout=STEP_TIMEOUT + 10)
+                    if step_name == "bull":
+                        bull_result = step_result
+                        result["steps"]["bull"] = step_result.result if step_result.success else f"[ERROR] {step_result.error}"
+                    elif step_name == "bear":
+                        bear_result = step_result
+                        result["steps"]["bear"] = step_result.result if step_result.success else f"[ERROR] {step_result.error}"
+                    elif step_name == "quant":
+                        quant_result = step_result
+                        result["steps"]["quant"] = step_result.result if step_result.success else f"[ERROR] {step_result.error}"
 
-        result["steps"]["bull"] = bull_result.result if bull_result.success else f"[ERROR] {bull_result.error}"
-        result["steps"]["bear"] = bear_result.result if bear_result.success else f"[ERROR] {bear_result.error}"
+                    status = "✓" if step_result.success else "✗"
+                    logger.debug(f" [{symbol}] Step {step_name} {status} ({step_result.duration:.1f}s)")
+                except Exception as e:
+                    error_msg = f"Future error: {type(e).__name__}: {str(e)}"
+                    if step_name == "bull":
+                        bull_result = StepResult(error=error_msg)
+                    elif step_name == "bear":
+                        bear_result = StepResult(error=error_msg)
+                    elif step_name == "quant":
+                        quant_result = StepResult(error=error_msg)
+                    logger.debug(f" [{symbol}] Step {step_name} ✗ ({error_msg})")
 
-        # Log bull/bear completion
+        # Log completion
         if bull_result.success:
             step_logs.append(f"✅ [{symbol}] Bull Analysis completed ({round(bull_result.duration / 60, 2)} min)")
         else:
             error_detail = bull_result.error[:200] if bull_result.error else "Unknown error"
             step_logs.append(f"❌ [{symbol}] Bull Analysis failed: {error_detail}")
+
         if bear_result.success:
             step_logs.append(f"✅ [{symbol}] Bear Analysis completed ({round(bear_result.duration / 60, 2)} min)")
         else:
             error_detail = bear_result.error[:200] if bear_result.error else "Unknown error"
             step_logs.append(f"❌ [{symbol}] Bear Analysis failed: {error_detail}")
 
+        if quant_result.success:
+            step_logs.append(f"✅ [{symbol}] Quant Analysis completed ({round(quant_result.duration / 60, 2)} min)")
+        else:
+            error_detail = quant_result.error[:200] if quant_result.error else "Unknown error"
+            step_logs.append(f"❌ [{symbol}] Quant Analysis failed: {error_detail}")
+
         if not bull_result.success or not bear_result.success:
-            # Add specific error context
             if not bull_result.success and not bear_result.success:
                 result["errors"].append("Both Bull and Bear analysis failed")
             elif not bull_result.success:
@@ -487,12 +554,13 @@ def run_single_ticket_pipeline(symbol: str, investment_period: str) -> Dict[str,
             else:
                 result["errors"].append("Bear analysis failed, Bull may have partial results")
     except MemoryError:
-        result["errors"].append("Phase 2 failed: Out of memory")
+        result["errors"].append("Phase 2+Quant failed: Out of memory")
         bull_result = StepResult(error="MemoryError")
         bear_result = StepResult(error="MemoryError")
+        quant_result = StepResult(error="MemoryError")
     except Exception as e:
         error_msg = f"{type(e).__name__}: {str(e)}"
-        result["errors"].append(f"Phase 2 failed: {error_msg}")
+        result["errors"].append(f"Phase 2+Quant failed: {error_msg}")
         bull_result = StepResult(error=error_msg)
         bear_result = StepResult(error=error_msg)
 
@@ -528,13 +596,15 @@ def run_single_ticket_pipeline(symbol: str, investment_period: str) -> Dict[str,
         result["errors"].append(f"Phase 3 failed: {error_msg}")
         debate_result = StepResult(error=error_msg)
 
-    # Phase 4: Trading Plan (requires debate)
+    # Phase 4: Trading Plan (requires debate + quant)
     logger.info(f" [{symbol}] Phase 4: Starting Trading Plan...")
     step_logs.append(f"🔄 [{symbol}] Starting Trading Plan...")
     try:
         if debate_result.success:
+            # Get quant result (may have failed)
+            quant_text = quant_result.result if quant_result.success else None
             trading_name, trading_result = _step_9_trading(
-                symbol, investment_period, debate_result.result
+                symbol, investment_period, debate_result.result, quant_text
             )
             result["steps"]["trading"] = trading_result.result if trading_result.success else f"[ERROR] {trading_result.error}"
 
