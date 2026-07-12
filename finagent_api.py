@@ -724,6 +724,9 @@ def format_pipeline_result(pipeline_result: dict) -> dict:
     timestamp_in_report = datetime.now().strftime('%Y-%m-%d %H:%M')
     investment_period = pipeline_result.get('investment_period', 'N/A')
 
+    # Sanitize period for filename (replace spaces with hyphens, lowercase)
+    period_slug = investment_period.lower().replace(' ', '-').replace('+', 'plus') if investment_period != 'N/A' else 'unknown'
+
     # Build markdown content
     md_content = f"# FinAgent Analysis Report\n"
     md_content += f"Symbol: {symbol}, "
@@ -762,12 +765,12 @@ def format_pipeline_result(pipeline_result: dict) -> dict:
 """
 
     # Save markdown file
-    md_file = f'results/result_{symbol}_{timestamp}.md'
+    md_file = f'results/result_{symbol}_{period_slug}_{timestamp}.md'
     with open(md_file, 'w', encoding='utf-8') as f:
         f.write(md_content)
 
     # Convert to HTML and save
-    html_file = f'results/result_{symbol}_{timestamp}.html'
+    html_file = f'results/result_{symbol}_{period_slug}_{timestamp}.html'
     html_content = md_to_html(md_content, symbol, investment_period, timestamp_in_report)
     with open(html_file, 'w', encoding='utf-8') as f:
         f.write(html_content)
@@ -875,21 +878,34 @@ async def get_history_reports():
     reports = []
     for filename in sorted(os.listdir(results_dir), reverse=True):
         if filename.endswith(".html"):
-            # Extract info from filename: result_SYMBOL_YYYYMMDD_HHMM.html
+            # Extract info from filename: result_SYMBOL_PERIOD_YYYYMMDD_HHMM.html
+            # or old format: result_SYMBOL_YYYYMMDD_HHMM.html
             parts = filename.replace("result_", "").replace(".html", "").split("_")
-            if len(parts) >= 3:
+
+            if len(parts) >= 4:
+                # New format: SYMBOL_PERIOD_YYYYMMDD_HHMM
+                symbol = parts[0]
+                # Period might contain underscores, so join middle parts
+                time_str = parts[-1]  # HHMM
+                date = parts[-2]  # YYYYMMDD
+                period = "_".join(parts[1:-2])  # Everything between symbol and date
+                display = f"{symbol} - {period} - {date[:4]}-{date[4:6]}-{date[6:]} {time_str[:2]}:{time_str[2:]}"
+            elif len(parts) >= 3:
+                # Old format: SYMBOL_YYYYMMDD_HHMM
                 symbol = parts[0]
                 date = parts[1]
                 time_str = parts[2]
                 display = f"{symbol} - {date[:4]}-{date[4:6]}-{date[6:]} {time_str[:2]}:{time_str[2:]}"
             else:
                 display = filename
+                symbol = parts[0] if len(parts) >= 1 else "Unknown"
+                date = "Unknown"
 
             reports.append({
                 "filename": filename,
                 "display": display,
-                "symbol": parts[0] if len(parts) >= 1 else "Unknown",
-                "date": f"{date[:4]}-{date[4:6]}-{date[6:]}" if len(parts) >= 2 else "Unknown",
+                "symbol": symbol,
+                "date": f"{date[:4]}-{date[4:6]}-{date[6:]}" if len(parts) >= 3 else "Unknown",
             })
 
     return {"reports": reports[:50]}  # Limit to 50 most recent
