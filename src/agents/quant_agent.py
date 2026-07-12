@@ -284,56 +284,66 @@ class QuantAgent:
 
     def _meta_label(self, df: pd.DataFrame, trend: Dict, vol_regime: Dict) -> Dict[str, Any]:
         """Generate meta-label prediction using TabPFN-3 (trained model only)."""
+        import os
+        import joblib
+
+        model_path = "models/trained/meta_label_model.pkl"
+
+        # Prepare features for TabPFN
+        features = self._prepare_features(df, trend, vol_regime)
+
+        # Import TabPFN
         try:
-            import os
-            import joblib
+            from tabpfn import TabPFNClassifier
+        except ImportError:
+            return {
+                'prediction': 'error',
+                'confidence': 0,
+                'score': 0,
+                'method': 'error',
+                'error': 'TabPFN not installed. Run: pip install tabpfn'
+            }
 
-            model_path = "models/trained/meta_label_model.pkl"
+        # Train model if not exists
+        if not os.path.exists(model_path):
+            print(f"INFO: Training TabPFN model...")
+            train_success = self._train_tabpfn_model(df)
+            if not train_success:
+                return {
+                    'prediction': 'error',
+                    'confidence': 0,
+                    'score': 0,
+                    'method': 'error',
+                    'error': 'TabPFN training failed. Check logs for details.'
+                }
 
-            # Prepare features for TabPFN
-            features = self._prepare_features(df, trend, vol_regime)
+        # Load trained model
+        try:
+            model = joblib.load(model_path)
+            prediction_proba = model.predict_proba(features)[0]
+            confidence = max(prediction_proba)
+            prediction_idx = prediction_proba.argmax()
 
-            # Try TabPFN
-            try:
-                from tabpfn import TabPFNClassifier
+            predictions = ["sell", "hold", "buy"]
+            prediction = predictions[prediction_idx]
 
-                # Train model if not exists
-                if not os.path.exists(model_path):
-                    print(f"INFO: Training TabPFN model...")
-                    self._train_tabpfn_model(df)
-
-                # Load trained model
-                if os.path.exists(model_path):
-                    model = joblib.load(model_path)
-                    prediction_proba = model.predict_proba(features)[0]
-                    confidence = max(prediction_proba)
-                    prediction_idx = prediction_proba.argmax()
-
-                    predictions = ["sell", "hold", "buy"]
-                    prediction = predictions[prediction_idx]
-
-                    return {
-                        'prediction': prediction,
-                        'confidence': round(confidence, 2),
-                        'score': round(float(prediction_proba[2] - prediction_proba[0]), 2),
-                        'method': 'tabpfn_trained'
-                    }
-                else:
-                    print("WARNING: TabPFN training failed, using rule-based fallback")
-                    return self._meta_label_rule_based(trend, vol_regime)
-
-            except ImportError:
-                print("WARNING: TabPFN not installed, using rule-based meta-label")
-                return self._meta_label_rule_based(trend, vol_regime)
-            except Exception as e:
-                print(f"WARNING: TabPFN failed: {e}, using rule-based fallback")
-                return self._meta_label_rule_based(trend, vol_regime)
-
+            return {
+                'prediction': prediction,
+                'confidence': round(confidence, 2),
+                'score': round(float(prediction_proba[2] - prediction_proba[0]), 2),
+                'method': 'tabpfn_trained'
+            }
         except Exception as e:
-            return self._meta_label_rule_based(trend, vol_regime)
+            return {
+                'prediction': 'error',
+                'confidence': 0,
+                'score': 0,
+                'method': 'error',
+                'error': f'Model inference failed: {str(e)}'
+            }
 
-    def _train_tabpfn_model(self, df: pd.DataFrame):
-        """Train TabPFN model on historical data."""
+    def _train_tabpfn_model(self, df: pd.DataFrame) -> bool:
+        """Train TabPFN model on historical data. Returns True if successful."""
         import os
         import joblib
         from tabpfn import TabPFNClassifier
@@ -346,21 +356,34 @@ class QuantAgent:
         X, y = self._generate_training_data(df)
 
         if len(X) < 50:
-            print("WARNING: Insufficient training data for TabPFN")
-            return
+            print(f"ERROR: Insufficient training data ({len(X)} samples, need 50+)")
+            return False
+
+        # Check class distribution
+        class_counts = y.value_counts()
+        print(f"INFO: Training data distribution: {dict(class_counts)}")
+
+        if len(class_counts) < 2:
+            print(f"ERROR: Need at least 2 classes, got {len(class_counts)}")
+            return False
 
         # Train TabPFN
-        model = TabPFNClassifier()
-        model.fit(X, y)
+        try:
+            model = TabPFNClassifier()
+            model.fit(X, y)
 
-        # Evaluate
-        scores = cross_val_score(model, X, y, cv=5, scoring='accuracy')
-        print(f"INFO: TabPFN CV accuracy: {scores.mean():.2f} (+/- {scores.std():.2f})")
+            # Evaluate
+            scores = cross_val_score(model, X, y, cv=min(5, len(X)//10), scoring='accuracy')
+            print(f"INFO: TabPFN CV accuracy: {scores.mean():.2f} (+/- {scores.std():.2f})")
 
-        # Save model
-        model_path = "models/trained/meta_label_model.pkl"
-        joblib.dump(model, model_path)
-        print(f"INFO: TabPFN model saved to {model_path}")
+            # Save model
+            model_path = "models/trained/meta_label_model.pkl"
+            joblib.dump(model, model_path)
+            print(f"INFO: TabPFN model saved to {model_path}")
+            return True
+        except Exception as e:
+            print(f"ERROR: TabPFN training failed: {str(e)}")
+            return False
 
     def _generate_training_data(self, df: pd.DataFrame) -> tuple:
         """Generate labeled training data using triple-barrier method."""
@@ -579,7 +602,7 @@ Unable to fetch OHLCV data for {symbol}. Quant analysis requires:
 | Confidence | {meta_label['confidence']:.0%} |
 | Score | {meta_label['score']:.2f} |
 | Method | {meta_label.get('method', 'unknown')} |
-
+{f"| Error | {meta_label.get('error', '')} |" if meta_label.get('error') else ""}
 ---
 *Based on Marcos Lopez de Prado's Triple-Barrier Method with TabPFN-3 ML (trained)*
 """
