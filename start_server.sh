@@ -52,15 +52,32 @@ echo "[2/5] Installing dependencies..."
 
 # Show pip progress
 echo "  Installing Python packages..."
-pip install -r requirements.txt --progress-bar on 2>&1 | while IFS= read -r line; do
-    if [[ "$line" == *"Downloading"* ]] || [[ "$line" == *"Installing"* ]] || [[ "$line" == *"Collecting"* ]]; then
+
+# Install CPU-only torch first (smaller download, ~200MB vs ~2GB for GPU)
+echo "  → Installing CPU-only PyTorch..."
+pip install torch --extra-index-url https://download.pytorch.org/whl/cpu 2>&1 | while IFS= read -r line; do
+    if [[ "$line" == *"Downloading"* ]] || [[ "$line" == *"Installing"* ]]; then
         echo "    $line"
     elif [[ "$line" == *"Successfully installed"* ]]; then
-        echo "  ✅ $line"
+        echo "    ✅ CPU-only PyTorch installed"
+    elif [[ "$line" == *"already satisfied"* ]]; then
+        echo "    ✅ PyTorch already installed"
+    elif [[ "$line" == *"ERROR"* ]]; then
+        echo "    ⚠️  $line"
+    fi
+done
+
+# Install remaining dependencies
+echo "  → Installing remaining packages..."
+pip install -r requirements.txt --progress-bar on 2>&1 | while IFS= read -r line; do
+    if [[ "$line" == *"Downloading"* ]] || [[ "$line" == *"Installing"* ]]; then
+        echo "    $line"
+    elif [[ "$line" == *"Successfully installed"* ]]; then
+        echo "    ✅ $line"
     elif [[ "$line" == *"already satisfied"* ]]; then
         : # Skip "already satisfied" lines
-    elif [[ "$line" == *"ERROR"* ]] || [[ "$line" == *"Failed"* ]]; then
-        echo "  ⚠️  $line"
+    elif [[ "$line" == *"ERROR"* ]]; then
+        echo "    ⚠️  $line"
     fi
 done
 
