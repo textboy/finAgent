@@ -522,8 +522,23 @@ def format_pipeline_result(pipeline_result: dict) -> dict:
     md_content += f"Period: {investment_period}, "
     md_content += f"Timestamp: {timestamp_in_report}\n\n"
 
+    # Report section display names
+    section_names = {
+        "fundamentals": "Fundamentals Analysis",
+        "sentiment": "Sentiment & Social Analysis",
+        "technical": "Technical Analysis",
+        "market": "Market Overview",
+        "globalEconomic": "Global Economy Analysis",
+        "fundHolding": "Fund Holdings Analysis",
+        "pastLessons": "Past Lessons",
+        "research": "Research Debate (Bull vs Bear)",
+        "quant": "Quant Signals (Triple-Barrier & Trend)",
+        "trading": "Trading Plan",
+    }
+
     for key, value in reports.items():
-        md_content += f"## {key}\n\n"
+        display_name = section_names.get(key, key)
+        md_content += f"## {display_name}\n\n"
         md_content += f"{value}\n\n"
 
     # Add timing info
