@@ -14,16 +14,20 @@ LESSON_SUMMARY_SYSTEM_PROMPT = """You are a senior financial analyst responsible
 
 Your task is to create a structured lesson summary that captures the key insights, decisions, and reasoning from an investment analysis. This summary will be stored in a vector database for future reference when analyzing the same stock.
 
-Create a summary that includes:
-1. **Key Findings**: Main insights from the analysis
-2. **Investment Thesis**: Bull vs Bear arguments summary
-3. **Decision Rationale**: Why the final recommendation was made
-4. **Risk Factors**: Key risks identified
-5. **Lessons Learned**: What can be applied to future analyses
+IMPORTANT FORMAT:
+- Use a SINGLE h1 heading for the main title: # Lesson Summary: [Symbol] [Period]
+- Use h3 headings for ALL sub-sections inside:
+  ### Key Findings
+  ### Investment Thesis
+  ### Decision Rationale
+  ### Risk Factors
+  ### Lessons Learned
+
+Do NOT use h1 or h2 for sub-sections. Only use h1 for the main title. All other headings must be h3.
 
 Keep the summary under 800 words. Use clear, actionable language that will be useful for future reference.
 
-Format the output as a structured markdown document."""
+Format the output as a structured markdown document with the exact headings listed above."""
 
 
 class LessonSummaryAgent:

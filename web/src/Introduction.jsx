@@ -87,8 +87,8 @@ function Introduction() {
 
             {/* Phase 2 */}
             <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700/50">
-              <h4 className="font-bold text-purple-400 mb-4 text-lg">Phase 2: Analysis (Steps 8.1 & 8.2) - PARALLEL</h4>
-              <div className="grid grid-cols-2 gap-4">
+              <h4 className="font-bold text-purple-400 mb-4 text-lg">Phase 2: Analysis (Steps 8.1, 8.2 & Quant) - PARALLEL</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-lg p-4 border border-green-500/30">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-2xl">🐂</span>
@@ -102,46 +102,62 @@ function Introduction() {
                     <span className="text-2xl">🐻</span>
                     <span className="font-bold text-red-400">Step 8.2: Bear Analysis</span>
                   </div>
-                  <p className="text-sm text-slate-400">Model: claude-sonnet-5-free</p>
+                  <p className="text-sm text-slate-400">Model: minimax/minimax-m3</p>
                   <p className="text-xs text-slate-500">Source: zenmux.ai</p>
+                </div>
+                <div className="bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-lg p-4 border border-cyan-500/30">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-2xl">📐</span>
+                    <span className="font-bold text-cyan-400">Quant Signals</span>
+                  </div>
+                  <p className="text-sm text-slate-400">TabPFN-3 ML Model</p>
+                  <p className="text-xs text-slate-500">Triple-Barrier + Trend Analysis</p>
+                  <p className="text-xs text-cyan-400 mt-1">Entry/Stop/Target levels</p>
                 </div>
               </div>
               <div className="mt-4 text-center text-slate-500 text-sm">
-                ↓ Wait both complete ↓
+                ↓ Wait all complete ↓
               </div>
             </div>
 
             {/* Phase 3 */}
             <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700/50">
-              <h4 className="font-bold text-amber-400 mb-4 text-lg">Phase 3: Debate & Decision (Steps 8.3 & 9)</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-lg p-4 border border-amber-500/30">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-2xl">⚖️</span>
-                    <span className="font-bold text-amber-400">Step 8.3: Research Debate</span>
-                  </div>
-                  <p className="text-sm text-slate-400">Model: claude-fable-5-free</p>
-                  <p className="text-xs text-slate-500">Source: zenmux.ai</p>
-                  <p className="text-xs text-cyan-400 mt-1">+ Warren Buffett principles (long period)</p>
+              <h4 className="font-bold text-amber-400 mb-4 text-lg">Phase 3: Debate (Step 8.3) - requires 8.1 + 8.2</h4>
+              <div className="bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-lg p-4 border border-amber-500/30">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-2xl">⚖️</span>
+                  <span className="font-bold text-amber-400">Step 8.3: Research Debate</span>
                 </div>
-                <div className="bg-gradient-to-br from-indigo-500/20 to-blue-500/20 rounded-lg p-4 border border-indigo-500/30">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-2xl">🎯</span>
-                    <span className="font-bold text-indigo-400">Step 9: Trading Plan</span>
-                  </div>
-                  <p className="text-sm text-slate-400">Model: claude-fable-5-free</p>
-                  <p className="text-xs text-slate-500">Source: zenmux.ai</p>
-                  <p className="text-xs text-emerald-400 mt-1">Output: BUY/SELL/HOLD, Target Price</p>
+                <p className="text-sm text-slate-400">Model: z-ai/glm-5.2</p>
+                <p className="text-xs text-slate-500">Source: bigmodel</p>
+                <p className="text-xs text-cyan-400 mt-1">+ Warren Buffett principles (long period)</p>
+              </div>
+              <div className="mt-4 text-center text-slate-500 text-sm">
+                ↓ Wait debate complete ↓
+              </div>
+            </div>
+
+            {/* Phase 4 */}
+            <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700/50">
+              <h4 className="font-bold text-indigo-400 mb-4 text-lg">Phase 4: Trading Plan (Step 9) - requires 8.3 + Quant</h4>
+              <div className="bg-gradient-to-br from-indigo-500/20 to-blue-500/20 rounded-lg p-4 border border-indigo-500/30">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-2xl">🎯</span>
+                  <span className="font-bold text-indigo-400">Step 9: Trading Plan</span>
                 </div>
+                <p className="text-sm text-slate-400">Model: z-ai/glm-5.2</p>
+                <p className="text-xs text-slate-500">Source: bigmodel</p>
+                <p className="text-xs text-emerald-400 mt-1">Output: BUY/SELL/HOLD, Target Price</p>
+                <p className="text-xs text-cyan-400 mt-1">Integrates Debate + Quant Signals</p>
               </div>
               <div className="mt-4 text-center text-slate-500 text-sm">
                 ↓ Response returned to UI ↓
               </div>
             </div>
 
-            {/* Phase 4 */}
+            {/* Phase 5 */}
             <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700/50">
-              <h4 className="font-bold text-emerald-400 mb-4 text-lg">Phase 4: Lesson Summary (Step 10) - BACKGROUND</h4>
+              <h4 className="font-bold text-emerald-400 mb-4 text-lg">Phase 5: Lesson Summary (Step 10) - BACKGROUND</h4>
               <div className="bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-lg p-4 border border-emerald-500/30">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-2xl">📝</span>
@@ -185,21 +201,27 @@ function Introduction() {
                 </tr>
                 <tr className="border-b border-slate-800">
                   <td className="py-3 px-4 text-slate-300">8.2 Bear Analysis</td>
-                  <td className="py-3 px-4 text-red-400">claude-sonnet-5-free</td>
+                  <td className="py-3 px-4 text-red-400">minimax/minimax-m3</td>
                   <td className="py-3 px-4 text-slate-400">ZenMux</td>
                   <td className="py-3 px-4 text-slate-500 text-xs">zenmux.ai</td>
+                </tr>
+                <tr className="border-b border-slate-800">
+                  <td className="py-3 px-4 text-slate-300">Quant Signals</td>
+                  <td className="py-3 px-4 text-cyan-400">TabPFN-3</td>
+                  <td className="py-3 px-4 text-slate-400">PriorLabs</td>
+                  <td className="py-3 px-4 text-slate-500 text-xs">Local ML (trained)</td>
                 </tr>
                 <tr className="border-b border-slate-800">
                   <td className="py-3 px-4 text-slate-300">8.3 Research Debate</td>
-                  <td className="py-3 px-4 text-amber-400">claude-fable-5-free</td>
-                  <td className="py-3 px-4 text-slate-400">ZenMux</td>
-                  <td className="py-3 px-4 text-slate-500 text-xs">zenmux.ai</td>
+                  <td className="py-3 px-4 text-amber-400">z-ai/glm-5.2</td>
+                  <td className="py-3 px-4 text-slate-400">BigModel</td>
+                  <td className="py-3 px-4 text-slate-500 text-xs">open.bigmodel.cn</td>
                 </tr>
                 <tr className="border-b border-slate-800">
                   <td className="py-3 px-4 text-slate-300">9. Trading Plan</td>
-                  <td className="py-3 px-4 text-indigo-400">claude-fable-5-free</td>
-                  <td className="py-3 px-4 text-slate-400">ZenMux</td>
-                  <td className="py-3 px-4 text-slate-500 text-xs">zenmux.ai</td>
+                  <td className="py-3 px-4 text-indigo-400">z-ai/glm-5.2</td>
+                  <td className="py-3 px-4 text-slate-400">BigModel</td>
+                  <td className="py-3 px-4 text-slate-500 text-xs">open.bigmodel.cn</td>
                 </tr>
                 <tr>
                   <td className="py-3 px-4 text-slate-300">10. Lesson Summary</td>
@@ -215,7 +237,9 @@ function Introduction() {
               <span className="font-semibold text-slate-300">API Key Routing:</span>{' '}
               <span className="text-cyan-400">zenmux*</span> → ZENMUX_API_KEY |{' '}
               <span className="text-purple-400">agnes-ai*</span> → AGNES_API_KEY |{' '}
-              <span className="text-green-400">nvidia*</span> → NVIDIA_API_KEY
+              <span className="text-green-400">nvidia*</span> → NVIDIA_API_KEY |{' '}
+              <span className="text-amber-400">bigmodel*</span> → BIGMODEL_API_KEY |{' '}
+              <span className="text-amber-400">TabPFN</span> → TABPFN_KEY
             </p>
           </div>
         </section>

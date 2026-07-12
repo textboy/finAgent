@@ -113,6 +113,15 @@ if [ -f "$SCRIPT_DIR/config/.env" ]; then
     set -a
 fi
 
+# Load TABPFN_KEY from ~/.zshrc and export as TABPFN_TOKEN (required by tabpfn library)
+if [ -z "$TABPFN_KEY" ] && [ -f "$HOME/.zshrc" ]; then
+    TABPFN_KEY=$(grep -E '^tabpfn_key=' "$HOME/.zshrc" 2>/dev/null | head -1 | cut -d'"' -f2)
+    if [ -n "$TABPFN_KEY" ]; then
+        export TABPFN_KEY
+        export TABPFN_TOKEN="$TABPFN_KEY"
+    fi
+fi
+
 # Export RUN_MODE so finagent_api.py reads it
 export RUN_MODE="$RUN_MODE"
 
@@ -147,32 +156,21 @@ else
     echo "  ⚠️  NVIDIA_API_KEY is not set (optional)"
 fi
 
-# ==================================== 5. Setup Systemd Service (production only, running as root) ====================================
+if [ -n "$TABPFN_KEY" ]; then
+    echo "  ✅ TABPFN_KEY is set"
+else
+    echo "  ⚠️  TABPFN_KEY is not set (optional)"
+fi
+
+# ==================================== 5. Systemd Service Check (production only) ====================================
 echo ""
 echo "[5/5] Checking systemd service..."
 
 if [ "$RUN_MODE" = "production" ]; then
-    SERVICE_FILE="finagent.service"
-    if [ -f "$SCRIPT_DIR/$SERVICE_FILE" ]; then
-        if [ "$EUID" -eq 0 ]; then
-            # Running as root - install system service
-            cp "$SCRIPT_DIR/$SERVICE_FILE" /etc/systemd/system/
-            systemctl daemon-reload
-            systemctl enable finagent 2>/dev/null || true
-            echo "  ✅ Systemd service installed"
-        else
-            # Not root - check if service is available
-            if systemctl list-unit-files | grep -q finagent.service; then
-                echo "  ✅ Systemd service available"
-            else
-                echo "  ⚠️  Run as root to install systemd service: sudo ./start_server.sh production"
-            fi
-        fi
-        echo ""
-        echo "  To use systemd (persists after SSH close):"
-        echo "    sudo systemctl import-environment FINAGENT_ZENMUX_API_KEY AGNES_API_KEY"
-        echo "    sudo systemctl daemon-reload"
-        echo "    sudo systemctl start finagent"
+    if systemctl list-unit-files 2>/dev/null | grep -q finagent.service; then
+        echo "  ✅ Systemd service available"
+    else
+        echo "  ℹ️  Systemd service not installed (using nohup)"
     fi
 else
     echo "  ⏭️  Skipping systemd setup (local mode)"

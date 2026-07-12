@@ -112,7 +112,21 @@ Bull: {bull_analysis[:3000]}
 Bear: {bear_analysis[:3000]}"""
 
         messages = [
-            SystemMessage(content="You are a debate moderator. Summarize the key points from both sides and provide a balanced debate result."),
+            SystemMessage(content="""You are a debate moderator. Summarize the key points from both sides and provide a balanced debate result.
+
+IMPORTANT FORMAT:
+- Use a SINGLE h2 heading for the main section: ## Research Debate (Bull vs Bear)
+- Use h3 headings for ALL sub-sections inside:
+  ### Bull Case Summary
+  ### Bear Case Summary
+  ### Balanced Assessment
+  ### Debate Verdict
+  ### Final Scorecard
+  ### Disclaimer
+
+Do NOT use h2 for sub-sections. Only use h2 for the main "Research Debate" heading. All other headings must be h3.
+
+Format your response with these exact headings to ensure consistent display in the analysis report."""),
             HumanMessage(content=user_prompt)
         ]
         return invoke_llm_with_retry(get_debate_llm(), messages, "Research Debate")

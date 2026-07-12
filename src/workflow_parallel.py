@@ -140,7 +140,24 @@ def _step_7_past_lessons(symbol: str) -> Tuple[str, StepResult]:
         try:
             lessons = get_past_lessons(symbol)
             if lessons:
-                return "\n".join(lessons)
+                # Strip h1/h2 headings from each lesson and combine as bullet points
+                import re
+                cleaned_lessons = []
+                for lesson in lessons:
+                    # Remove h1, h2, h3 headings
+                    cleaned = re.sub(r'<h[123][^>]*>.*?</h[123]>', '', lesson, flags=re.DOTALL)
+                    cleaned = re.sub(r'^#{1,3}\s+.*$', '', cleaned, flags=re.MULTILINE)
+                    # Trim whitespace
+                    cleaned = cleaned.strip()
+                    if cleaned:
+                        # Truncate if too long
+                        if len(cleaned) > 500:
+                            cleaned = cleaned[:500] + "..."
+                        cleaned_lessons.append(f"- {cleaned}")
+                if cleaned_lessons:
+                    return "\n\n".join(cleaned_lessons)
+                else:
+                    return "No past lessons found. (Qdrant may not be available)"
             else:
                 return "No past lessons found. (Qdrant may not be available)"
         except Exception as e:

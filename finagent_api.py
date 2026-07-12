@@ -155,96 +155,236 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FinAgent Analysis Report - {symbol}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         * {{ box-sizing: border-box; margin: 0; padding: 0; }}
         body {{
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            background: linear-gradient(135deg, #020617 0%, #0f172a 50%, #020617 100%);
             color: #e2e8f0;
             line-height: 1.6;
-            padding: 2rem;
+            min-height: 100vh;
         }}
         .container {{
-            max-width: 1000px;
+            max-width: 900px;
             margin: 0 auto;
+            padding: 2rem 1.5rem;
         }}
-        h1 {{
+        /* Glass panel effect */
+        .glass-panel {{
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(51, 65, 85, 0.5);
+        }}
+        /* Header */
+        .header {{
+            text-align: center;
+            margin-bottom: 2rem;
+            padding: 2rem;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(6, 182, 212, 0.1));
+            border-radius: 1rem;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }}
+        .header h1 {{
             font-size: 2rem;
             font-weight: 700;
             background: linear-gradient(90deg, #a855f7, #06b6d4);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            background-clip: text;
             margin-bottom: 1rem;
-            border-bottom: 2px solid #334155;
-            padding-bottom: 1rem;
+        }}
+        .meta {{
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }}
+        .meta-item {{
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #94a3b8;
+            font-size: 0.875rem;
+        }}
+        .meta-item strong {{
+            color: #e2e8f0;
+        }}
+        .meta-icon {{
+            width: 1.25rem;
+            height: 1.25rem;
+            opacity: 0.7;
+        }}
+        /* Section panels */
+        .section {{
+            margin-bottom: 0.75rem;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            border: 1px solid rgba(51, 65, 85, 0.5);
+            transition: border-color 0.2s;
+        }}
+        .section:hover {{
+            border-color: rgba(71, 85, 105, 0.5);
+        }}
+        .section-header {{
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s;
+            user-select: none;
+        }}
+        .section-header:hover {{
+            background: rgba(51, 65, 85, 0.4);
+        }}
+        .section-header-left {{
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }}
+        .section-icon {{
+            width: 1.75rem;
+            height: 1.75rem;
+            border-radius: 0.375rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.875rem;
+            flex-shrink: 0;
+        }}
+        .section-title {{
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }}
+        .section-arrow {{
+            color: #94a3b8;
+            transition: transform 0.2s;
+            width: 14px;
+            height: 14px;
+        }}
+        .section.open .section-arrow {{
+            transform: rotate(180deg);
+        }}
+        .section-content {{
+            padding: 1rem 1.25rem;
+            border-top: 1px solid rgba(51, 65, 85, 0.3);
+            background: linear-gradient(180deg, rgba(2, 6, 23, 0.5), rgba(15, 23, 42, 0.3));
+        }}
+        /* Section colors - match homepage panel colors */
+        .section .section-header {{ background: linear-gradient(90deg, rgba(51, 65, 85, 0.4), rgba(71, 85, 105, 0.2)); }}
+        .section .section-icon {{ background: linear-gradient(135deg, #475569, #334155); }}
+        .section-quant .section-header {{ background: linear-gradient(90deg, rgba(51, 65, 85, 0.4), rgba(6, 182, 212, 0.2)); }}
+        .section-quant .section-icon {{ background: linear-gradient(135deg, #475569, #0891b2); }}
+        .section-trading .section-header {{ background: linear-gradient(90deg, rgba(71, 85, 105, 0.3), rgba(6, 182, 212, 0.3)); border-left: 3px solid #06b6d4; }}
+        .section-trading .section-icon {{ background: linear-gradient(135deg, #475569, #0891b2); }}
+        /* Content styling */
+        h1 {{
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #f1f5f9;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid rgba(51, 65, 85, 0.5);
         }}
         h2 {{
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: #94a3b8;
-            margin: 2rem 0 1rem 0;
-            padding-left: 1rem;
-            border-left: 4px solid #8b5cf6;
-        }}
-        h3 {{
             font-size: 1.25rem;
             font-weight: 600;
-            color: #cbd5e1;
+            color: #e2e8f0;
             margin: 1.5rem 0 0.75rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }}
+        h2::before {{
+            content: '';
+            width: 0.5rem;
+            height: 0.5rem;
+            background: #8b5cf6;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }}
+        h3 {{
+            font-size: 1rem;
+            font-weight: 500;
+            color: #cbd5e1;
+            margin: 1rem 0 0.5rem 0;
         }}
         p {{
-            margin-bottom: 1rem;
+            margin-bottom: 0.75rem;
             color: #94a3b8;
+            font-size: 0.875rem;
+            line-height: 1.7;
         }}
         strong {{
             color: #f1f5f9;
+            font-weight: 600;
         }}
         table {{
             width: 100%;
             border-collapse: collapse;
             margin: 1rem 0;
-            background: #1e293b;
-            border-radius: 8px;
+            border-radius: 0.5rem;
             overflow: hidden;
+            border: 1px solid rgba(51, 65, 85, 0.5);
+        }}
+        thead {{
+            background: rgba(15, 23, 42, 0.6);
         }}
         th {{
-            background: #334155;
             padding: 0.75rem 1rem;
             text-align: left;
             font-weight: 600;
-            color: #e2e8f0;
+            color: #cbd5e1;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid rgba(51, 65, 85, 0.5);
         }}
         td {{
             padding: 0.75rem 1rem;
-            border-top: 1px solid #334155;
+            border-bottom: 1px solid rgba(51, 65, 85, 0.3);
             color: #94a3b8;
+            font-size: 0.875rem;
+        }}
+        tr:last-child td {{
+            border-bottom: none;
         }}
         tr:hover td {{
-            background: #334155;
+            background: rgba(51, 65, 85, 0.2);
         }}
         ul, ol {{
-            margin: 1rem 0;
-            padding-left: 2rem;
+            margin: 0.75rem 0;
+            padding-left: 1.5rem;
             color: #94a3b8;
+            font-size: 0.875rem;
         }}
         li {{
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.375rem;
+            line-height: 1.6;
         }}
         code {{
-            background: #334155;
-            padding: 0.2rem 0.4rem;
-            border-radius: 4px;
+            background: rgba(51, 65, 85, 0.5);
+            padding: 0.125rem 0.375rem;
+            border-radius: 0.25rem;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.875rem;
+            font-size: 0.8125rem;
             color: #22d3ee;
+            border: 1px solid rgba(51, 65, 85, 0.5);
         }}
         pre {{
-            background: #1e293b;
+            background: rgba(15, 23, 42, 0.8);
             padding: 1rem;
-            border-radius: 8px;
+            border-radius: 0.5rem;
             overflow-x: auto;
             margin: 1rem 0;
-            border: 1px solid #334155;
+            border: 1px solid rgba(51, 65, 85, 0.5);
         }}
         pre code {{
             background: none;
@@ -330,14 +470,48 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 </head>
 <body>
     <div class="container">
-        <h1>📊 FinAgent Analysis Report</h1>
-        <div class="meta">
-            <span>Symbol: <strong>{symbol}</strong></span>
-            <span>Period: <strong>{period}</strong></span>
-            <span>Generated: <strong>{timestamp}</strong></span>
+        <div class="header">
+            <h1>📊 FinAgent Analysis Report</h1>
+            <div class="meta">
+                <div class="meta-item">
+                    <svg class="meta-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"></path><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+                    <span>Symbol: <strong>{symbol}</strong></span>
+                </div>
+                <div class="meta-item">
+                    <svg class="meta-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    <span>Period: <strong>{period}</strong></span>
+                </div>
+                <div class="meta-item">
+                    <svg class="meta-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    <span>Generated: <strong>{timestamp}</strong></span>
+                </div>
+            </div>
         </div>
         {content}
+        <footer style="text-align: center; padding: 2rem 0; color: #475569; font-size: 0.75rem; border-top: 1px solid rgba(51, 65, 85, 0.3); margin-top: 2rem;">
+            <p>© 2026 FinAgent. AI-Powered Financial Analysis Platform.</p>
+            <p style="margin-top: 0.5rem; color: #334155;">All analysis is generated by AI and should be used for informational purposes only.</p>
+        </footer>
     </div>
+    <script>
+    document.querySelectorAll('.section-header').forEach(header => {{
+        header.addEventListener('click', () => {{
+            const section = header.parentElement;
+            section.classList.toggle('open');
+            const content = section.querySelector('.section-content');
+            if (content) {{
+                content.style.display = section.classList.contains('open') ? 'block' : 'none';
+            }}
+        }});
+    }});
+    // Open trading plan by default
+    const tradingSection = document.querySelector('.section-trading');
+    if (tradingSection) {{
+        tradingSection.classList.add('open');
+        const content = tradingSection.querySelector('.section-content');
+        if (content) content.style.display = 'block';
+    }}
+    </script>
 </body>
 </html>"""
 
@@ -346,70 +520,105 @@ def md_to_html(md_content: str, symbol: str, period: str, timestamp: str) -> str
     """Convert markdown content to styled HTML with collapsible sections."""
     html_content = markdown.markdown(md_content, extensions=['tables', 'fenced_code'])
 
-    # Wrap h2 sections in collapsible details tags
-    # Split by h2 tags and wrap each section
+    # Wrap h2 sections in collapsible div tags
     import re
 
-    # Pattern to match h2 headers
-    h2_pattern = r'(<h2[^>]*>.*?</h2>)'
+    # Section mapping: keyword -> (css class, icon emoji)
+    # Only main h2 sections are mapped here
+    section_mapping = {
+        'fundamentals': ('section-fundamentals', '📊'),
+        'sentiment': ('section-sentiment', '💬'),
+        'technical': ('section-technical', '📈'),
+        'market overview': ('section-market', '🌍'),
+        'global economic': ('section-global', '🌐'),
+        'global economy': ('section-global', '🌐'),
+        'fund holding': ('section-fundholding', '🏦'),
+        'past lesson': ('section-pastlessons', '📚'),
+        'research debate': ('section-research', '🧠'),
+        'research': ('section-research', '🧠'),
+        'quant': ('section-quant', '📐'),
+        'trading plan': ('section-trading', '🎯'),
+        'trader plan': ('section-trading', '🎯'),
+        'trading': ('section-trading', '🎯'),
+        'execution info': ('section-trading', '🎯'),
+        'decision summary': ('section-trading', '🎯'),
+        'rationale': ('section-trading', '🎯'),
+    }
 
-    # Split content by h2 headers
-    parts = re.split(h2_pattern, html_content, flags=re.DOTALL)
+    # Helper to find section class for a header
+    def find_section_class(header_text):
+        for keyword, (css_class, icon) in section_mapping.items():
+            if keyword in header_text:
+                return css_class, icon
+        return None, '📄'
 
-    # Sections that should be collapsible (pipeline steps)
-    collapsible_keywords = [
-        'fundamentals',
-        'sentiment',
-        'technical',
-        'market overview',
-        'global economic',
-        'fund holding',
-        'past lesson',
-        'research',
-        'trading',
-        'execution info'
-    ]
-
-    # Sections that should NOT be collapsed (sub-sections within pipeline steps)
-    no_collapse_keywords = [
-        'key points summary',
-        'balanced debate result',
-        'debate result',
-        'bull case',
-        'bear case'
-    ]
-
+    # Process content - group h2 sections and nest h3 inside them
     wrapped_content = ''
+    current_section = None
+    current_section_content = ''
+    current_section_icon = '📄'
+
+    # Split by h1 and h2 headers
+    h_pattern = r'(<h[12][^>]*>.*?</h[12]>)'
+    parts = re.split(h_pattern, html_content, flags=re.DOTALL)
+
     i = 0
     while i < len(parts):
-        if i + 1 < len(parts) and parts[i].startswith('<h2'):
-            # This is an h2 header, wrap the header and following content in details
-            header = parts[i]
-            content = parts[i + 1] if i + 1 < len(parts) else ''
+        part = parts[i]
 
-            # Check if this section should be collapsible
-            header_lower = header.lower()
-            is_collapsible = any(keyword in header_lower for keyword in collapsible_keywords)
-            is_no_collapse = any(keyword in header_lower for keyword in no_collapse_keywords)
+        if part.startswith('<h1') or part.startswith('<h2'):
+            # Extract header text
+            header_text = re.sub(r'<[^>]+>', '', part).lower().strip()
+            section_class, section_icon = find_section_class(header_text)
 
-            # Don't collapse if it's in the no_collapse list
-            if is_no_collapse:
-                is_collapsible = False
+            if section_class:
+                # Clean header text
+                clean_header = re.sub(r'<h[12][^>]*>', '', part)
+                clean_header = re.sub(r'</h[12]>', '', clean_header)
 
-            if is_collapsible:
-                # Wrap in details tag (collapsed by default)
-                wrapped_content += f'<details>'
-                wrapped_content += f'<summary>{header}</summary>'
-                wrapped_content += f'<div class="content">{content}</div>'
-                wrapped_content += '</details>'
+                # If same section class, merge content instead of creating new section
+                if current_section == section_class:
+                    current_section_content += part
+                else:
+                    # Close previous section if exists
+                    if current_section:
+                        wrapped_content += f'<div class="section-content" style="display: none;">{current_section_content}</div>'
+                        wrapped_content += '</div>'
+
+                    # Start new section
+                    current_section = section_class
+                    current_section_content = ''
+                    current_section_icon = section_icon
+                    wrapped_content += f'<div class="section {section_class}">'
+                    wrapped_content += f'<div class="section-header">'
+                    wrapped_content += f'<div class="section-header-left">'
+                    wrapped_content += f'<div class="section-icon">{section_icon}</div>'
+                    wrapped_content += f'<span class="section-title">{clean_header}</span>'
+                    wrapped_content += f'</div>'
+                    wrapped_content += f'<svg class="section-arrow" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>'
+                    wrapped_content += f'</div>'
             else:
-                # Don't wrap - just output header and content directly
-                wrapped_content += header
-                wrapped_content += content
-            i += 2
+                # No matching section - close previous and output directly
+                if current_section:
+                    wrapped_content += f'<div class="section-content" style="display: none;">{current_section_content}</div>'
+                    wrapped_content += '</div>'
+                    current_section = None
+                    current_section_content = ''
+                wrapped_content += part
+
         else:
-            wrapped_content += parts[i]
-            i += 1
+            # Regular content (includes h3 and everything else)
+            if current_section:
+                current_section_content += part
+            else:
+                wrapped_content += part
+
+        i += 1
+
+    # Close last section if exists
+    if current_section:
+        wrapped_content += f'<div class="section-content" style="display: none;">{current_section_content}</div>'
+        wrapped_content += '</div>'
 
     return HTML_TEMPLATE.format(
         symbol=symbol,
