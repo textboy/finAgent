@@ -52,6 +52,7 @@ echo "[2/5] Installing dependencies..."
 
 # Show pip progress
 echo "  Installing Python packages..."
+echo "  Using: $(which pip) ($(python --version 2>&1))"
 
 # Install CPU-only torch first (smaller download, ~200MB vs ~2GB for GPU)
 echo "  → Installing CPU-only PyTorch..."
