@@ -399,6 +399,23 @@ function HomePage({ onLogout }) {
 
           const statusData = await statusResponse.json();
 
+          // Show real-time step updates while running
+          if (statusData.status === 'running' && statusData.step_logs && statusData.step_logs.length > 0) {
+            // Only show new logs (track by length)
+            const currentLogLength = statusData.step_logs.length;
+            if (currentLogLength > 0) {
+              const newLogs = statusData.step_logs.slice(-5); // Show last 5 logs
+              setLog(prev => {
+                const logs = newLogs.join('\n');
+                // Avoid duplicate logs
+                if (!prev.includes(logs)) {
+                  return prev + `\n${logs}`;
+                }
+                return prev;
+              });
+            }
+          }
+
           if (statusData.status === 'completed') {
             // Process results
             const data = { results: statusData.results };

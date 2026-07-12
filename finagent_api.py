@@ -24,8 +24,7 @@ SESSION_COOKIE_NAME = "finagent_session"
 SESSION_EXPIRY_DAYS = 30
 
 # Background job storage
-_jobs = {}  # job_id -> {"status": "running"|"completed"|"failed", "result": ..., "error": ...}
-_jobs_lock = threading.Lock()
+from src.job_store import _jobs, _jobs_lock
 
 # Setup logging
 os.makedirs('logs', exist_ok=True)
@@ -805,11 +804,11 @@ async def analyze_batch(req: AnalyzeRequest):
     # Create job and run in background
     job_id = str(uuid.uuid4())
     with _jobs_lock:
-        _jobs[job_id] = {"status": "running", "result": None, "error": None}
+        _jobs[job_id] = {"status": "running", "result": None, "error": None, "step_logs": [], "progress": {}}
 
     def _run_job():
         try:
-            pipeline_results = run_batch_pipeline(req.symbols, req.period)
+            pipeline_results = run_batch_pipeline(req.symbols, req.period, job_id=job_id)
             results = [format_pipeline_result(pr) for pr in pipeline_results]
             with _jobs_lock:
                 _jobs[job_id]["status"] = "completed"
@@ -850,7 +849,10 @@ async def analyze_status(job_id: str):
             headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"}
         )
     else:
-        return {"status": "running"}
+        return JSONResponse(
+            content={"status": "running", "step_logs": job.get("step_logs", []), "progress": job.get("progress", {})},
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"}
+        )
 
 
 @app.post("/analyze")

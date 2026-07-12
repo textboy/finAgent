@@ -50,10 +50,25 @@ source "$VENV_ACTIVATE" || { echo "❌ Failed to activate virtual environment"; 
 echo ""
 echo "[2/5] Installing dependencies..."
 
-pip install -r requirements.txt -q 2>/dev/null || {
+# Show pip progress
+echo "  Installing Python packages..."
+pip install -r requirements.txt --progress-bar on 2>&1 | while IFS= read -r line; do
+    if [[ "$line" == *"Downloading"* ]] || [[ "$line" == *"Installing"* ]] || [[ "$line" == *"Collecting"* ]]; then
+        echo "    $line"
+    elif [[ "$line" == *"Successfully installed"* ]]; then
+        echo "  ✅ $line"
+    elif [[ "$line" == *"already satisfied"* ]]; then
+        : # Skip "already satisfied" lines
+    elif [[ "$line" == *"ERROR"* ]] || [[ "$line" == *"Failed"* ]]; then
+        echo "  ⚠️  $line"
+    fi
+done
+
+if [ $? -eq 0 ]; then
+    echo "  ✅ Python dependencies installed"
+else
     echo "  ⚠️  Some dependencies may have failed to install"
-}
-echo "  ✅ Python dependencies installed"
+fi
 
 # Build frontend
 echo ""
@@ -68,11 +83,25 @@ if [ -f "$SCRIPT_DIR/web/package.json" ]; then
 
     # Install dependencies
     echo "  Installing npm dependencies..."
-    npm install 2>&1 | tail -3
+    npm install 2>&1 | while IFS= read -r line; do
+        if [[ "$line" == *"added"* ]] || [[ "$line" == *"changed"* ]] || [[ "$line" == *"up to date"* ]]; then
+            echo "    $line"
+        elif [[ "$line" == *"npm warn"* ]]; then
+            echo "    ⚠️  $line"
+        elif [[ "$line" == *"npm ERR"* ]]; then
+            echo "    ❌ $line"
+        fi
+    done
 
     # Build
     echo "  Running build..."
-    npm run build 2>&1
+    npm run build 2>&1 | while IFS= read -r line; do
+        if [[ "$line" == *"✓"* ]] || [[ "$line" == *"built in"* ]]; then
+            echo "    $line"
+        elif [[ "$line" == *"error"* ]] || [[ "$line" == *"Error"* ]]; then
+            echo "    ❌ $line"
+        fi
+    done
 
     if [ -d "dist" ]; then
         echo "  ✅ Frontend built successfully"

@@ -446,7 +446,7 @@ def _step_10_lesson_summary(
     return ("lesson_summary", _run_step_with_timeout(_run))
 
 
-def run_single_ticket_pipeline(symbol: str, investment_period: str) -> Dict[str, Any]:
+def run_single_ticket_pipeline(symbol: str, investment_period: str, job_id: str = None) -> Dict[str, Any]:
     """
     Run the complete analysis pipeline for a single stock ticket.
 
@@ -460,11 +460,42 @@ def run_single_ticket_pipeline(symbol: str, investment_period: str) -> Dict[str,
     logger.info(f"PIPELINE START: {symbol} ({investment_period})")
 
     step_display_names = {
+        "fundamentals": "Fundamentals",
+        "sentiment": "Sentiment",
+        "technical": "Technical",
+        "market": "Market",
+        "global_economic": "Global Economy",
+        "fund_holding": "Fund Holdings",
+        "past_lessons": "Past Lessons",
         "bull": "Bull Analysis",
         "bear": "Bear Analysis",
+        "quant": "Quant Signals",
         "debate": "Research Debate",
         "trading": "Trading Plan",
     }
+
+    # Import job update function
+    from src.job_store import _jobs, _jobs_lock
+
+    def _report_progress(step_name, status, log_msg=None):
+        """Report step progress for real-time UI updates."""
+        logger.debug(f"Reporting progress: {step_name} = {status}, job_id={job_id}")
+        if job_id and job_id in _jobs:
+            with _jobs_lock:
+                if "progress" not in _jobs[job_id]:
+                    _jobs[job_id]["progress"] = {}
+                _jobs[job_id]["progress"][f"{symbol}_{step_name}"] = {
+                    "symbol": symbol,
+                    "step": step_name,
+                    "step_display": step_display_names.get(step_name, step_name),
+                    "status": status,
+                    "timestamp": datetime.now().strftime("%H:%M:%S")
+                }
+                if log_msg:
+                    _jobs[job_id]["step_logs"].append(log_msg)
+                    logger.debug(f"Step log added: {log_msg[:50]}...")
+        else:
+            logger.debug(f"Job not found: {job_id}")
 
     result = {
         "symbol": symbol,
@@ -477,10 +508,21 @@ def run_single_ticket_pipeline(symbol: str, investment_period: str) -> Dict[str,
     }
 
     # Phase 1: Run steps 1-7 in parallel
+    _report_progress("phase1", "running", f"🔄 [{symbol}] Starting Phase 1: Data Collection...")
     try:
         steps_1_to_7 = _run_steps_1_to_7(symbol, investment_period, step_logs)
         result["steps"].update({k: v.result if v.success else f"[ERROR] {v.error}"
                                for k, v in steps_1_to_7.items()})
+
+        # Report progress for each completed step
+        for step_name, step_result in steps_1_to_7.items():
+            display_name = step_display_names.get(step_name, step_name)
+            if step_result.success:
+                _report_progress(step_name, "completed", f"✅ [{symbol}] {display_name} completed")
+            else:
+                _report_progress(step_name, "failed", f"❌ [{symbol}] {display_name} failed: {step_result.error[:100]}")
+
+        _report_progress("phase1", "completed", f"✅ [{symbol}] Phase 1 completed")
 
         # Check for critical failures
         critical_steps = ["fundamentals", "technical"]
@@ -504,6 +546,7 @@ def run_single_ticket_pipeline(symbol: str, investment_period: str) -> Dict[str,
 
     # Phase 2+Quant: Run bull/bear AND quant in parallel (requires steps 1-7)
     logger.info(f" [{symbol}] Phase 2+Quant: Starting Bull/Bear + Quant analysis...")
+    _report_progress("phase2", "running", f"🔄 [{symbol}] Starting Phase 2: Bull/Bear + Quant analysis...")
     step_logs.append(f"🔄 [{symbol}] Starting Bull/Bear + Quant analysis...")
     bull_result = StepResult(error="Not started")
     bear_result = StepResult(error="Not started")
@@ -532,6 +575,13 @@ def run_single_ticket_pipeline(symbol: str, investment_period: str) -> Dict[str,
                         quant_result = step_result
                         result["steps"]["quant"] = step_result.result if step_result.success else f"[ERROR] {step_result.error}"
 
+                    # Report progress for each completed step
+                    display_name = step_display_names.get(step_name, step_name)
+                    if step_result.success:
+                        _report_progress(step_name, "completed", f"✅ [{symbol}] {display_name} completed ({round(step_result.duration / 60, 2)} min)")
+                    else:
+                        _report_progress(step_name, "failed", f"❌ [{symbol}] {display_name} failed: {step_result.error[:100]}")
+
                     status = "✓" if step_result.success else "✗"
                     logger.debug(f" [{symbol}] Step {step_name} {status} ({step_result.duration:.1f}s)")
                 except Exception as e:
@@ -542,6 +592,7 @@ def run_single_ticket_pipeline(symbol: str, investment_period: str) -> Dict[str,
                         bear_result = StepResult(error=error_msg)
                     elif step_name == "quant":
                         quant_result = StepResult(error=error_msg)
+                    _report_progress(step_name, "failed", f"❌ [{symbol}] {step_display_names.get(step_name, step_name)} failed: {error_msg[:100]}")
                     logger.debug(f" [{symbol}] Step {step_name} ✗ ({error_msg})")
 
         # Log completion
@@ -582,6 +633,7 @@ def run_single_ticket_pipeline(symbol: str, investment_period: str) -> Dict[str,
         bear_result = StepResult(error=error_msg)
 
     # Phase 3: Debate (requires bull/bear)
+    _report_progress("debate", "running", f"🔄 [{symbol}] Starting Phase 3: Research Debate...")
     logger.info(f" [{symbol}] Phase 3: Starting Research Debate...")
     step_logs.append(f"🔄 [{symbol}] Starting Research Debate...")
     debate_result = StepResult(error="Skipped")
@@ -593,17 +645,21 @@ def run_single_ticket_pipeline(symbol: str, investment_period: str) -> Dict[str,
             result["steps"]["debate"] = debate_result.result if debate_result.success else f"[ERROR] {debate_result.error}"
 
             if debate_result.success:
+                _report_progress("debate", "completed", f"✅ [{symbol}] Research Debate completed ({round(debate_result.duration / 60, 2)} min)")
                 step_logs.append(f"✅ [{symbol}] Research Debate completed ({round(debate_result.duration / 60, 2)} min)")
             else:
                 error_detail = debate_result.error[:200] if debate_result.error else "Unknown error"
+                _report_progress("debate", "failed", f"❌ [{symbol}] Research Debate failed: {error_detail}")
                 step_logs.append(f"❌ [{symbol}] Research Debate failed: {error_detail}")
                 result["errors"].append(f"Debate failed: {debate_result.error}")
         else:
             result["steps"]["debate"] = "[ERROR] Skipped due to bull/bear failure"
             debate_result = StepResult(error="Skipped")
             if not bull_result.success:
+                _report_progress("debate", "skipped", f"❌ [{symbol}] Research Debate skipped (bull failed)")
                 step_logs.append(f"❌ [{symbol}] Research Debate skipped (bull failed)")
             else:
+                _report_progress("debate", "skipped", f"❌ [{symbol}] Research Debate skipped (bear failed)")
                 step_logs.append(f"❌ [{symbol}] Research Debate skipped (bear failed)")
     except MemoryError:
         result["errors"].append("Phase 3 failed: Out of memory")
@@ -614,6 +670,7 @@ def run_single_ticket_pipeline(symbol: str, investment_period: str) -> Dict[str,
         debate_result = StepResult(error=error_msg)
 
     # Phase 4: Trading Plan (requires debate + quant)
+    _report_progress("trading", "running", f"🔄 [{symbol}] Starting Phase 4: Trading Plan...")
     logger.info(f" [{symbol}] Phase 4: Starting Trading Plan...")
     step_logs.append(f"🔄 [{symbol}] Starting Trading Plan...")
     try:
@@ -626,9 +683,11 @@ def run_single_ticket_pipeline(symbol: str, investment_period: str) -> Dict[str,
             result["steps"]["trading"] = trading_result.result if trading_result.success else f"[ERROR] {trading_result.error}"
 
             if trading_result.success:
+                _report_progress("trading", "completed", f"✅ [{symbol}] Trading Plan completed ({round(trading_result.duration / 60, 2)} min)")
                 step_logs.append(f"✅ [{symbol}] Trading Plan completed ({round(trading_result.duration / 60, 2)} min)")
             else:
                 error_detail = trading_result.error[:200] if trading_result.error else "Unknown error"
+                _report_progress("trading", "failed", f"❌ [{symbol}] Trading Plan failed: {error_detail}")
                 step_logs.append(f"❌ [{symbol}] Trading Plan failed: {error_detail}")
                 result["errors"].append(f"Trading plan failed: {trading_result.error}")
         else:
@@ -683,13 +742,14 @@ def run_single_ticket_pipeline(symbol: str, investment_period: str) -> Dict[str,
     return result
 
 
-def run_batch_pipeline(symbols: list, investment_period: str) -> list:
+def run_batch_pipeline(symbols: list, investment_period: str, job_id: str = None) -> list:
     """
     Run analysis pipeline for multiple stock tickets in parallel.
 
     Args:
         symbols: List of stock symbols (max 5)
         investment_period: Investment period
+        job_id: Optional job ID for progress reporting
 
     Returns:
         List of results, one per symbol
@@ -709,11 +769,29 @@ def run_batch_pipeline(symbols: list, investment_period: str) -> list:
     batch_start = time.time()
     results = []
 
+    # Import job update function
+    from src.job_store import _jobs, _jobs_lock
+
+    def _update_job_progress(symbol, step_name, status, log_msg=None):
+        """Update job progress for real-time UI updates."""
+        if job_id and job_id in _jobs:
+            with _jobs_lock:
+                if "progress" not in _jobs[job_id]:
+                    _jobs[job_id]["progress"] = {}
+                _jobs[job_id]["progress"][f"{symbol}_{step_name}"] = {
+                    "symbol": symbol,
+                    "step": step_name,
+                    "status": status,
+                    "timestamp": datetime.now().strftime("%H:%M:%S")
+                }
+                if log_msg:
+                    _jobs[job_id]["step_logs"].append(log_msg)
+
     # Outer parallelism: run each symbol in parallel
     try:
         with ThreadPoolExecutor(max_workers=5) as executor:
             futures = {
-                executor.submit(run_single_ticket_pipeline, symbol.strip().upper(), investment_period): symbol
+                executor.submit(run_single_ticket_pipeline, symbol.strip().upper(), investment_period, job_id=job_id): symbol
                 for symbol in symbols
             }
 
