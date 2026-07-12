@@ -283,26 +283,32 @@ class QuantAgent:
         }
 
     def _meta_label(self, df: pd.DataFrame, trend: Dict, vol_regime: Dict) -> Dict[str, Any]:
-        """Generate meta-label prediction using TabPFN-3."""
+        """Generate meta-label prediction using TabPFN-3 (trained model only)."""
         try:
+            import os
+            import joblib
+
+            model_path = "models/trained/meta_label_model.pkl"
+
             # Prepare features for TabPFN
             features = self._prepare_features(df, trend, vol_regime)
 
-            # Try TabPFN first, fallback to rule-based
+            # Try TabPFN
             try:
                 from tabpfn import TabPFNClassifier
-                import joblib
-                import os
 
-                # Check if trained model exists
-                model_path = "models/trained/meta_label_model.pkl"
+                # Train model if not exists
+                if not os.path.exists(model_path):
+                    print(f"INFO: Training TabPFN model...")
+                    self._train_tabpfn_model(df)
+
+                # Load trained model
                 if os.path.exists(model_path):
                     model = joblib.load(model_path)
                     prediction_proba = model.predict_proba(features)[0]
                     confidence = max(prediction_proba)
                     prediction_idx = prediction_proba.argmax()
 
-                    # Map index to prediction
                     predictions = ["sell", "hold", "buy"]
                     prediction = predictions[prediction_idx]
 
@@ -313,21 +319,8 @@ class QuantAgent:
                         'method': 'tabpfn_trained'
                     }
                 else:
-                    # Use TabPFN zero-shot (no training needed)
-                    model = TabPFNClassifier()
-                    prediction_proba = model.predict_proba(features)[0]
-                    confidence = max(prediction_proba)
-                    prediction_idx = prediction_proba.argmax()
-
-                    predictions = ["sell", "hold", "buy"]
-                    prediction = predictions[prediction_idx]
-
-                    return {
-                        'prediction': prediction,
-                        'confidence': round(confidence, 2),
-                        'score': round(float(prediction_proba[2] - prediction_proba[0]), 2),
-                        'method': 'tabpfn_zeroshot'
-                    }
+                    print("WARNING: TabPFN training failed, using rule-based fallback")
+                    return self._meta_label_rule_based(trend, vol_regime)
 
             except ImportError:
                 print("WARNING: TabPFN not installed, using rule-based meta-label")
@@ -338,6 +331,90 @@ class QuantAgent:
 
         except Exception as e:
             return self._meta_label_rule_based(trend, vol_regime)
+
+    def _train_tabpfn_model(self, df: pd.DataFrame):
+        """Train TabPFN model on historical data."""
+        import os
+        import joblib
+        from tabpfn import TabPFNClassifier
+        from sklearn.model_selection import cross_val_score
+
+        # Create models directory
+        os.makedirs("models/trained", exist_ok=True)
+
+        # Generate training data using triple-barrier labels
+        X, y = self._generate_training_data(df)
+
+        if len(X) < 50:
+            print("WARNING: Insufficient training data for TabPFN")
+            return
+
+        # Train TabPFN
+        model = TabPFNClassifier()
+        model.fit(X, y)
+
+        # Evaluate
+        scores = cross_val_score(model, X, y, cv=5, scoring='accuracy')
+        print(f"INFO: TabPFN CV accuracy: {scores.mean():.2f} (+/- {scores.std():.2f})")
+
+        # Save model
+        model_path = "models/trained/meta_label_model.pkl"
+        joblib.dump(model, model_path)
+        print(f"INFO: TabPFN model saved to {model_path}")
+
+    def _generate_training_data(self, df: pd.DataFrame) -> tuple:
+        """Generate labeled training data using triple-barrier method."""
+        close = df['Close'].values
+        features_list = []
+        labels = []
+
+        # Use rolling window to generate samples
+        lookback = 50
+        forward = 20
+
+        for i in range(lookback, len(close) - forward):
+            # Create window
+            window = df.iloc[i-lookback:i+1]
+
+            # Calculate features
+            returns = window['Close'].pct_change()
+            feature_row = {
+                'return_1d': returns.iloc[-1],
+                'return_5d': returns.tail(5).mean(),
+                'return_20d': returns.tail(20).mean(),
+                'volatility_20d': returns.tail(20).std() * np.sqrt(252),
+                'rsi_14': self._calculate_rsi(window['Close'], 14).iloc[-1],
+                'adx': 25,  # Placeholder
+                'trend_strength': 0.5,  # Placeholder
+                'momentum_score': 0.5,  # Placeholder
+                'vol_regime': 0,
+                'price_vs_sma20': (window['Close'].iloc[-1] / window['Close'].rolling(20).mean().iloc[-1]) - 1,
+                'price_vs_sma50': (window['Close'].iloc[-1] / window['Close'].rolling(50).mean().iloc[-1]) - 1 if len(window) >= 50 else 0,
+                'volume_ratio': window['Volume'].iloc[-1] / window['Volume'].tail(20).mean(),
+            }
+
+            # Generate label using triple-barrier
+            current_price = close[i]
+            future_prices = close[i+1:i+forward+1]
+
+            # Simple triple-barrier: +5% = buy, -5% = sell, else hold
+            profit_target = current_price * 1.05
+            stop_loss = current_price * 0.95
+
+            if max(future_prices) >= profit_target:
+                label = 2  # buy
+            elif min(future_prices) <= stop_loss:
+                label = 0  # sell
+            else:
+                label = 1  # hold
+
+            features_list.append(feature_row)
+            labels.append(label)
+
+        X = pd.DataFrame(features_list)
+        y = pd.Series(labels)
+
+        return X, y
 
     def _prepare_features(self, df: pd.DataFrame, trend: Dict, vol_regime: Dict) -> pd.DataFrame:
         """Prepare feature matrix for TabPFN."""
@@ -504,6 +581,6 @@ Unable to fetch OHLCV data for {symbol}. Quant analysis requires:
 | Method | {meta_label.get('method', 'unknown')} |
 
 ---
-*Based on Marcos Lopez de Prado's Triple-Barrier Method with TabPFN-3 ML*
+*Based on Marcos Lopez de Prado's Triple-Barrier Method with TabPFN-3 ML (trained)*
 """
         return md
