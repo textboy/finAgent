@@ -6,6 +6,10 @@ __pycache__/
 # Project specific
 logs/
 results/
+# ML data and models
+data/historical/
+models/trained/
+qdrant/
 
 # C extensions
 *.so
