@@ -2,13 +2,15 @@
 Quant Agent - Triple-barrier + trend analysis based on Marcos Lopez de Prado's
 "Advances in Financial Machine Learning".
 
-Provides objective, rules-based signals to complement LLM analysis.
+Uses TabPFN-3 for meta-labeling (zero-shot tabular prediction).
 """
 
 import pandas as pd
 import numpy as np
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
+import warnings
+warnings.filterwarnings('ignore')
 
 
 class QuantAgent:
@@ -281,27 +283,110 @@ class QuantAgent:
         }
 
     def _meta_label(self, df: pd.DataFrame, trend: Dict, vol_regime: Dict) -> Dict[str, Any]:
-        """Generate meta-label prediction."""
-        # Simple scoring based on trend and volatility
+        """Generate meta-label prediction using TabPFN-3."""
+        try:
+            # Prepare features for TabPFN
+            features = self._prepare_features(df, trend, vol_regime)
+
+            # Try TabPFN first, fallback to rule-based
+            try:
+                from tabpfn import TabPFNClassifier
+                import joblib
+                import os
+
+                # Check if trained model exists
+                model_path = "models/trained/meta_label_model.pkl"
+                if os.path.exists(model_path):
+                    model = joblib.load(model_path)
+                    prediction_proba = model.predict_proba(features)[0]
+                    confidence = max(prediction_proba)
+                    prediction_idx = prediction_proba.argmax()
+
+                    # Map index to prediction
+                    predictions = ["sell", "hold", "buy"]
+                    prediction = predictions[prediction_idx]
+
+                    return {
+                        'prediction': prediction,
+                        'confidence': round(confidence, 2),
+                        'score': round(float(prediction_proba[2] - prediction_proba[0]), 2),
+                        'method': 'tabpfn_trained'
+                    }
+                else:
+                    # Use TabPFN zero-shot (no training needed)
+                    model = TabPFNClassifier()
+                    prediction_proba = model.predict_proba(features)[0]
+                    confidence = max(prediction_proba)
+                    prediction_idx = prediction_proba.argmax()
+
+                    predictions = ["sell", "hold", "buy"]
+                    prediction = predictions[prediction_idx]
+
+                    return {
+                        'prediction': prediction,
+                        'confidence': round(confidence, 2),
+                        'score': round(float(prediction_proba[2] - prediction_proba[0]), 2),
+                        'method': 'tabpfn_zeroshot'
+                    }
+
+            except ImportError:
+                print("WARNING: TabPFN not installed, using rule-based meta-label")
+                return self._meta_label_rule_based(trend, vol_regime)
+            except Exception as e:
+                print(f"WARNING: TabPFN failed: {e}, using rule-based fallback")
+                return self._meta_label_rule_based(trend, vol_regime)
+
+        except Exception as e:
+            return self._meta_label_rule_based(trend, vol_regime)
+
+    def _prepare_features(self, df: pd.DataFrame, trend: Dict, vol_regime: Dict) -> pd.DataFrame:
+        """Prepare feature matrix for TabPFN."""
+        # Technical features
+        close = df['Close']
+        returns = close.pct_change()
+
+        features = pd.DataFrame({
+            'return_1d': [returns.iloc[-1]],
+            'return_5d': [returns.tail(5).mean()],
+            'return_20d': [returns.tail(20).mean()],
+            'volatility_20d': [returns.tail(20).std() * np.sqrt(252)],
+            'rsi_14': [self._calculate_rsi(close, 14).iloc[-1]],
+            'adx': [trend['adx']],
+            'trend_strength': [trend['trend_strength']],
+            'momentum_score': [trend['momentum_score']],
+            'vol_regime': [1 if vol_regime['regime'] == 'expanding' else (-1 if vol_regime['regime'] == 'contracting' else 0)],
+            'price_vs_sma20': [(close.iloc[-1] / close.rolling(20).mean().iloc[-1]) - 1],
+            'price_vs_sma50': [(close.iloc[-1] / close.rolling(50).mean().iloc[-1]) - 1],
+            'volume_ratio': [df['Volume'].iloc[-1] / df['Volume'].tail(20).mean()],
+        })
+
+        return features
+
+    def _calculate_rsi(self, close: pd.Series, period: int = 14) -> pd.Series:
+        """Calculate RSI."""
+        delta = close.diff()
+        gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
+        rs = gain / loss
+        rsi = 100 - (100 / (1 + rs))
+        return rsi
+
+    def _meta_label_rule_based(self, trend: Dict, vol_regime: Dict) -> Dict[str, Any]:
+        """Rule-based fallback for meta-labeling."""
         score = 0
 
-        # Trend contribution
         if trend['regime'] in ['trending_up']:
             score += 0.3
         elif trend['regime'] in ['trending_down']:
             score -= 0.3
 
-        # Momentum contribution
         score += (trend['momentum_score'] - 0.5) * 0.4
 
-        # Volatility contribution (high vol = less confident)
         if vol_regime['regime'] == 'expanding':
             score -= 0.1
 
-        # Normalize to confidence (0-1)
         confidence = min(max((score + 0.5), 0), 1)
 
-        # Prediction
         if score > 0.1:
             prediction = "buy"
         elif score < -0.1:
@@ -312,7 +397,8 @@ class QuantAgent:
         return {
             'prediction': prediction,
             'confidence': round(confidence, 2),
-            'score': round(score, 2)
+            'score': round(score, 2),
+            'method': 'rule_based'
         }
 
     def _format_no_data(self, symbol: str) -> str:
@@ -415,8 +501,9 @@ Unable to fetch OHLCV data for {symbol}. Quant analysis requires:
 | Prediction | {meta_emoji} **{meta_label['prediction'].upper()}** |
 | Confidence | {meta_label['confidence']:.0%} |
 | Score | {meta_label['score']:.2f} |
+| Method | {meta_label.get('method', 'unknown')} |
 
 ---
-*Based on Marcos Lopez de Prado's Triple-Barrier Method*
+*Based on Marcos Lopez de Prado's Triple-Barrier Method with TabPFN-3 ML*
 """
         return md
