@@ -286,6 +286,7 @@ class QuantAgent:
         """Generate meta-label prediction using TabPFN-3 (trained model only)."""
         import os
         import joblib
+        from datetime import datetime
 
         model_path = "models/trained/meta_label_model.pkl"
 
@@ -304,18 +305,32 @@ class QuantAgent:
                 'error': 'TabPFN not installed. Run: pip install tabpfn'
             }
 
-        # Train model if not exists
+        # Train model if not exists or is older than 7 days
+        should_train = False
         if not os.path.exists(model_path):
-            print(f"INFO: Training TabPFN model...")
+            should_train = True
+            print(f"INFO: No trained model found, training...")
+        else:
+            # Check model age
+            model_age_days = (datetime.now().timestamp() - os.path.getmtime(model_path)) / 86400
+            if model_age_days > 7:
+                should_train = True
+                print(f"INFO: Model is {model_age_days:.1f} days old, retraining...")
+
+        if should_train:
             train_success = self._train_tabpfn_model(df)
             if not train_success:
-                return {
-                    'prediction': 'error',
-                    'confidence': 0,
-                    'score': 0,
-                    'method': 'error',
-                    'error': 'TabPFN training failed. Check logs for details.'
-                }
+                # If training fails and model exists, use existing model
+                if os.path.exists(model_path):
+                    print(f"WARNING: Training failed, using existing model")
+                else:
+                    return {
+                        'prediction': 'error',
+                        'confidence': 0,
+                        'score': 0,
+                        'method': 'error',
+                        'error': 'TabPFN training failed. Check logs for details.'
+                    }
 
         # Load trained model
         try:
