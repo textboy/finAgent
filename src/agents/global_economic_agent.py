@@ -93,13 +93,38 @@ class GlobalEconomicAnalyst:
 
 ---""")
 
-        # Fetch data for each major economy
+        # Fetch all indicators for all countries in parallel
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        fetch_tasks = {}
+        for country_code, country_name in self.MAJOR_ECONOMIES.items():
+            for indicator_name, indicator_code in self.INDICATORS.items():
+                key = (country_code, country_name, indicator_name, indicator_code)
+                fetch_tasks[key] = None
+
+        results = {}
+        with ThreadPoolExecutor(max_workers=8) as executor:
+            futures = {
+                executor.submit(self._fetch_indicator, ic, cc, dp): (cc, cn, iname, ic)
+                for (cc, cn, iname, ic), dp in [
+                    (k, data_points) for k in fetch_tasks
+                ]
+            }
+            for future in as_completed(futures):
+                cc, cn, iname, ic = futures[future]
+                try:
+                    data = future.result()
+                    results[(cc, iname)] = data
+                except Exception:
+                    results[(cc, iname)] = []
+
+        # Build report sections from fetched data
         for country_code, country_name in self.MAJOR_ECONOMIES.items():
             section = f"\n### {country_name} ({country_code})\n"
 
             indicators_data = []
             for indicator_name, indicator_code in self.INDICATORS.items():
-                data = self._fetch_indicator(indicator_code, country_code, data_points)
+                data = results.get((country_code, indicator_name), [])
                 if data:
                     latest = data[0]
                     prev = data[1] if len(data) > 1 else None

@@ -73,23 +73,31 @@ class StepResult:
 
 
 def _run_step_with_timeout(func, *args, timeout: int = STEP_TIMEOUT, **kwargs) -> StepResult:
-    """Run a function with timeout and error handling."""
+    """Run a function with enforced timeout using concurrent.futures."""
+    from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
     start = time.time()
-    try:
-        result = func(*args, **kwargs)
-        duration = time.time() - start
-        return StepResult(result=result, duration=duration)
-    except MemoryError:
-        duration = time.time() - start
-        error_msg = "MemoryError: Not enough memory to complete this step"
-        logger.error(f" Step failed (memory): {error_msg}")
-        return StepResult(error=error_msg, duration=duration)
-    except Exception as e:
-        duration = time.time() - start
-        error_msg = f"{type(e).__name__}: {str(e)}"
-        logger.error(f" Step failed after {duration:.1f}s: {error_msg}")
-        traceback.print_exc()
-        return StepResult(error=error_msg, duration=duration)
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(func, *args, **kwargs)
+        try:
+            result = future.result(timeout=timeout)
+            duration = time.time() - start
+            return StepResult(result=result, duration=duration)
+        except FuturesTimeout:
+            duration = time.time() - start
+            error_msg = f"Timeout: Step did not complete within {timeout}s"
+            logger.error(f" Step timed out after {timeout}s")
+            return StepResult(error=error_msg, duration=duration)
+        except MemoryError:
+            duration = time.time() - start
+            error_msg = "MemoryError: Not enough memory to complete this step"
+            logger.error(f" Step failed (memory): {error_msg}")
+            return StepResult(error=error_msg, duration=duration)
+        except Exception as e:
+            duration = time.time() - start
+            error_msg = f"{type(e).__name__}: {str(e)}"
+            logger.error(f" Step failed after {duration:.1f}s: {error_msg}")
+            traceback.print_exc()
+            return StepResult(error=error_msg, duration=duration)
 
 
 def _step_1_fundamentals(symbol: str, investment_period: str) -> Tuple[str, StepResult]:
