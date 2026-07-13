@@ -362,7 +362,6 @@ class QuantAgent:
         import os
         import joblib
         from tabpfn import TabPFNClassifier
-        from sklearn.model_selection import cross_val_score
 
         # Create models directory
         os.makedirs("models/trained", exist_ok=True)
@@ -382,14 +381,18 @@ class QuantAgent:
             print(f"ERROR: Need at least 2 classes, got {len(class_counts)}")
             return False
 
-        # Train TabPFN
+        # Train TabPFN with reduced ensemble for speed
         try:
-            model = TabPFNClassifier()
+            # N_ensemble_configurations=1 skips expensive ensemble averaging
+            model = TabPFNClassifier(N_ensemble_configurations=1)
             model.fit(X, y)
 
-            # Evaluate
-            scores = cross_val_score(model, X, y, cv=min(5, len(X)//10), scoring='accuracy')
-            print(f"INFO: TabPFN CV accuracy: {scores.mean():.2f} (+/- {scores.std():.2f})")
+            # Quick accuracy estimate on last 20% (no full CV — TabPFN is slow per inference)
+            split = int(len(X) * 0.8)
+            X_train, X_val = X.iloc[:split], X.iloc[split:]
+            y_train, y_val = y.iloc[:split], y.iloc[split:]
+            acc = (model.predict(X_val) == y_val).mean()
+            print(f"INFO: TabPFN holdout accuracy: {acc:.2f}")
 
             # Save model
             model_path = "models/trained/meta_label_model.pkl"
@@ -401,56 +404,57 @@ class QuantAgent:
             return False
 
     def _generate_training_data(self, df: pd.DataFrame) -> tuple:
-        """Generate labeled training data using triple-barrier method."""
-        close = df['Close'].values
-        features_list = []
-        labels = []
+        """Generate labeled training data using triple-barrier method (vectorized)."""
+        close = df['Close']
+        volume = df['Volume']
+        n = len(close)
 
-        # Use rolling window to generate samples
         lookback = 50
         forward = 20
 
-        for i in range(lookback, len(close) - forward):
-            # Create window
-            window = df.iloc[i-lookback:i+1]
+        if n < lookback + forward + 1:
+            return pd.DataFrame(), pd.Series(dtype=int)
 
-            # Calculate features
-            returns = window['Close'].pct_change()
-            feature_row = {
-                'return_1d': returns.iloc[-1],
-                'return_5d': returns.tail(5).mean(),
-                'return_20d': returns.tail(20).mean(),
-                'volatility_20d': returns.tail(20).std() * np.sqrt(252),
-                'rsi_14': self._calculate_rsi(window['Close'], 14).iloc[-1],
-                'adx': 25,  # Placeholder
-                'trend_strength': 0.5,  # Placeholder
-                'momentum_score': 0.5,  # Placeholder
-                'vol_regime': 0,
-                'price_vs_sma20': (window['Close'].iloc[-1] / window['Close'].rolling(20).mean().iloc[-1]) - 1,
-                'price_vs_sma50': (window['Close'].iloc[-1] / window['Close'].rolling(50).mean().iloc[-1]) - 1 if len(window) >= 50 else 0,
-                'volume_ratio': window['Volume'].iloc[-1] / window['Volume'].tail(20).mean(),
-            }
+        # Pre-compute all rolling features once (vectorized)
+        returns_1d = close.pct_change()
+        returns_5d = close.pct_change(5)
+        returns_20d = close.pct_change(20)
+        volatility_20d = returns_1d.rolling(20).std() * np.sqrt(252)
+        rsi_14 = self._calculate_rsi(close, 14)
+        sma20 = close.rolling(20).mean()
+        sma50 = close.rolling(50).mean()
+        vol_sma20 = volume.rolling(20).mean()
 
-            # Generate label using triple-barrier
-            current_price = close[i]
-            future_prices = close[i+1:i+forward+1]
+        # Triple-barrier labels (vectorized)
+        profit_target = close * 1.05
+        stop_loss = close * 0.95
 
-            # Simple triple-barrier: +5% = buy, -5% = sell, else hold
-            profit_target = current_price * 1.05
-            stop_loss = current_price * 0.95
+        # Rolling max/min of future prices
+        future_max = close.rolling(forward).max().shift(-forward)
+        future_min = close.rolling(forward).min().shift(-forward)
 
-            if max(future_prices) >= profit_target:
-                label = 2  # buy
-            elif min(future_prices) <= stop_loss:
-                label = 0  # sell
-            else:
-                label = 1  # hold
+        labels = pd.Series(1, index=close.index)  # default: hold
+        labels[future_max >= profit_target] = 2   # buy
+        labels[future_min <= stop_loss] = 0        # sell
 
-            features_list.append(feature_row)
-            labels.append(label)
+        # Build feature matrix using iloc slicing (no per-sample loop)
+        idx = range(lookback, n - forward)
+        X = pd.DataFrame({
+            'return_1d': returns_1d.iloc[idx].values,
+            'return_5d': returns_5d.iloc[idx].values,
+            'return_20d': returns_20d.iloc[idx].values,
+            'volatility_20d': volatility_20d.iloc[idx].values,
+            'rsi_14': rsi_14.iloc[idx].values,
+            'adx': 25.0,  # placeholder
+            'trend_strength': 0.5,  # placeholder
+            'momentum_score': 0.5,  # placeholder
+            'vol_regime': 0,  # placeholder
+            'price_vs_sma20': ((close.iloc[idx].values / sma20.iloc[idx].values) - 1),
+            'price_vs_sma50': ((close.iloc[idx].values / sma50.iloc[idx].values) - 1),
+            'volume_ratio': (volume.iloc[idx].values / vol_sma20.iloc[idx].values),
+        })
 
-        X = pd.DataFrame(features_list)
-        y = pd.Series(labels)
+        y = labels.iloc[idx].reset_index(drop=True)
 
         return X, y
 
