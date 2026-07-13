@@ -8,7 +8,7 @@ load_dotenv(os.path.join('config', '.env'))
 
 def get_llm():
     # Structured data synthesis — low creativity, high precision
-    return get_llm_client('FUND_HOLDING_MODEL', 'FUND_HOLDING_URL', 'Fund Holdings', temperature=0.2, top_p=0.9, top_k=40, provider_env_var='FUND_HOLDING_PROVIDER')
+    return get_llm_client('FUND_HOLDING_MODEL', 'FUND_HOLDING_URL', 'Fund Holdings', temperature=0.2, top_p=0.9, provider_env_var='FUND_HOLDING_PROVIDER')
 
 
 FUND_HOLDING_SYSTEM_PROMPT = """You are a senior quantitative financial analyst and fund research expert, fluent in regulatory disclosure systems across global and Chinese markets (such as US SEC 13F and Form N-PORT filings, Chinese mutual fund quarterly/semi-annual reports, and major third-party private fund data platforms).

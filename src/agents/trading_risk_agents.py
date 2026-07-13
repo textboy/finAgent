@@ -9,7 +9,7 @@ load_dotenv(os.path.join('config', '.env'))
 
 def get_llm():
     # Precise, disciplined financial decisions — low creativity, tight sampling
-    return get_llm_client('TRADING_MODEL', 'TRADING_URL', 'Trading Plan', temperature=0.3, top_p=0.9, top_k=30, provider_env_var='TRADING_PROVIDER')
+    return get_llm_client('TRADING_MODEL', 'TRADING_URL', 'Trading Plan', temperature=0.3, top_p=0.9, provider_env_var='TRADING_PROVIDER')
 
 
 INFO_SIZE = 1500

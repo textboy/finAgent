@@ -26,17 +26,17 @@ _debate_llm = None
 
 def get_bull_llm():
     # Persuasive argumentation — needs diverse reasoning
-    return get_llm_client('BULL_MODEL', 'BULL_URL', 'Bull Analysis', temperature=0.7, top_p=0.95, top_k=50, provider_env_var='BULL_PROVIDER')
+    return get_llm_client('BULL_MODEL', 'BULL_URL', 'Bull Analysis', temperature=0.7, top_p=0.95, provider_env_var='BULL_PROVIDER')
 
 
 def get_bear_llm():
     # Persuasive argumentation — needs diverse reasoning
-    return get_llm_client('BEAR_MODEL', 'BEAR_URL', 'Bear Analysis', temperature=0.7, top_p=0.95, top_k=50, provider_env_var='BEAR_PROVIDER')
+    return get_llm_client('BEAR_MODEL', 'BEAR_URL', 'Bear Analysis', temperature=0.7, top_p=0.95, provider_env_var='BEAR_PROVIDER')
 
 
 def get_debate_llm():
     # Balanced summarization — analytical, not too creative
-    return get_llm_client('DEBATE_MODEL', 'DEBATE_URL', 'Research Debate', temperature=0.4, top_p=0.9, top_k=40, provider_env_var='DEBATE_PROVIDER')
+    return get_llm_client('DEBATE_MODEL', 'DEBATE_URL', 'Research Debate', temperature=0.4, top_p=0.9, provider_env_var='DEBATE_PROVIDER')
 
 
 def get_llm():

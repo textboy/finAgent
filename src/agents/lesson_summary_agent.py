@@ -8,7 +8,7 @@ load_dotenv(os.path.join('config', '.env'))
 
 def get_llm():
     # Factual recap — stick to the source material
-    return get_llm_client('LESSON_MODEL', 'LESSON_URL', 'Lesson Summary', temperature=0.3, top_p=0.9, top_k=30, provider_env_var='LESSON_PROVIDER')
+    return get_llm_client('LESSON_MODEL', 'LESSON_URL', 'Lesson Summary', temperature=0.3, top_p=0.9, provider_env_var='LESSON_PROVIDER')
 
 
 LESSON_SUMMARY_SYSTEM_PROMPT = """You are a senior financial analyst responsible for creating concise learning summaries from investment analyses.
