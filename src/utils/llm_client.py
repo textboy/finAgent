@@ -34,7 +34,7 @@ MAX_RETRIES = 2
 RETRY_DELAY = 2  # seconds
 
 
-def get_llm_client(model_env_var: str, url_env_var: str, step_name: str, temperature: float = None, provider_env_var: str = None) -> ChatOpenAI:
+def get_llm_client(model_env_var: str, url_env_var: str, step_name: str, temperature: float = None, top_p: float = None, top_k: int = None, provider_env_var: str = None) -> ChatOpenAI:
     """
     Get or create a cached LLM client for the specified step.
 
@@ -43,6 +43,8 @@ def get_llm_client(model_env_var: str, url_env_var: str, step_name: str, tempera
         url_env_var: Environment variable name for the URL
         step_name: Name of the step (for logging)
         temperature: Temperature parameter (None = don't pass, some models don't support it)
+        top_p: Top-p (nucleus) sampling parameter (None = don't pass)
+        top_k: Top-k sampling parameter (None = don't pass)
         provider_env_var: Environment variable name for the provider (optional)
 
     Returns:
@@ -63,7 +65,7 @@ def get_llm_client(model_env_var: str, url_env_var: str, step_name: str, tempera
     backup_key = os.getenv("FINAGENT_ZENMUX_API_KEY") or os.getenv("ZENMUX_API_KEY")  # Backup always uses ZenMux
 
     # Build kwargs for ChatOpenAI
-    def _build_kwargs(model_name, api_key, url, temp):
+    def _build_kwargs(model_name, api_key, url, temp, tp_p=None, tp_k=None):
         kwargs = {
             "model": model_name,
             "api_key": api_key,
@@ -74,6 +76,10 @@ def get_llm_client(model_env_var: str, url_env_var: str, step_name: str, tempera
         # Only add temperature if explicitly provided
         if temp is not None:
             kwargs["temperature"] = temp
+        if tp_p is not None:
+            kwargs["top_p"] = tp_p
+        if tp_k is not None:
+            kwargs["top_k"] = tp_k
         return kwargs
 
     # Try primary LLM
@@ -81,7 +87,7 @@ def get_llm_client(model_env_var: str, url_env_var: str, step_name: str, tempera
         primary_key = get_api_key_for_url(base_url)
         provider_info = f" (provider: {provider})" if provider else ""
         print(f"DEBUG: {step_name} - Creating LLM client: {model} @ {base_url}{provider_info}")
-        llm = ChatOpenAI(**_build_kwargs(model, primary_key, base_url, temperature))
+        llm = ChatOpenAI(**_build_kwargs(model, primary_key, base_url, temperature, top_p, top_k))
         # Cache and return (no test call - fails naturally on first use)
         _llm_cache[cache_key] = llm
         print(f"DEBUG: {step_name} - Primary LLM client created")
@@ -92,7 +98,7 @@ def get_llm_client(model_env_var: str, url_env_var: str, step_name: str, tempera
         # Try backup LLM
         try:
             print(f"DEBUG: {step_name} - Trying backup LLM: {backup_model} @ {backup_url}")
-            llm = ChatOpenAI(**_build_kwargs(backup_model, backup_key, backup_url, temperature))
+            llm = ChatOpenAI(**_build_kwargs(backup_model, backup_key, backup_url, temperature, top_p, top_k))
             # Cache and return (no test call)
             _llm_cache[cache_key] = llm
             print(f"DEBUG: {step_name} - Backup LLM client created")
