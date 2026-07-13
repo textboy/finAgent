@@ -98,15 +98,15 @@ class MarketAnalyst:
         }
         period = period_map.get(investment_period, "6mo")
 
-        # Major indices using YahooFinanceCompat
-        spy_compat = YahooFinanceCompat("SPY")
-        qqq_compat = YahooFinanceCompat("QQQ")
-        vix_compat = YahooFinanceCompat("^VIX")
-
-        # Get historical data
-        spy_hist = spy_compat.get_history(period=period)
-        qqq_hist = qqq_compat.get_history(period=period)
-        vix_hist = vix_compat.get_history(period="5d")  # VIX only needs short term
+        # Major indices — fetch in parallel
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            spy_future = executor.submit(YahooFinanceCompat("SPY").get_history, period=period)
+            qqq_future = executor.submit(YahooFinanceCompat("QQQ").get_history, period=period)
+            vix_future = executor.submit(YahooFinanceCompat("^VIX").get_history, period="5d")
+            spy_hist = spy_future.result()
+            qqq_hist = qqq_future.result()
+            vix_hist = vix_future.result()
 
         # S&P 500 analysis
         spy_current = spy_hist['Close'].iloc[-1] if not spy_hist.empty else "N/A"
@@ -126,6 +126,7 @@ class MarketAnalyst:
         breadth = "Market breadth data unavailable (simplified mode)"
 
         # Sector performance (XLK, XLF, XLV, XLE, XLI, XLC, XLY, XLP, XLU, XLRE, XLB)
+        from concurrent.futures import ThreadPoolExecutor, as_completed
         sectors = {
             "XLK": "Technology",
             "XLF": "Financials",
@@ -139,21 +140,29 @@ class MarketAnalyst:
             "XLRE": "Real Estate",
             "XLB": "Materials"
         }
-        sector_perf = []
-        for ticker, name in sectors.items():
+
+        def _fetch_sector_perf(ticker, name):
             try:
                 compat = YahooFinanceCompat(ticker)
                 h = compat.get_history(period="1mo")
                 if len(h) >= 2:
                     perf = (h['Close'].iloc[-1] - h['Close'].iloc[0]) / h['Close'].iloc[0] * 100
-                    sector_perf.append(f"{name}: {perf:.2f}%")
+                    return f"{name}: {perf:.2f}%"
             except:
                 pass
+            return None
 
-        # Interest rates (10-year Treasury)
+        sector_perf = []
+        with ThreadPoolExecutor(max_workers=6) as executor:
+            futures = {executor.submit(_fetch_sector_perf, t, n): n for t, n in sectors.items()}
+            for future in as_completed(futures):
+                result = future.result()
+                if result:
+                    sector_perf.append(result)
+
+        # Interest rates (10-year Treasury) — already fetched in parallel above if needed
         try:
-            tnx_compat = YahooFinanceCompat("^TNX")
-            tnx_hist = tnx_compat.get_history(period="1mo")
+            tnx_hist = YahooFinanceCompat("^TNX").get_history(period="1mo")
             rate_10y = tnx_hist['Close'].iloc[-1] if not tnx_hist.empty else "N/A"
         except:
             rate_10y = "N/A"

@@ -101,7 +101,8 @@ def get_reddit_sentiment(symbol: str) -> str:
     subreddits = ['wallstreetbets', 'stocks', 'investing']
     all_posts = []
 
-    for sub in subreddits:
+    def _fetch_subreddit(sub):
+        posts = []
         try:
             url = f'https://www.reddit.com/r/{sub}/search.rss?q={symbol}&restrict_sr=1&limit=5'
             headers = {'User-Agent': 'FinAgent/1.0 (Financial Analysis Bot)'}
@@ -114,13 +115,18 @@ def get_reddit_sentiment(symbol: str) -> str:
 
                 for entry in entries[:3]:
                     title = entry.find('atom:title', ns).text or 'N/A'
-                    all_posts.append(f"r/{sub}: {title}")
+                    posts.append(f"r/{sub}: {title}")
             else:
                 print(f'WARNING: Reddit r/{sub} returned HTTP {response.status_code}')
         except Exception as e:
             print(f'WARNING: Could not fetch from r/{sub}: {str(e)[:50]}')
+        return posts
 
-        time.sleep(1)  # Rate limiting
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        futures = {executor.submit(_fetch_subreddit, sub): sub for sub in subreddits}
+        for future in as_completed(futures):
+            all_posts.extend(future.result())
 
     if not all_posts:
         return "No Reddit data available"
