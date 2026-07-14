@@ -26,7 +26,7 @@ FinAgents is a multi-agent trading framework that mirrors real-world trading fir
 |------|------|-------------|--------------|
 | 1 | Fundamentals | yfinance | - |
 | 2 | Sentiment & Social | yfinance + Reddit | - |
-| 3 | Technical | yfinance | - |
+| 3 | Technical | yfinance (SMA/EMA/RSI/MACD/BB/VWAP/Volume) | - |
 | 4 | Market Overview | yfinance | - |
 | 5 | Global Economy | World Bank API | - |
 | 6 | Fund Holdings | - | agnes-2.0-flash (Agnes AI) |
@@ -36,6 +36,19 @@ FinAgents is a multi-agent trading framework that mirrors real-world trading fir
 | 8.3 | Research Debate | - | z-ai/glm-5.2 (ZenMux) |
 | 9 | Trading Plan | - | z-ai/glm-5.2 (ZenMux) |
 | 10 | Lesson Summary | - | agnes-2.0-flash (Agnes AI, background) |
+
+#### Technical Indicators (Step 3)
+- **Trend**: SMA-50, SMA-100, EMA-10
+- **Momentum**: RSI, MACD + Signal line
+- **Volatility**: Bollinger Bands, VWAP
+- **Volume**: Volume SMA-10/20/50, Relative Volume (RVOL), Volume Spike Detection, Price-Volume Divergence
+
+#### Trading Plan Exit Strategy (Step 9)
+| Rule | Description |
+|------|-------------|
+| FTA Exit | Cut trades at First Trouble Area (resistance/support) |
+| Time Stop | Exit if target not reached within max holding period |
+| 0.9R Rule | Take partial profits at 0.9R gain, move stop to breakeven |
 
 ### 🤖 Multi-Provider LLM Support
 | Provider | URL | API Key |

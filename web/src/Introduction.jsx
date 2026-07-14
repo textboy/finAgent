@@ -74,7 +74,7 @@ function Introduction() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <StepCard number="1" name="Fundamentals" source="yfinance" color="blue" />
                 <StepCard number="2" name="Sentiment & Social" source="yfinance + Reddit" color="emerald" />
-                <StepCard number="3" name="Technical" source="yfinance" color="purple" />
+                <StepCard number="3" name="Technical" source="yfinance" color="purple" details="SMA/EMA/RSI/MACD/BB/VWAP/Volume" />
                 <StepCard number="4" name="Market Overview" source="yfinance" color="orange" />
                 <StepCard number="5" name="Global Economy" source="World Bank API" color="cyan" />
                 <StepCard number="6" name="Fund Holdings" source="LLM (agnes-2.0-flash)" color="teal" />
@@ -139,7 +139,7 @@ function Introduction() {
 
             {/* Phase 4 */}
             <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700/50">
-              <h4 className="font-bold text-indigo-400 mb-4 text-lg">Phase 4: Trading Plan (Step 9) - requires 8.3 + Quant</h4>
+              <h4 className="font-bold text-indigo-400 mb-4 text-lg">Phase 4: Trading Plan (Step 9) - requires 8.3 + Quant + Technical</h4>
               <div className="bg-gradient-to-br from-indigo-500/20 to-blue-500/20 rounded-lg p-4 border border-indigo-500/30">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-2xl">🎯</span>
@@ -148,7 +148,8 @@ function Introduction() {
                 <p className="text-sm text-slate-400">Model: z-ai/glm-5.2</p>
                 <p className="text-xs text-slate-500">Source: bigmodel</p>
                 <p className="text-xs text-emerald-400 mt-1">Output: BUY/SELL/HOLD, Target Price</p>
-                <p className="text-xs text-cyan-400 mt-1">Integrates Debate + Quant Signals</p>
+                <p className="text-xs text-cyan-400 mt-1">Integrates: Debate + Quant + Technical</p>
+                <p className="text-xs text-amber-400 mt-1">Exit Strategy: FTA / Time Stop / 0.9R Rule</p>
               </div>
               <div className="mt-4 text-center text-slate-500 text-sm">
                 ↓ Response returned to UI ↓
@@ -253,7 +254,7 @@ function Introduction() {
   )
 }
 
-function StepCard({ number, name, source, color }) {
+function StepCard({ number, name, source, color, details }) {
   const colorClasses = {
     blue: 'from-blue-500/20 to-cyan-500/20 border-blue-500/30',
     emerald: 'from-emerald-500/20 to-teal-500/20 border-emerald-500/30',
@@ -271,6 +272,7 @@ function StepCard({ number, name, source, color }) {
         <span className="font-medium text-white text-sm">{name}</span>
       </div>
       <p className="text-xs text-slate-500">{source}</p>
+      {details && <p className="text-xs text-cyan-400 mt-1">{details}</p>}
     </div>
   )
 }
