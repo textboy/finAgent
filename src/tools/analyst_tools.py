@@ -205,6 +205,85 @@ def get_vwap(symbol: str, investmentPeriod: str) -> str:
     # latest = hist.iloc[-1]['VWAP']
     return f"Latest VWAP: {hist['VWAP']},"
 
+def get_volume_analysis(symbol: str, investmentPeriod: str) -> str:
+    """Analyze volume trends including spike detection and moving averages."""
+    import pandas as pd
+    import numpy as np
+
+    interval = get_yf_interval(investmentPeriod)
+    period = get_yf_period(investmentPeriod)
+    hist = fetcher.get_yf_history(symbol, interval=interval, period=period)
+
+    if hist is None or len(hist) < 20:
+        return "Volume Analysis: Insufficient data"
+
+    volume = hist['Volume']
+    close = hist['Close']
+
+    # Current volume and averages
+    current_volume = volume.iloc[-1]
+    vol_sma_10 = volume.rolling(10).mean().iloc[-1]
+    vol_sma_20 = volume.rolling(20).mean().iloc[-1]
+    vol_sma_50 = volume.rolling(50).mean().iloc[-1] if len(volume) >= 50 else vol_sma_20
+
+    # Relative Volume (RVOL) - current vs 20-day average
+    rvol = current_volume / vol_sma_20 if vol_sma_20 > 0 else 1.0
+
+    # Volume Spike Detection
+    # Spike = volume > 2x 20-day average
+    vol_std = volume.rolling(20).std().iloc[-1]
+    vol_zscore = (current_volume - vol_sma_20) / vol_std if vol_std > 0 else 0
+
+    if rvol >= 2.0:
+        spike_status = "🔴 EXTREME SPIKE (RVOL ≥ 2.0)"
+    elif rvol >= 1.5:
+        spike_status = "🟡 HIGH VOLUME (RVOL 1.5-2.0)"
+    elif rvol >= 1.2:
+        spike_status = "🟢 ELEVATED (RVOL 1.2-1.5)"
+    elif rvol <= 0.5:
+        spike_status = "⚪ DEAD VOLUME (RVOL ≤ 0.5)"
+    else:
+        spike_status = "⚪ NORMAL (RVOL 0.5-1.2)"
+
+    # Volume Trend (10-day vs 20-day crossover)
+    vol_trend_10 = volume.rolling(10).mean().iloc[-1]
+    vol_trend_20 = volume.rolling(20).mean().iloc[-1]
+    if vol_trend_10 > vol_trend_20 * 1.1:
+        vol_trend = "📈 INCREASING (10DMA > 20DMA)"
+    elif vol_trend_10 < vol_trend_20 * 0.9:
+        vol_trend = "📉 DECREASING (10DMA < 20DMA)"
+    else:
+        vol_trend = "➡️ FLAT (10DMA ≈ 20DMA)"
+
+    # Price-Volume Divergence Check
+    price_change_5d = (close.iloc[-1] / close.iloc[-5] - 1) * 100 if len(close) >= 5 else 0
+    vol_change_5d = (volume.tail(5).mean() / volume.tail(20).mean() - 1) * 100 if len(volume) >= 20 else 0
+
+    if price_change_5d > 2 and vol_change_5d < -20:
+        divergence = "⚠️ BEARISH DIVERGENCE (Price ↑, Volume ↓)"
+    elif price_change_5d < -2 and vol_change_5d < -20:
+        divergence = "⚠️ CAPITULATION (Price ↓, Volume ↓)"
+    elif price_change_5d > 2 and vol_change_5d > 50:
+        divergence = "✅ BULLISH CONFIRMATION (Price ↑, Volume ↑)"
+    elif price_change_5d < -2 and vol_change_5d > 50:
+        divergence = "🔴 DISTRIBUTION (Price ↓, Volume ↑)"
+    else:
+        divergence = "➡️ NO DIVERGENCE"
+
+    # Format output
+    result = f"""VOLUME ANALYSIS:
+- Current Volume: {current_volume:,.0f}
+- Volume SMA-10: {vol_sma_10:,.0f}
+- Volume SMA-20: {vol_sma_20:,.0f}
+- Volume SMA-50: {vol_sma_50:,.0f}
+- Relative Volume (RVOL): {rvol:.2f}x
+- Volume Z-Score: {vol_zscore:.2f}
+- Spike Status: {spike_status}
+- Volume Trend: {vol_trend}
+- Price-Volume Divergence: {divergence}"""
+
+    return result
+
 def get_close_price(symbol: str) -> str:
     """Get latest close price from yfinance."""
     price = fetcher.get_close_price(symbol)

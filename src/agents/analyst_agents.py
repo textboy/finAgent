@@ -13,7 +13,8 @@ from ..tools.analyst_tools import (
     get_rsi,
     get_bbands,
     get_macd,
-    get_vwap
+    get_vwap,
+    get_volume_analysis
 )
 
 load_dotenv(os.path.join('config', '.env'))
@@ -70,6 +71,7 @@ class TechnicalAnalyst:
         bbands = get_bbands(data)
         macd_out = get_macd(symbol, investment_period)
         vwap_out = get_vwap(symbol, investment_period)
+        volume_out = get_volume_analysis(symbol, investment_period)
 
         return f"""=== TECHNICAL DATA: {symbol} ===
 
@@ -80,6 +82,8 @@ RSI: {rsi}
 BOLLINGER BANDS: {bbands}
 MACD: {macd_out}
 VWAP: {vwap_out}
+
+{volume_out}
 """
 
 class MarketAnalyst:
