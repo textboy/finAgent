@@ -46,6 +46,46 @@ class TradingAgent:
 5. **RISK SCORE**: Investment risk level (between 0 and 1, 0 is low risk and 1 is high risk)
 6. **LAST CLOSE PRICE**: ${close_price:.2f}
 7. **RATIONALE**: A brief explanation of the reasoning behind the decision.
+8. **EXIT STRATEGY**: Mandatory exit rules (see below).
+
+## MANDATORY EXIT STRATEGY RULES
+
+Every trading plan MUST include specific exit rules based on these three principles:
+
+### Rule 1: Cut trades at FTA (First Trouble Area)
+- Identify the FIRST significant resistance level (for longs) or support level (for shorts) that could cause a reversal
+- Set exit point JUST BEFORE this level (e.g., 0.5-1% before resistance)
+- This is your primary exit target, not the final target
+- Example: "Exit 50% position at $XXX (first resistance) if momentum stalls"
+
+### Rule 2: Time-based stop loss
+- Define maximum holding period based on forecast period:
+  - Short+: 3-5 days max
+  - Short: 2-3 weeks max
+  - Medium: 2-3 months max
+  - Long: 6+ months max
+- If trade hasn't hit target or FTA within this time, EXIT regardless of P/L
+- Time decay erodes edge — don't hold hoping for recovery
+- Example: "Time stop: Exit by [DATE] if target not reached"
+
+### Rule 3: The 0.9R Rule (Initial Risk Management)
+- Calculate R = Initial Risk (Entry Price - Stop Loss)
+- Take partial profits when trade reaches 0.9R gain
+- This locks in profits and reduces risk
+- After taking partial profits, move stop to breakeven
+- Let remaining position run with trailing stop
+- Example: "At 0.9R gain ($XXX), sell 50% and move stop to breakeven"
+
+## EXIT STRATEGY FORMAT
+Include this section in your output:
+
+### Exit Strategy
+| Rule | Trigger | Action |
+|------|---------|--------|
+| FTA Exit | [Price Level] | [Action: % to exit] |
+| Time Stop | [Date] | Exit if target not reached |
+| 0.9R Profit | [Price = Entry + 0.9R] | Sell 50%, move stop to breakeven |
+| Final Target | [Target Price] | Exit remaining position |
 
 Target Price Calculation Guidelines:
 - Based on valuation data from fundamental analysis
