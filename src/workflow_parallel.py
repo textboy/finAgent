@@ -391,11 +391,13 @@ Please incorporate these principles into your long-term investment debate summar
 
 
 def _step_9_trading(symbol: str, investment_period: str, debate_result: str,
-                    quant_result: str = None) -> Tuple[str, StepResult]:
-    """Step 9: Trading Plan (with optional quant data)."""
+                    quant_result: str = None, technical_result: str = None) -> Tuple[str, StepResult]:
+    """Step 9: Trading Plan (with optional quant and technical data)."""
     def _run():
-        # Combine debate and quant for comprehensive trading decision
+        # Combine debate, quant, and technical for comprehensive trading decision
         combined_input = debate_result
+
+        # Add quant signals if available
         if quant_result and quant_result != "[ERROR] Quant analysis failed":
             combined_input = f"""{debate_result}
 
@@ -415,6 +417,31 @@ Please incorporate the above quant signals into your trading decision. The quant
 - Meta-label confidence scores
 
 Use this data to validate or adjust your qualitative analysis."""
+
+        # Add technical indicators if available
+        if technical_result and technical_result != "[ERROR] Technical analysis failed":
+            combined_input = f"""{combined_input}
+
+---
+
+## TECHNICAL INDICATORS (Phase 1 Data)
+
+{technical_result}
+
+---
+
+Please incorporate the above technical indicators into your trading decision. The technical data provides:
+- Trend signals: SMA-50, SMA-100, EMA-10 crossovers
+- Momentum: RSI overbought/oversold, MACD signal
+- Volatility: Bollinger Bands width, VWAP
+- Volume: Relative Volume (RVOL), Volume trend, Price-Volume divergence
+
+Use these indicators to:
+1. Confirm or contradict the debate/quant signals
+2. Set precise entry/exit levels based on support/resistance
+3. Determine stop-loss based on ATR and Bollinger Bands
+4. Identify optimal entry timing using RSI and MACD"""
+
         return TradingAgent.decide(symbol, investment_period, combined_input)
     return ("trading", _run_step_with_timeout(_run))
 
@@ -677,16 +704,17 @@ def run_single_ticket_pipeline(symbol: str, investment_period: str, job_id: str 
         result["errors"].append(f"Phase 3 failed: {error_msg}")
         debate_result = StepResult(error=error_msg)
 
-    # Phase 4: Trading Plan (requires debate + quant)
+    # Phase 4: Trading Plan (requires debate + quant + technical)
     _report_progress("trading", "running", f"🔄 [{symbol}] Starting Phase 4: Trading Plan...")
     logger.info(f" [{symbol}] Phase 4: Starting Trading Plan...")
     step_logs.append(f"🔄 [{symbol}] Starting Trading Plan...")
     try:
         if debate_result.success:
-            # Get quant result (may have failed)
+            # Get quant and technical results (may have failed)
             quant_text = quant_result.result if quant_result.success else None
+            technical_text = steps_1_to_7.get("technical", StepResult()).result if steps_1_to_7.get("technical", StepResult()).success else None
             trading_name, trading_result = _step_9_trading(
-                symbol, investment_period, debate_result.result, quant_text
+                symbol, investment_period, debate_result.result, quant_text, technical_text
             )
             result["steps"]["trading"] = trading_result.result if trading_result.success else f"[ERROR] {trading_result.error}"
 
