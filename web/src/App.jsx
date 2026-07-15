@@ -523,7 +523,7 @@ function HomePage({ onLogout }) {
             </Link>
             <div className="flex items-center gap-2 sm:gap-4">
               <a
-                href="/introduction"
+                href="/app/introduction"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 bg-slate-900/50 rounded-lg border border-slate-800 hover:border-purple-500/50 hover:bg-slate-800/50 transition-all duration-300"
