@@ -116,8 +116,16 @@ if os.path.exists(WEB_DIST_DIR):
     # Mount public directory for ticket_mapping.json etc
     if os.path.exists(WEB_PUBLIC_DIR):
         app.mount("/public", StaticFiles(directory=WEB_PUBLIC_DIR), name="public")
-    # Mount root for index.html
-    app.mount("/app", StaticFiles(directory=WEB_DIST_DIR, html=True), name="frontend")
+
+
+# SPA catch-all route for frontend (must be after API routes)
+@app.get("/app/{full_path:path}")
+async def serve_spa(full_path: str):
+    """Serve index.html for all /app routes (SPA routing)."""
+    if os.path.exists(WEB_DIST_DIR):
+        from fastapi.responses import FileResponse
+        return FileResponse(os.path.join(WEB_DIST_DIR, "index.html"))
+    return {"detail": "Frontend not built"}
 
 
 @app.get("/")
