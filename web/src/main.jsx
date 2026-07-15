@@ -19,7 +19,7 @@ const Loading = () => (
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <BrowserRouter basename="/app">
+    <BrowserRouter>
       <Suspense fallback={<Loading />}>
         <App />
       </Suspense>
