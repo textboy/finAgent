@@ -30,7 +30,15 @@ def get_forecast_period(investmentPeriod: str) -> str:
 
 class TradingAgent:
     @staticmethod
-    def decide(symbol: str, investment_period: str, debate_result: str) -> str:
+    def decide(symbol: str, investment_period: str, analysis_data: str) -> str:
+        """
+        Generate trading plan from combined analysis data.
+
+        Args:
+            symbol: Stock ticker
+            investment_period: Investment period (short/medium/long)
+            analysis_data: Combined data from debate + quant signals + technical indicators
+        """
         forecast_period = get_forecast_period(investment_period)
         close_price_str = get_close_price(symbol)
         close_price = float(close_price_str)
@@ -124,7 +132,7 @@ long focus on fundamental analysis and macro news sentiment analysis."""
 
         user_prompt = f"""Analyze the following data and provide a trading plan:
 
-{debate_result}
+{analysis_data}
 
 Based on the above analysis (which includes debate results, quant signals, and technical indicators), generate a trading plan following the EXACT format specified in the system prompt."""
 
