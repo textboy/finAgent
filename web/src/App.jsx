@@ -522,8 +522,10 @@ function HomePage({ onLogout }) {
               </div>
             </Link>
             <div className="flex items-center gap-2 sm:gap-4">
-              <Link
-                to="/introduction"
+              <a
+                href="/introduction"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 bg-slate-900/50 rounded-lg border border-slate-800 hover:border-purple-500/50 hover:bg-slate-800/50 transition-all duration-300"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-400">
@@ -532,7 +534,7 @@ function HomePage({ onLogout }) {
                   <line x1="12" y1="17" x2="12.01" y2="17"></line>
                 </svg>
                 <span className="text-[10px] sm:text-xs font-mono text-slate-400 hidden sm:inline">Introduction</span>
-              </Link>
+              </a>
               {/* Profile & Logout */}
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 bg-slate-900/50 rounded-lg border border-slate-800">
