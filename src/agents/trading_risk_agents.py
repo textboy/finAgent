@@ -122,7 +122,11 @@ short focus on short/long-term technical analysis and news sentiment analysis an
 medium focus on fundamental analysis and long-term technical analysis and macro news sentiment analysis,
 long focus on fundamental analysis and macro news sentiment analysis."""
 
-        user_prompt = f"provide trader_plan including:\\n    - trading signal: BUY/SELL/HOLD\\n    - trading timing: when/what price to BUY/SELL\\n    - reason for trading\\nDebate result: {debate_result}"
+        user_prompt = f"""Analyze the following data and provide a trading plan:
+
+{debate_result}
+
+Based on the above analysis (which includes debate results, quant signals, and technical indicators), generate a trading plan following the EXACT format specified in the system prompt."""
 
         messages = [
             SystemMessage(content=system_prompt),
