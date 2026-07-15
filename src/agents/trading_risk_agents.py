@@ -37,55 +37,79 @@ class TradingAgent:
         print(f'DEBUG: forecast_period -- {forecast_period}')
         print(f'DEBUG: close_price -- {close_price:.2f}')
 
-        system_prompt = f"""You are a trading agent analyzing market data to make investment decisions. Based on your analysis, always include the following key information in your analysis:
-1. **PROPOSAL**: **BUY/HOLD/SELL**' to confirm your recommendation.
-2. **TARGET PRICE**: A 3-month mid-term forecast target price with currency based on analysis - Require: 1) provide a specific value;
-2) the target price should be reasonable and its fluctuation does not exceed ±30% of the latest closing price - ${close_price:.2f}.
-3. **FORECAST PERIOD**: {forecast_period}
-4. **CONFIDENCE**: The degree of confidence in the decision (between 0 and 1)
-5. **RISK SCORE**: Investment risk level (between 0 and 1, 0 is low risk and 1 is high risk)
-6. **LAST CLOSE PRICE**: ${close_price:.2f}
-7. **RATIONALE**: A brief explanation of the reasoning behind the decision.
-8. **EXIT STRATEGY**: Mandatory exit rules (see below).
+        system_prompt = f"""You are a trading agent analyzing market data to make investment decisions.
 
-## MANDATORY EXIT STRATEGY RULES
+## OUTPUT FORMAT
 
-Every trading plan MUST include specific exit rules based on these three principles:
+Generate a trading plan with EXACTLY these bullet points in order:
 
-### Rule 1: Cut trades at FTA (First Trouble Area)
-- Identify the FIRST significant resistance level (for longs) or support level (for shorts) that could cause a reversal
-- Set exit point JUST BEFORE this level (e.g., 0.5-1% before resistance)
-- This is your primary exit target, not the final target
-- Example: "Exit 50% position at $XXX (first resistance) if momentum stalls"
+### Trading Plan
 
-### Rule 2: Time-based stop loss
-- Define maximum holding period based on forecast period:
-  - Short+: 3-5 days max
-  - Short: 2-3 weeks max
-  - Medium: 2-3 months max
-  - Long: 6+ months max
-- If trade hasn't hit target or FTA within this time, EXIT regardless of P/L
-- Time decay erodes edge — don't hold hoping for recovery
-- Example: "Time stop: Exit by [DATE] if target not reached"
+**1. Proposal:** [HOLD/BUY/SELL]
 
-### Rule 3: The 0.9R Rule (Initial Risk Management)
-- Calculate R = Initial Risk (Entry Price - Stop Loss)
-- Take partial profits when trade reaches 0.9R gain
-- This locks in profits and reduces risk
-- After taking partial profits, move stop to breakeven
+**2. Final Target Price:** $[VALUE]
+- For HOLD/BUY: Target price within ±30% of last close (${close_price:.2f})
+- For SELL: If same as last close, means sell all immediately at market price
+
+**3. Exit Price:** $[VALUE] (optional, based on strategy)
+- Exit 50% of position at this price
+- Consolidates FTA (First Trouble Area) and 0.9R rule
+- Only include if there's a clear intermediate exit level
+- Omit if no suitable exit point identified
+
+**4. Stop Loss:** $[VALUE] (HOLD/BUY only, not for SELL)
+- Maximum acceptable loss level
+- Based on support levels and ATR
+
+**5. Forecast Period:** {forecast_period}
+
+**6. Confidence:** [0.00 - 1.00]
+
+**7. Risk Score:** [0.00 - 1.00] (0=low risk, 1=high risk)
+
+**8. Last Close Price:** ${close_price:.2f}
+
+**9. Rationale:** [2-3 sentences explaining the decision]
+
+## EXIT STRATEGY RULES
+
+### FTA (First Trouble Area)
+- First significant resistance (for longs) or support (for shorts)
+- Exit 50% position just before this level (0.5-1% buffer)
+
+### 0.9R Rule
+- R = Initial Risk (Entry - Stop Loss)
+- When trade reaches 0.9R profit, sell 50% and move stop to breakeven
 - Let remaining position run with trailing stop
-- Example: "At 0.9R gain ($XXX), sell 50% and move stop to breakeven"
 
-## EXIT STRATEGY FORMAT
-Include this section in your output:
+### Time Stop
+- Max holding period: {forecast_period}
+- Exit if target not reached within timeframe
 
-### Exit Strategy
-| Rule | Trigger | Action |
-|------|---------|--------|
-| FTA Exit | [Price Level] | [Action: % to exit] |
-| Time Stop | [Date] | Exit if target not reached |
-| 0.9R Profit | [Price = Entry + 0.9R] | Sell 50%, move stop to breakeven |
-| Final Target | [Target Price] | Exit remaining position |
+## EXAMPLE OUTPUT
+
+### Trading Plan
+
+**1. Proposal:** BUY
+
+**2. Final Target Price:** $345.00
+
+**3. Exit Price:** $325.00
+- Exit 50% at first resistance (FTA)
+
+**4. Stop Loss:** $305.00
+
+**5. Forecast Period:** {forecast_period}
+
+**6. Confidence:** 0.72
+
+**7. Risk Score:** 0.35
+
+**8. Last Close Price:** ${close_price:.2f}
+
+**9. Rationale:** Technical indicators show bullish momentum with RSI at 58 and MACD crossover. Volume analysis confirms accumulation phase. Fundamental strength supports 8-10% upside to target.
+
+---
 
 Target Price Calculation Guidelines:
 - Based on valuation data from fundamental analysis
