@@ -107,6 +107,62 @@ async def logout(response: Response):
 
 app.mount("/static", StaticFiles(directory="results"), name="static")
 
+
+# ==================================== Housekeeping ====================================
+import threading
+from datetime import datetime, timedelta
+
+REPORT_RETENTION_DAYS = 30
+
+def cleanup_old_reports():
+    """Delete HTML/MD reports older than REPORT_RETENTION_DAYS."""
+    results_dir = "results"
+    if not os.path.exists(results_dir):
+        return
+
+    cutoff = datetime.now() - timedelta(days=REPORT_RETENTION_DAYS)
+    deleted = 0
+
+    for filename in os.listdir(results_dir):
+        if not (filename.endswith(".html") or filename.endswith(".md")):
+            continue
+
+        filepath = os.path.join(results_dir, filename)
+        try:
+            # Extract date from filename: result_SYMBOL_PERIOD_YYYYMMDD_HHMM.ext
+            parts = filename.replace("result_", "").replace(".html", "").replace(".md", "").split("_")
+            if len(parts) >= 3:
+                date_str = parts[-2]  # YYYYMMDD
+                time_str = parts[-1]  # HHMM
+                file_date = datetime.strptime(f"{date_str}{time_str}", "%Y%m%d%H%M")
+
+                if file_date < cutoff:
+                    os.remove(filepath)
+                    deleted += 1
+        except (ValueError, IndexError):
+            continue
+
+    if deleted > 0:
+        print(f"HOUSEKEEPING: Deleted {deleted} reports older than {REPORT_RETENTION_DAYS} days")
+
+
+def schedule_housekeeping():
+    """Run housekeeping daily in background."""
+    while True:
+        time.sleep(86400)  # 24 hours
+        try:
+            cleanup_old_reports()
+        except Exception as e:
+            print(f"HOUSEKEEPING ERROR: {e}")
+
+
+# Start housekeeping thread
+housekeeping_thread = threading.Thread(target=schedule_housekeeping, daemon=True)
+housekeeping_thread.start()
+
+# Run on startup
+cleanup_old_reports()
+
 # Mount frontend build files (if exists)
 WEB_DIST_DIR = os.path.join(os.path.dirname(__file__), "web", "dist")
 WEB_PUBLIC_DIR = os.path.join(os.path.dirname(__file__), "web", "public")
