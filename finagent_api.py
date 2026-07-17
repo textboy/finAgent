@@ -64,6 +64,19 @@ app = FastAPI(title="FinAgent API", root_path="/finagent")
 async def health():
     return {"status": "ok"}
 
+
+@app.get("/debug/paths")
+async def debug_paths():
+    """Temporary diagnostic — remove after confirming assets work."""
+    return {
+        "WEB_DIST_DIR": WEB_DIST_DIR,
+        "exists": os.path.exists(WEB_DIST_DIR),
+        "assets_dir": os.path.join(WEB_DIST_DIR, "assets"),
+        "assets_exist": os.path.exists(os.path.join(WEB_DIST_DIR, "assets")),
+        "cwd": os.getcwd(),
+        "file": __file__,
+    }
+
 # CORS configuration - allow all origins (public API, no auth)
 cors_origins = ["*"]
 
@@ -169,8 +182,9 @@ housekeeping_thread.start()
 cleanup_old_reports()
 
 # Mount frontend build files (if exists)
-WEB_DIST_DIR = os.path.join(os.path.dirname(__file__), "web", "dist")
-WEB_PUBLIC_DIR = os.path.join(os.path.dirname(__file__), "web", "public")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+WEB_DIST_DIR = os.path.join(BASE_DIR, "web", "dist")
+WEB_PUBLIC_DIR = os.path.join(BASE_DIR, "web", "public")
 if os.path.exists(WEB_DIST_DIR):
     # Mount assets directory for CSS/JS files
     app.mount("/assets", StaticFiles(directory=os.path.join(WEB_DIST_DIR, "assets")), name="assets")
