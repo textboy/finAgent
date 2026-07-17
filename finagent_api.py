@@ -185,12 +185,21 @@ cleanup_old_reports()
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 WEB_DIST_DIR = os.path.join(BASE_DIR, "web", "dist")
 WEB_PUBLIC_DIR = os.path.join(BASE_DIR, "web", "public")
-if os.path.exists(WEB_DIST_DIR):
-    # Mount assets directory for CSS/JS files
-    app.mount("/assets", StaticFiles(directory=os.path.join(WEB_DIST_DIR, "assets")), name="assets")
-    # Mount public directory for ticket_mapping.json etc
-    if os.path.exists(WEB_PUBLIC_DIR):
-        app.mount("/public", StaticFiles(directory=WEB_PUBLIC_DIR), name="public")
+
+ASSETS_DIR = os.path.join(WEB_DIST_DIR, "assets")
+
+
+@app.get("/assets/{filename}")
+async def serve_asset(filename: str):
+    from fastapi.responses import FileResponse
+    filepath = os.path.join(ASSETS_DIR, filename)
+    if os.path.isfile(filepath):
+        return FileResponse(filepath)
+    raise HTTPException(status_code=404, detail="Asset not found")
+
+
+if os.path.exists(WEB_PUBLIC_DIR):
+    app.mount("/public", StaticFiles(directory=WEB_PUBLIC_DIR), name="public")
 
 
 # SPA catch-all for /app routes
