@@ -186,6 +186,15 @@ async def serve_asset(filename: str):
     raise HTTPException(status_code=404, detail="Asset not found")
 
 
+@app.get("/vite.svg")
+async def serve_favicon():
+    from fastapi.responses import FileResponse
+    svg_path = os.path.join(WEB_PUBLIC_DIR, "vite.svg")
+    if os.path.isfile(svg_path):
+        return FileResponse(svg_path, media_type="image/svg+xml")
+    raise HTTPException(status_code=404, detail="Favicon not found")
+
+
 if os.path.exists(WEB_PUBLIC_DIR):
     app.mount("/public", StaticFiles(directory=WEB_PUBLIC_DIR), name="public")
 
