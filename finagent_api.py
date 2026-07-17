@@ -65,18 +65,6 @@ async def health():
     return {"status": "ok"}
 
 
-@app.get("/debug/paths")
-async def debug_paths():
-    """Temporary diagnostic — remove after confirming assets work."""
-    return {
-        "WEB_DIST_DIR": WEB_DIST_DIR,
-        "exists": os.path.exists(WEB_DIST_DIR),
-        "assets_dir": os.path.join(WEB_DIST_DIR, "assets"),
-        "assets_exist": os.path.exists(os.path.join(WEB_DIST_DIR, "assets")),
-        "cwd": os.getcwd(),
-        "file": __file__,
-    }
-
 # CORS configuration - allow all origins (public API, no auth)
 cors_origins = ["*"]
 
