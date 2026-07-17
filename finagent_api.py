@@ -195,8 +195,13 @@ async def serve_favicon():
     raise HTTPException(status_code=404, detail="Favicon not found")
 
 
-if os.path.exists(WEB_PUBLIC_DIR):
-    app.mount("/public", StaticFiles(directory=WEB_PUBLIC_DIR), name="public")
+@app.get("/public/{filename}")
+async def serve_public(filename: str):
+    from fastapi.responses import FileResponse
+    filepath = os.path.join(WEB_PUBLIC_DIR, filename)
+    if os.path.isfile(filepath):
+        return FileResponse(filepath)
+    raise HTTPException(status_code=404, detail="File not found")
 
 
 # SPA catch-all for /app routes
