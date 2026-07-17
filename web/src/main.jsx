@@ -19,7 +19,7 @@ const Loading = () => (
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '')}>
       <Suspense fallback={<Loading />}>
         <App />
       </Suspense>
