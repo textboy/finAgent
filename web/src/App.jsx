@@ -56,7 +56,8 @@ function HomePage({ onLogout }) {
   const protocol = window.location.protocol; // http: or https:
   const serverHost = window.location.hostname;
   const serverPort = window.location.port || (protocol === 'https:' ? '443' : '8000');
-  const apiUrl = `${protocol}//${serverHost}${serverPort !== '443' && serverPort !== '80' ? ':' + serverPort : ''}`;
+  const basePath = window.location.pathname.replace(/\/[^/]*$/, '/').replace(/\/$/, '') || '';
+  const apiUrl = `${protocol}//${serverHost}${serverPort !== '443' && serverPort !== '80' ? ':' + serverPort : ''}${basePath}`;
 
   const [symbolInput, setSymbolInput] = useState('');
   const [period, setPeriod] = useState('medium');
@@ -1001,7 +1002,8 @@ function App() {
         const protocol = window.location.protocol
         const host = window.location.hostname
         const port = window.location.port || (protocol === 'https:' ? '443' : '8000')
-        const apiUrl = `${protocol}//${host}${port !== '443' && port !== '80' ? ':' + port : ''}`
+        const basePath = window.location.pathname.replace(/\/[^/]*$/, '/').replace(/\/$/, '') || ''
+        const apiUrl = `${protocol}//${host}${port !== '443' && port !== '80' ? ':' + port : ''}${basePath}`
 
         const response = await fetch(`${apiUrl}/api/session`)
         if (response.ok) {
@@ -1025,7 +1027,8 @@ function App() {
       const protocol = window.location.protocol
       const host = window.location.hostname
       const port = window.location.port || (protocol === 'https:' ? '443' : '8000')
-      const apiUrl = `${protocol}//${host}${port !== '443' && port !== '80' ? ':' + port : ''}`
+      const basePath = window.location.pathname.replace(/\/[^/]*$/, '/').replace(/\/$/, '') || ''
+      const apiUrl = `${protocol}//${host}${port !== '443' && port !== '80' ? ':' + port : ''}${basePath}`
 
       await fetch(`${apiUrl}/api/logout`, { method: 'POST' })
     } catch (err) {

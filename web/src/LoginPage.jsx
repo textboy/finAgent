@@ -15,7 +15,8 @@ function LoginPage({ onLogin }) {
       const protocol = window.location.protocol
       const host = window.location.hostname
       const port = window.location.port || (protocol === 'https:' ? '443' : '8000')
-      const apiUrl = `${protocol}//${host}${port !== '443' && port !== '80' ? ':' + port : ''}`
+      const basePath = window.location.pathname.replace(/\/[^/]*$/, '/').replace(/\/$/, '') || ''
+      const apiUrl = `${protocol}//${host}${port !== '443' && port !== '80' ? ':' + port : ''}${basePath}`
 
       const response = await fetch(`${apiUrl}/api/login`, {
         method: 'POST',
