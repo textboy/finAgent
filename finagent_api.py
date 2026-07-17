@@ -57,7 +57,7 @@ except (ValueError, TypeError) as e:
     logger.error(f"Error converting UVICORN_PORT to an integer: {e}")
     UVICORN_PORT = 8000
 
-app = FastAPI(title="FinAgent API")
+app = FastAPI(title="FinAgent API", root_path="/finagent")
 
 
 @app.get("/health")
