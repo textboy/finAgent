@@ -59,6 +59,11 @@ except (ValueError, TypeError) as e:
 
 app = FastAPI(title="FinAgent API")
 
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
 # CORS configuration - allow all origins (public API, no auth)
 cors_origins = ["*"]
 
