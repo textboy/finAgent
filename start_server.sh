@@ -2,6 +2,7 @@
 
 # Mode: ./start_server.sh local | ./start_server.sh production (default: production)
 RUN_MODE="${1:-production}"
+export RUN_MODE
 
 # Validate mode
 if [[ "$RUN_MODE" != "local" && "$RUN_MODE" != "production" ]]; then
