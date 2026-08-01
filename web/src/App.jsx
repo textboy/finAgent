@@ -81,6 +81,7 @@ function HomePage({ onLogout }) {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const abortControllerRef = useRef(null);
   const isSubmittingRef = useRef(false);
+  const eventSourceRef = useRef(null);
   const logEndRef = useRef(null);
   const inputRef = useRef(null);
   const suggestionsRef = useRef(null);
@@ -266,6 +267,10 @@ function HomePage({ onLogout }) {
   }, [tickerMapping]);
 
   const handleStop = useCallback(() => {
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
@@ -353,13 +358,8 @@ function HomePage({ onLogout }) {
     setExpandedPanels({});
     setLog(`🚀 Starting analysis for ${symbols.join(', ')} (${period})...\n`);
 
-    // Create new AbortController for this request with 10-minute timeout
+    // Create AbortController for the initial POST request only
     abortControllerRef.current = new AbortController();
-    const fetchTimeout = setTimeout(() => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    }, 600000); // 10 minutes
 
     try {
       // Start analysis job (returns immediately with job_id)
@@ -367,6 +367,7 @@ function HomePage({ onLogout }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ symbols, period }),
+        signal: abortControllerRef.current.signal,
       });
 
       if (!startResponse.ok) {
@@ -374,60 +375,50 @@ function HomePage({ onLogout }) {
       }
 
       const { job_id } = await startResponse.json();
-      setLog(prev => prev + `\n⏳ Job started. Polling for results...\n`);
+      setLog(prev => prev + `\n⏳ Job started. Waiting for real-time updates...\n`);
 
-      // Poll for results every 5 seconds
-      const pollInterval = 5000;
-      const maxPolls = 120; // 10 minutes max
-      let polls = 0;
+      // Connect to SSE stream for real-time updates (survives mobile screen lock)
+      await new Promise((resolve, reject) => {
+        const eventSource = new EventSource(`${apiUrl}/analyze-stream/${job_id}`);
+        eventSourceRef.current = eventSource;
 
-      while (polls < maxPolls) {
-        await new Promise(resolve => setTimeout(resolve, pollInterval));
-        polls++;
+        let settled = false;
 
-        // Check if cancelled
-        if (abortControllerRef.current?.signal?.aborted) {
-          setLog(prev => prev + `\n⏹️ Analysis cancelled by user.\n`);
-          return;
-        }
+        const cleanup = () => {
+          settled = true;
+          eventSource.close();
+          eventSourceRef.current = null;
+        };
 
-        try {
-          // Add cache-busting timestamp to prevent mobile browser caching
-          const statusResponse = await fetch(`${apiUrl}/analyze-status/${job_id}?t=${Date.now()}`, {
-            cache: 'no-store',
-          });
-          if (!statusResponse.ok) continue;
-
-          const statusData = await statusResponse.json();
-
-          // Show real-time step updates while running
-          if (statusData.status === 'running' && statusData.step_logs && statusData.step_logs.length > 0) {
-            // Only show new logs (track by length)
-            const currentLogLength = statusData.step_logs.length;
-            if (currentLogLength > 0) {
-              const newLogs = statusData.step_logs.slice(-5); // Show last 5 logs
-              setLog(prev => {
-                const logs = newLogs.join('\n');
-                // Avoid duplicate logs
-                if (!prev.includes(logs)) {
-                  return prev + `\n${logs}`;
-                }
-                return prev;
-              });
-            }
+        eventSource.addEventListener('step_log', (e) => {
+          try {
+            const { logs } = JSON.parse(e.data);
+            setLog(prev => {
+              const newLogs = logs.join('\n');
+              if (!prev.includes(newLogs)) {
+                return prev + `\n${newLogs}`;
+              }
+              return prev;
+            });
+          } catch (err) {
+            console.error('SSE step_log parse error:', err);
           }
+        });
 
-          if (statusData.status === 'completed') {
+        eventSource.addEventListener('completed', (e) => {
+          try {
+            const { results } = JSON.parse(e.data);
+            cleanup();
+
             // Process results
-            const data = { results: statusData.results };
-            setMultiResults(data.results);
-            if (data.results.length > 0 && data.results[0].timing) {
-              setTiming(data.results[0].timing);
+            setMultiResults(results);
+            if (results.length > 0 && results[0].timing) {
+              setTiming(results[0].timing);
             }
 
             // Log step completion
             let stepLog = '';
-            data.results.forEach(result => {
+            results.forEach(result => {
               if (result.step_logs && result.step_logs.length > 0) {
                 result.step_logs.forEach(log => { stepLog += `${log}\n`; });
               }
@@ -436,7 +427,7 @@ function HomePage({ onLogout }) {
 
             // Log errors
             let errorLog = '';
-            data.results.forEach(result => {
+            results.forEach(result => {
               if (result.errors && result.errors.length > 0) {
                 errorLog += `\n📋 ${result.symbol}:\n`;
                 result.errors.forEach(err => { errorLog += `  ${err}\n`; });
@@ -446,7 +437,7 @@ function HomePage({ onLogout }) {
 
             // Log cost summary
             let totalCost = 0, totalInputTokens = 0, totalOutputTokens = 0, costByModel = {};
-            data.results.forEach(result => {
+            results.forEach(result => {
               if (result.cost_summary) {
                 totalCost += result.cost_summary.total_cost || 0;
                 totalInputTokens += result.cost_summary.total_input_tokens || 0;
@@ -470,20 +461,39 @@ function HomePage({ onLogout }) {
               setLog(prev => prev + costLog);
             }
 
-            setLog(prev => prev + `\n✅ Analysis complete for ${data.results.length} symbol(s).\n`);
-            return;
-          } else if (statusData.status === 'failed') {
-            setLog(prev => prev + `\n❌ Analysis failed: ${statusData.error}\n`);
-            return;
+            setLog(prev => prev + `\n✅ Analysis complete for ${results.length} symbol(s).\n`);
+            resolve();
+          } catch (err) {
+            console.error('SSE completed parse error:', err);
+            reject(err);
           }
-          // else status is "running", continue polling
-        } catch (pollErr) {
-          // Poll request failed, continue trying
-          console.error('Poll error:', pollErr);
-        }
-      }
+        });
 
-      setLog(prev => prev + `\n⏱️ Polling timed out. The server may still be processing.\n`);
+        eventSource.addEventListener('failed', (e) => {
+          try {
+            const { error } = JSON.parse(e.data);
+            cleanup();
+            setLog(prev => prev + `\n❌ Analysis failed: ${error}\n`);
+            reject(new Error(error));
+          } catch (err) {
+            reject(err);
+          }
+        });
+
+        eventSource.addEventListener('error', (e) => {
+          if (!settled) {
+            // EventSource will auto-reconnect by default, but log the error
+            console.error('SSE connection error:', e);
+          }
+        });
+
+        eventSource.onerror = () => {
+          if (!settled) {
+            cleanup();
+            reject(new Error('SSE connection lost'));
+          }
+        };
+      });
     } catch (err) {
       if (err.name === 'AbortError') {
         setLog(prev => prev + `\n⏹️ Analysis cancelled by user.\n`);
@@ -494,7 +504,11 @@ function HomePage({ onLogout }) {
         setLog(prev => prev + `\n❌ Error: ${err.message}\n`);
       }
     } finally {
-      clearTimeout(fetchTimeout);
+      // Clean up any lingering EventSource
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
       setLoading(false);
       setIsAnalyzing(false);
       isSubmittingRef.current = false;
