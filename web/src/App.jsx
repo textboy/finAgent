@@ -379,10 +379,13 @@ function HomePage({ onLogout }) {
 
       // Connect to SSE stream for real-time updates (survives mobile screen lock)
       await new Promise((resolve, reject) => {
-        const eventSource = new EventSource(`${apiUrl}/analyze-stream/${job_id}`);
+        const eventSourceUrl = `${apiUrl}/analyze-stream/${job_id}`;
+        let eventSource = new EventSource(eventSourceUrl);
         eventSourceRef.current = eventSource;
 
         let settled = false;
+        let reconnectAttempts = 0;
+        const maxReconnects = 3;
 
         const cleanup = () => {
           settled = true;
@@ -390,112 +393,223 @@ function HomePage({ onLogout }) {
           eventSourceRef.current = null;
         };
 
-        eventSource.addEventListener('step_log', (e) => {
-          try {
-            const { logs } = JSON.parse(e.data);
-            setLog(prev => {
-              const newLogs = logs.join('\n');
-              if (!prev.includes(newLogs)) {
-                return prev + `\n${newLogs}`;
-              }
-              return prev;
-            });
-          } catch (err) {
-            console.error('SSE step_log parse error:', err);
-          }
-        });
-
-        eventSource.addEventListener('completed', (e) => {
-          try {
-            const { results } = JSON.parse(e.data);
-            cleanup();
-
-            // Process results
-            setMultiResults(results);
-            if (results.length > 0 && results[0].timing) {
-              setTiming(results[0].timing);
-            }
-
-            // Log step completion
-            let stepLog = '';
-            results.forEach(result => {
-              if (result.step_logs && result.step_logs.length > 0) {
-                result.step_logs.forEach(log => { stepLog += `${log}\n`; });
-              }
-            });
-            if (stepLog) setLog(prev => prev + `\n📊 Step Progress:\n${stepLog}`);
-
-            // Log errors
-            let errorLog = '';
-            results.forEach(result => {
-              if (result.errors && result.errors.length > 0) {
-                errorLog += `\n📋 ${result.symbol}:\n`;
-                result.errors.forEach(err => { errorLog += `  ${err}\n`; });
-              }
-            });
-            if (errorLog) setLog(prev => prev + `\n⚠️ Pipeline Warnings:${errorLog}`);
-
-            // Log cost summary
-            let totalCost = 0, totalInputTokens = 0, totalOutputTokens = 0, costByModel = {};
-            results.forEach(result => {
-              if (result.cost_summary) {
-                totalCost += result.cost_summary.total_cost || 0;
-                totalInputTokens += result.cost_summary.total_input_tokens || 0;
-                totalOutputTokens += result.cost_summary.total_output_tokens || 0;
-                if (result.cost_summary.by_model) {
-                  Object.entries(result.cost_summary.by_model).forEach(([model, info]) => {
-                    if (!costByModel[model]) costByModel[model] = { input: 0, output: 0, cost: 0 };
-                    costByModel[model].input += info.input_tokens || 0;
-                    costByModel[model].output += info.output_tokens || 0;
-                    costByModel[model].cost += info.cost || 0;
-                  });
-                }
-              }
-            });
-            if (totalCost > 0 || totalInputTokens > 0) {
-              let costLog = `\n💰 LLM Cost Summary:\n`;
-              costLog += `   Total: HK$${totalCost.toFixed(1)} (${totalInputTokens.toLocaleString()} input, ${totalOutputTokens.toLocaleString()} output tokens)\n`;
-              Object.entries(costByModel).forEach(([model, info]) => {
-                costLog += `   ${model}: HK$${info.cost.toFixed(1)} (${info.input.toLocaleString()} in / ${info.output.toLocaleString()} out)\n`;
-              });
-              setLog(prev => prev + costLog);
-            }
-
-            setLog(prev => prev + `\n✅ Analysis complete for ${results.length} symbol(s).\n`);
-            resolve();
-          } catch (err) {
-            console.error('SSE completed parse error:', err);
-            reject(err);
-          }
-        });
-
-        eventSource.addEventListener('failed', (e) => {
-          try {
-            const { error } = JSON.parse(e.data);
-            cleanup();
-            setLog(prev => prev + `\n❌ Analysis failed: ${error}\n`);
-            reject(new Error(error));
-          } catch (err) {
-            reject(err);
-          }
-        });
-
-        eventSource.addEventListener('error', (e) => {
-          if (!settled) {
-            // EventSource will auto-reconnect by default, but log the error
-            console.error('SSE connection error:', e);
-          }
-        });
-
-        eventSource.onerror = () => {
-          if (!settled) {
-            cleanup();
-            reject(new Error('SSE connection lost'));
-          }
+        const handleReconnect = () => {
+          if (settled || reconnectAttempts >= maxReconnects) return false;
+          reconnectAttempts++;
+          console.log(`SSE reconnect attempt ${reconnectAttempts}/${maxReconnects}`);
+          setLog(prev => prev + `\n🔄 Reconnecting (attempt ${reconnectAttempts})...\n`);
+          eventSource.close();
+          eventSource = new EventSource(eventSourceUrl);
+          eventSourceRef.current = eventSource;
+          attachListeners(eventSource);
+          return true;
         };
+
+        const attachListeners = (es) => {
+          es.addEventListener('connected', (e) => {
+            console.log('SSE connected:', JSON.parse(e.data));
+            reconnectAttempts = 0; // Reset on successful connect
+          });
+
+          es.addEventListener('step_log', (e) => {
+            try {
+              const { logs } = JSON.parse(e.data);
+              setLog(prev => {
+                const newLogs = logs.join('\n');
+                if (!prev.includes(newLogs)) {
+                  return prev + `\n${newLogs}`;
+                }
+                return prev;
+              });
+            } catch (err) {
+              console.error('SSE step_log parse error:', err);
+            }
+          });
+
+          es.addEventListener('completed', (e) => {
+            try {
+              const { results } = JSON.parse(e.data);
+              cleanup();
+
+              // Process results
+              setMultiResults(results);
+              if (results.length > 0 && results[0].timing) {
+                setTiming(results[0].timing);
+              }
+
+              // Log step completion
+              let stepLog = '';
+              results.forEach(result => {
+                if (result.step_logs && result.step_logs.length > 0) {
+                  result.step_logs.forEach(log => { stepLog += `${log}\n`; });
+                }
+              });
+              if (stepLog) setLog(prev => prev + `\n📊 Step Progress:\n${stepLog}`);
+
+              // Log errors
+              let errorLog = '';
+              results.forEach(result => {
+                if (result.errors && result.errors.length > 0) {
+                  errorLog += `\n📋 ${result.symbol}:\n`;
+                  result.errors.forEach(err => { errorLog += `  ${err}\n`; });
+                }
+              });
+              if (errorLog) setLog(prev => prev + `\n⚠️ Pipeline Warnings:${errorLog}`);
+
+              // Log cost summary
+              let totalCost = 0, totalInputTokens = 0, totalOutputTokens = 0, costByModel = {};
+              results.forEach(result => {
+                if (result.cost_summary) {
+                  totalCost += result.cost_summary.total_cost || 0;
+                  totalInputTokens += result.cost_summary.total_input_tokens || 0;
+                  totalOutputTokens += result.cost_summary.total_output_tokens || 0;
+                  if (result.cost_summary.by_model) {
+                    Object.entries(result.cost_summary.by_model).forEach(([model, info]) => {
+                      if (!costByModel[model]) costByModel[model] = { input: 0, output: 0, cost: 0 };
+                      costByModel[model].input += info.input_tokens || 0;
+                      costByModel[model].output += info.output_tokens || 0;
+                      costByModel[model].cost += info.cost || 0;
+                    });
+                  }
+                }
+              });
+              if (totalCost > 0 || totalInputTokens > 0) {
+                let costLog = `\n💰 LLM Cost Summary:\n`;
+                costLog += `   Total: HK$${totalCost.toFixed(1)} (${totalInputTokens.toLocaleString()} input, ${totalOutputTokens.toLocaleString()} output tokens)\n`;
+                Object.entries(costByModel).forEach(([model, info]) => {
+                  costLog += `   ${model}: HK$${info.cost.toFixed(1)} (${info.input.toLocaleString()} in / ${info.output.toLocaleString()} out)\n`;
+                });
+                setLog(prev => prev + costLog);
+              }
+
+              setLog(prev => prev + `\n✅ Analysis complete for ${results.length} symbol(s).\n`);
+              resolve();
+            } catch (err) {
+              console.error('SSE completed parse error:', err);
+              reject(err);
+            }
+          });
+
+          es.addEventListener('failed', (e) => {
+            try {
+              const { error } = JSON.parse(e.data);
+              cleanup();
+              setLog(prev => prev + `\n❌ Analysis failed: ${error}\n`);
+              reject(new Error(error));
+            } catch (err) {
+              reject(err);
+            }
+          });
+
+          es.addEventListener('error', (e) => {
+            if (!settled) {
+              console.error('SSE event error:', e);
+            }
+          });
+
+          es.onerror = () => {
+            if (!settled) {
+              // Try to reconnect before giving up
+              if (!handleReconnect()) {
+                cleanup();
+                reject(new Error('SSE connection lost'));
+              }
+            }
+          };
+        };
+
+        attachListeners(eventSource);
       });
     } catch (err) {
-      if (err.name === 'AbortError') {
+      // If SSE failed, fall back to polling (works everywhere but not on lock screen)
+      if (err.message === 'SSE connection lost' || err.message?.includes('SSE')) {
+        console.warn('SSE failed, falling back to polling:', err.message);
+        setLog(prev => prev + `\n⚠️ Real-time connection unavailable. Falling back to polling...\n`);
+
+        try {
+          const pollInterval = 5000;
+          const maxPolls = 120;
+          let polls = 0;
+
+          while (polls < maxPolls) {
+            await new Promise(resolve => setTimeout(resolve, pollInterval));
+            polls++;
+
+            if (abortControllerRef.current?.signal?.aborted) {
+              setLog(prev => prev + `\n⏹️ Analysis cancelled by user.\n`);
+              return;
+            }
+
+            try {
+              const statusResponse = await fetch(`${apiUrl}/analyze-status/${job_id}?t=${Date.now()}`, { cache: 'no-store' });
+              if (!statusResponse.ok) continue;
+
+              const statusData = await statusResponse.json();
+
+              if (statusData.status === 'running' && statusData.step_logs?.length > 0) {
+                const newLogs = statusData.step_logs.slice(-5);
+                setLog(prev => {
+                  const logs = newLogs.join('\n');
+                  return prev.includes(logs) ? prev : prev + `\n${logs}`;
+                });
+              }
+
+              if (statusData.status === 'completed') {
+                setMultiResults(statusData.results);
+                if (statusData.results?.[0]?.timing) setTiming(statusData.results[0].timing);
+
+                let stepLog = '';
+                statusData.results?.forEach(r => r.step_logs?.forEach(l => { stepLog += `${l}\n`; }));
+                if (stepLog) setLog(prev => prev + `\n📊 Step Progress:\n${stepLog}`);
+
+                let errorLog = '';
+                statusData.results?.forEach(r => {
+                  if (r.errors?.length > 0) {
+                    errorLog += `\n📋 ${r.symbol}:\n`;
+                    r.errors.forEach(e => { errorLog += `  ${e}\n`; });
+                  }
+                });
+                if (errorLog) setLog(prev => prev + `\n⚠️ Pipeline Warnings:${errorLog}`);
+
+                let totalCost = 0, totalInputTokens = 0, totalOutputTokens = 0, costByModel = {};
+                statusData.results?.forEach(r => {
+                  if (r.cost_summary) {
+                    totalCost += r.cost_summary.total_cost || 0;
+                    totalInputTokens += r.cost_summary.total_input_tokens || 0;
+                    totalOutputTokens += r.cost_summary.total_output_tokens || 0;
+                    if (r.cost_summary.by_model) {
+                      Object.entries(r.cost_summary.by_model).forEach(([m, i]) => {
+                        if (!costByModel[m]) costByModel[m] = { input: 0, output: 0, cost: 0 };
+                        costByModel[m].input += i.input_tokens || 0;
+                        costByModel[m].output += i.output_tokens || 0;
+                        costByModel[m].cost += i.cost || 0;
+                      });
+                    }
+                  }
+                });
+                if (totalCost > 0) {
+                  let costLog = `\n💰 LLM Cost Summary:\n   Total: HK$${totalCost.toFixed(1)} (${totalInputTokens.toLocaleString()} in / ${totalOutputTokens.toLocaleString()} out)\n`;
+                  Object.entries(costByModel).forEach(([m, i]) => {
+                    costLog += `   ${m}: HK$${i.cost.toFixed(1)} (${i.input.toLocaleString()} in / ${i.output.toLocaleString()} out)\n`;
+                  });
+                  setLog(prev => prev + costLog);
+                }
+
+                setLog(prev => prev + `\n✅ Analysis complete for ${statusData.results.length} symbol(s).\n`);
+                return;
+              } else if (statusData.status === 'failed') {
+                setLog(prev => prev + `\n❌ Analysis failed: ${statusData.error}\n`);
+                return;
+              }
+            } catch (pollErr) {
+              console.error('Poll error:', pollErr);
+            }
+          }
+          setLog(prev => prev + `\n⏱️ Polling timed out.\n`);
+        } catch (pollFallbackErr) {
+          setLog(prev => prev + `\n❌ Error: ${pollFallbackErr.message}\n`);
+        }
+      } else if (err.name === 'AbortError') {
         setLog(prev => prev + `\n⏹️ Analysis cancelled by user.\n`);
       } else if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
         setLog(prev => prev + `\n❌ Connection failed: Server may be down or crashed.\n`);

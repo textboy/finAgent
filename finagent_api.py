@@ -960,6 +960,10 @@ async def analyze_stream(job_id: str, request: Request):
     async def event_generator():
         last_log_count = 0
         heartbeat_counter = 0
+
+        # Send initial connected event immediately to confirm stream works
+        yield f"event: connected\ndata: {json.dumps({'job_id': job_id})}\n\n"
+
         while True:
             if await request.is_disconnected():
                 break
