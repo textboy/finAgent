@@ -7,11 +7,13 @@ import logging
 import markdown
 import threading
 import uuid
+import asyncio
 from datetime import datetime, timedelta
 from typing import List
 from fastapi import FastAPI, HTTPException, Response, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from src.workflow_parallel import run_single_ticket_pipeline, run_batch_pipeline
@@ -947,6 +949,63 @@ async def analyze_status(job_id: str):
             content={"status": "running", "step_logs": job.get("step_logs", []), "progress": job.get("progress", {})},
             headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"}
         )
+
+
+@app.get("/analyze-stream/{job_id}")
+async def analyze_stream(job_id: str, request: Request):
+    """SSE endpoint for real-time job status updates. Survives mobile browser screen lock."""
+    if job_id not in _jobs:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    async def event_generator():
+        last_log_count = 0
+        heartbeat_counter = 0
+        while True:
+            if await request.is_disconnected():
+                break
+
+            with _jobs_lock:
+                job = _jobs.get(job_id)
+
+            if not job:
+                yield f"event: error\ndata: {json.dumps({'error': 'Job not found'})}\n\n"
+                break
+
+            if job["status"] == "completed":
+                with _jobs_lock:
+                    _jobs.pop(job_id, None)
+                yield f"event: completed\ndata: {json.dumps({'results': job['result']})}\n\n"
+                break
+
+            if job["status"] == "failed":
+                with _jobs_lock:
+                    _jobs.pop(job_id, None)
+                yield f"event: failed\ndata: {json.dumps({'error': job['error']})}\n\n"
+                break
+
+            # Send new step logs
+            current_logs = job.get("step_logs", [])
+            if len(current_logs) > last_log_count:
+                new_logs = current_logs[last_log_count:]
+                last_log_count = len(current_logs)
+                yield f"event: step_log\ndata: {json.dumps({'logs': new_logs})}\n\n"
+
+            # Heartbeat every 15 iterations (~15s)
+            heartbeat_counter += 1
+            if heartbeat_counter % 15 == 0:
+                yield ": heartbeat\n\n"
+
+            await asyncio.sleep(1)
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "X-Accel-Buffering": "no",
+            "Pragma": "no-cache",
+        },
+    )
 
 
 @app.post("/analyze")
