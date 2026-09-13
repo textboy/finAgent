@@ -55,7 +55,7 @@ function HomePage({ onLogout }) {
   // Use current browser protocol/host/port for API calls
   const protocol = window.location.protocol; // http: or https:
   const serverHost = window.location.hostname;
-  const serverPort = window.location.port || (protocol === 'https:' ? '443' : '8000');
+  const serverPort = window.location.port || (protocol === 'https:' ? '443' : '80');
   const basePath = window.location.pathname.replace(/\/[^/]*$/, '/').replace(/\/$/, '') || '';
   const apiUrl = `${protocol}//${serverHost}${serverPort !== '443' && serverPort !== '80' ? ':' + serverPort : ''}${basePath}`;
 
@@ -1129,7 +1129,7 @@ function App() {
       try {
         const protocol = window.location.protocol
         const host = window.location.hostname
-        const port = window.location.port || (protocol === 'https:' ? '443' : '8000')
+        const port = window.location.port || (protocol === 'https:' ? '443' : '80')
         const basePath = window.location.pathname.replace(/\/[^/]*$/, '/').replace(/\/$/, '') || ''
         const apiUrl = `${protocol}//${host}${port !== '443' && port !== '80' ? ':' + port : ''}${basePath}`
 
