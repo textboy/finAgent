@@ -96,6 +96,20 @@ finagent_cli.cmd
 - [Miniconda](https://docs.conda.io/en/latest/miniconda.html) or [Anaconda](https://www.anaconda.com/download) (Python 3.12 managed by conda)
 - Node.js (for frontend build)
 
+#### Production Only
+- [Nginx](https://nginx.org/) (reverse proxy for HTTPS and static assets)
+
+```shell
+# Ubuntu/Debian
+sudo apt update && sudo apt install -y nginx
+
+# CentOS/RHEL
+sudo yum install -y nginx
+
+# macOS (via Homebrew)
+brew install nginx
+```
+
 ### Manual Setup
 
 #### Conda Environment
