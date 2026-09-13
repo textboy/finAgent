@@ -60,7 +60,7 @@ except (ValueError, TypeError) as e:
     logger.error(f"Error converting UVICORN_PORT to an integer: {e}")
     UVICORN_PORT = 8000
 
-app = FastAPI(title="FinAgent API")
+app = FastAPI(title="FinAgent API", redirect_slashes=False)
 
 
 @app.get(f"{API_PREFIX}/health")
@@ -215,7 +215,7 @@ async def serve_spa(full_path: str):
     return FileResponse(os.path.join(WEB_DIST_DIR, "index.html"))
 
 
-@app.get(API_PREFIX or "/")
+@app.get(f"{API_PREFIX}/")
 async def root():
     """Root endpoint - serves frontend or returns API status."""
     if os.path.exists(WEB_DIST_DIR):

@@ -155,8 +155,8 @@ server {
         proxy_send_timeout 600s;
     }
 
-    # Redirect root to /finagent/
-    location = / {
+    # Redirect /finagent to /finagent/ (add trailing slash)
+    location = /finagent {
         return 301 /finagent/;
     }
 }
