@@ -92,12 +92,19 @@ cd finAgent
 finagent_cli.cmd
 ```
 
+### Prerequisites
+- [Miniconda](https://docs.conda.io/en/latest/miniconda.html) or [Anaconda](https://www.anaconda.com/download) (Python 3.12 managed by conda)
+- Node.js (for frontend build)
+
 ### Manual Setup
 
-#### Virtual Environment
+#### Conda Environment
 ```shell
-python3 -m venv finagent
-source finagent/bin/activate
+# Create conda environment with Python 3.12
+conda create -n finagent python=3.12
+conda activate finagent
+
+# Install dependencies
 pip install -r requirements.txt
 ```
 

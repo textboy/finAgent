@@ -17,35 +17,43 @@ echo "=================================== FinAgent Backend ($RUN_MODE) =========
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR" || { echo "❌ Failed to change directory"; exit 1; }
 
-# ==================================== 1. Check/Install Virtual Environment ====================================
+# ==================================== 1. Check/Install Conda Environment ====================================
 echo ""
-echo "[1/5] Checking virtual environment..."
+echo "[1/5] Checking conda environment..."
 
-VENV_DIR="finagent"
-VENV_ACTIVATE="$VENV_DIR/bin/activate"
+CONDA_ENV="finagent"
+CONDA_PYTHON_VERSION="3.12"
 
-if [ ! -f "$VENV_ACTIVATE" ]; then
-    echo "  Virtual environment not found. Creating..."
-    python3 -m venv "$VENV_DIR" 2>/dev/null || {
-        if [ "$RUN_MODE" = "production" ]; then
-            apt-get update -qq && apt-get install -y -qq python3 python3-venv
-            python3 -m venv "$VENV_DIR"
-        else
-            pip install virtualenv -q
-            virtualenv -p python3 "$VENV_DIR"
-        fi
-    }
-    if [ ! -f "$VENV_ACTIVATE" ]; then
-        echo "  ❌ Failed to create virtual environment"
-        exit 1
-    fi
-    echo "  ✅ Virtual environment created"
-else
-    echo "  ✅ Virtual environment found"
+# Check if conda is available
+if ! command -v conda &> /dev/null; then
+    echo "  ❌ conda is not installed"
+    echo "  Install Miniconda: https://docs.conda.io/en/latest/miniconda.html"
+    echo "  Or install Anaconda: https://www.anaconda.com/download"
+    exit 1
 fi
 
-# Activate virtual environment
-source "$VENV_ACTIVATE" || { echo "❌ Failed to activate virtual environment"; exit 1; }
+# Check if conda environment exists
+if conda env list | grep -q "^${CONDA_ENV} "; then
+    echo "  ✅ Conda environment '$CONDA_ENV' found"
+else
+    echo "  Conda environment '$CONDA_ENV' not found. Creating with Python $CONDA_PYTHON_VERSION..."
+    conda create -n "$CONDA_ENV" python="$CONDA_PYTHON_VERSION" -y 2>&1 | while IFS= read -r line; do
+        if [[ "$line" == *"Solving environment"* ]] || [[ "$line" == *"Downloading"* ]] || [[ "$line" == *"Extracting"* ]]; then
+            echo "    $line"
+        elif [[ "$line" == *"done"* ]]; then
+            echo "    ✅ $line"
+        fi
+    done
+    if ! conda env list | grep -q "^${CONDA_ENV} "; then
+        echo "  ❌ Failed to create conda environment"
+        exit 1
+    fi
+    echo "  ✅ Conda environment created"
+fi
+
+# Activate conda environment
+eval "$(conda shell.bash hook)" || { echo "❌ Failed to initialize conda shell"; exit 1; }
+conda activate "$CONDA_ENV" || { echo "❌ Failed to activate conda environment"; exit 1; }
 
 # ==================================== 2. Install/Update Dependencies ====================================
 echo ""
