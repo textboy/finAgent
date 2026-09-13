@@ -96,6 +96,7 @@ async def login(req: LoginRequest, response: Response):
             max_age=SESSION_EXPIRY_DAYS * 24 * 3600,  # 30 days
             httponly=True,
             samesite="lax",
+            path=API_PREFIX or "/",
         )
         return {"status": "ok", "username": req.username}
     raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -111,7 +112,7 @@ async def get_session(request: Request):
 @app.post(f"{API_PREFIX}/api/logout")
 async def logout(response: Response):
     """Clear session cookie."""
-    response.delete_cookie(key=SESSION_COOKIE_NAME)
+    response.delete_cookie(key=SESSION_COOKIE_NAME, path=API_PREFIX or "/")
     return {"status": "ok"}
 
 app.mount(f"{API_PREFIX}/static", StaticFiles(directory="results"), name="static")
