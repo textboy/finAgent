@@ -51,8 +51,8 @@ if RUN_MODE not in SUPPORTED_MODES:
 
 SERVER_HOST = os.getenv("SERVER_HOST", "0.0.0.0" if RUN_MODE == "production" else "localhost")
 PRODUCTION_HOST = os.getenv("PRODUCTION_HOST", "62.146.234.147")
-UVICORN_PORT = os.getenv("UVICORN_PORT")
-logger.info(f"RUN_MODE:{RUN_MODE}, SERVER_HOST:{SERVER_HOST}, PRODUCTION_HOST:{PRODUCTION_HOST}, UVICORN_PORT:{UVICORN_PORT}")
+API_PREFIX = os.getenv("API_PREFIX", "/finagent" if RUN_MODE == "production" else "")
+logger.info(f"RUN_MODE:{RUN_MODE}, SERVER_HOST:{SERVER_HOST}, PRODUCTION_HOST:{PRODUCTION_HOST}, API_PREFIX:{API_PREFIX}")
 try:
     UVICORN_PORT = int(UVICORN_PORT)
 except (ValueError, TypeError) as e:
@@ -62,7 +62,7 @@ except (ValueError, TypeError) as e:
 app = FastAPI(title="FinAgent API")
 
 
-@app.get("/health")
+@app.get(f"{API_PREFIX}/health")
 async def health():
     return {"status": "ok"}
 
@@ -84,7 +84,7 @@ class LoginRequest(BaseModel):
     username: str
     password: str
 
-@app.post("/api/login")
+@app.post(f"{API_PREFIX}/api/login")
 async def login(req: LoginRequest, response: Response):
     """Login with hardcoded credentials. Sets session cookie."""
     if req.username == VALID_USERNAME and req.password == VALID_PASSWORD:
@@ -99,7 +99,7 @@ async def login(req: LoginRequest, response: Response):
         return {"status": "ok", "username": req.username}
     raise HTTPException(status_code=401, detail="Invalid credentials")
 
-@app.get("/api/session")
+@app.get(f"{API_PREFIX}/api/session")
 async def get_session(request: Request):
     """Check if user is logged in via session cookie."""
     token = request.cookies.get(SESSION_COOKIE_NAME)
@@ -107,13 +107,13 @@ async def get_session(request: Request):
         return {"status": "ok", "username": VALID_USERNAME}
     raise HTTPException(status_code=401, detail="Not logged in")
 
-@app.post("/api/logout")
+@app.post(f"{API_PREFIX}/api/logout")
 async def logout(response: Response):
     """Clear session cookie."""
     response.delete_cookie(key=SESSION_COOKIE_NAME)
     return {"status": "ok"}
 
-app.mount("/static", StaticFiles(directory="results"), name="static")
+app.mount(f"{API_PREFIX}/static", StaticFiles(directory="results"), name="static")
 
 
 # ==================================== Housekeeping ====================================
@@ -179,7 +179,7 @@ WEB_PUBLIC_DIR = os.path.join(BASE_DIR, "web", "public")
 ASSETS_DIR = os.path.join(WEB_DIST_DIR, "assets")
 
 
-@app.get("/assets/{filename}")
+@app.get(f"{API_PREFIX}/assets/{{filename}}")
 async def serve_asset(filename: str):
     from fastapi.responses import FileResponse
     filepath = os.path.join(ASSETS_DIR, filename)
@@ -188,7 +188,7 @@ async def serve_asset(filename: str):
     raise HTTPException(status_code=404, detail="Asset not found")
 
 
-@app.get("/vite.svg")
+@app.get(f"{API_PREFIX}/vite.svg")
 async def serve_favicon():
     from fastapi.responses import FileResponse
     svg_path = os.path.join(WEB_PUBLIC_DIR, "vite.svg")
@@ -197,7 +197,7 @@ async def serve_favicon():
     raise HTTPException(status_code=404, detail="Favicon not found")
 
 
-@app.get("/public/{filename}")
+@app.get(f"{API_PREFIX}/public/{{filename}}")
 async def serve_public(filename: str):
     from fastapi.responses import FileResponse
     filepath = os.path.join(WEB_PUBLIC_DIR, filename)
@@ -206,14 +206,14 @@ async def serve_public(filename: str):
     raise HTTPException(status_code=404, detail="File not found")
 
 
-# SPA catch-all for /app routes
-@app.get("/app/{full_path:path}")
+# SPA catch-all for /finagent/app routes
+@app.get(f"{API_PREFIX}/app/{{full_path:path}}")
 async def serve_spa(full_path: str):
     from fastapi.responses import FileResponse
     return FileResponse(os.path.join(WEB_DIST_DIR, "index.html"))
 
 
-@app.get("/")
+@app.get(API_PREFIX or "/")
 async def root():
     """Root endpoint - serves frontend or returns API status."""
     if os.path.exists(WEB_DIST_DIR):
@@ -225,14 +225,14 @@ async def root():
         "status": "running",
         "run_mode": RUN_MODE,
         "endpoints": {
-            "analyze": "/analyze",
-            "analyze_batch": "/analyze-batch",
-            "history_reports": "/api/history-reports",
+            "analyze": f"{API_PREFIX}/analyze",
+            "analyze_batch": f"{API_PREFIX}/analyze-batch",
+            "history_reports": f"{API_PREFIX}/api/history-reports",
             "docs": "/docs",
-            "static_reports": "/static/",
-            "frontend": "/app" if os.path.exists(WEB_DIST_DIR) else None
+            "static_reports": f"{API_PREFIX}/static/",
+            "frontend": f"{API_PREFIX}/app" if os.path.exists(WEB_DIST_DIR) else None
         },
-        "production_url": f"http://{PRODUCTION_HOST}:{UVICORN_PORT}" if RUN_MODE == "production" else None
+        "production_url": f"http://{PRODUCTION_HOST}/finagent" if RUN_MODE == "production" else None
     }
 
 
@@ -889,7 +889,7 @@ def format_pipeline_result(pipeline_result: dict) -> dict:
     }
 
 
-@app.post("/analyze-batch")
+@app.post(f"{API_PREFIX}/analyze-batch")
 async def analyze_batch(req: AnalyzeRequest):
     if len(req.symbols) > 5:
         raise HTTPException(status_code=400, detail="Maximum 5 symbols allowed")
@@ -920,7 +920,7 @@ async def analyze_batch(req: AnalyzeRequest):
     return {"job_id": job_id, "status": "running"}
 
 
-@app.get("/analyze-status/{job_id}")
+@app.get(f"{API_PREFIX}/analyze-status/{{job_id}}")
 async def analyze_status(job_id: str):
     """Poll for analysis job status. No-cache headers prevent mobile browser caching."""
     from fastapi.responses import JSONResponse
@@ -951,7 +951,7 @@ async def analyze_status(job_id: str):
         )
 
 
-@app.get("/analyze-stream/{job_id}")
+@app.get(f"{API_PREFIX}/analyze-stream/{{job_id}}")
 async def analyze_stream(job_id: str, request: Request):
     """SSE endpoint for real-time job status updates. Survives mobile browser screen lock."""
     if job_id not in _jobs:
@@ -1012,7 +1012,7 @@ async def analyze_stream(job_id: str, request: Request):
     )
 
 
-@app.post("/analyze")
+@app.post(f"{API_PREFIX}/analyze")
 async def analyze(req: AnalyzeRequest):
     if len(req.symbols) == 1:
         symbol = req.symbols[0].strip().upper()
@@ -1022,7 +1022,7 @@ async def analyze(req: AnalyzeRequest):
         return await analyze_batch(req)
 
 
-@app.get("/api/history-reports")
+@app.get(f"{API_PREFIX}/api/history-reports")
 async def get_history_reports():
     """Get list of all HTML reports in the results folder."""
     results_dir = "results"
