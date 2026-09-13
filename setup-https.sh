@@ -52,8 +52,8 @@ server {
     listen 80;
     server_name $DOMAIN;
 
-    location / {
-        proxy_pass http://127.0.0.1:8000;
+    location /finagent/ {
+        proxy_pass http://127.0.0.1:8000/finagent/;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
@@ -63,6 +63,10 @@ server {
         proxy_set_header Connection "upgrade";
         proxy_read_timeout 600s;
         proxy_send_timeout 600s;
+    }
+
+    location = / {
+        return 301 /finagent/;
     }
 }
 EOF
@@ -83,8 +87,8 @@ server {
     listen 80;
     server_name $DOMAIN;
 
-    location / {
-        proxy_pass http://127.0.0.1:8000;
+    location /finagent/ {
+        proxy_pass http://127.0.0.1:8000/finagent/;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
@@ -94,6 +98,10 @@ server {
         proxy_set_header Connection "upgrade";
         proxy_read_timeout 600s;
         proxy_send_timeout 600s;
+    }
+
+    location = / {
+        return 301 /finagent/;
     }
 }
 EOF
@@ -148,8 +156,8 @@ server {
     ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
 
-    location / {
-        proxy_pass http://127.0.0.1:8000;
+    location /finagent/ {
+        proxy_pass http://127.0.0.1:8000/finagent/;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
@@ -159,6 +167,10 @@ server {
         proxy_set_header Connection "upgrade";
         proxy_read_timeout 600s;
         proxy_send_timeout 600s;
+    }
+
+    location = / {
+        return 301 /finagent/;
     }
 }
 EOF

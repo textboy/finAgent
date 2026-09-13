@@ -129,8 +129,48 @@ npm install
 npm run build
 ```
 
-### Vector DB Setup (Optional)
+#### Nginx Setup (Production)
 ```shell
+# Create nginx config
+sudo nano /etc/nginx/sites-available/finagent
+```
+
+Add the following configuration:
+```nginx
+server {
+    listen 80;
+    server_name 62.146.234.147;
+
+    # Proxy to FinAgent backend
+    location /finagent/ {
+        proxy_pass http://127.0.0.1:8000/finagent/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_read_timeout 600s;
+        proxy_send_timeout 600s;
+    }
+
+    # Redirect root to /finagent/
+    location = / {
+        return 301 /finagent/;
+    }
+}
+```
+
+Enable the site and reload nginx:
+```shell
+sudo ln -sf /etc/nginx/sites-available/finagent /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+Access: http://62.146.234.147/finagent/
 # Requires Docker
 docker run -d --name qdrant-finagent -p 6333:6333 qdrant/qdrant:1.16.0
 ```
@@ -189,7 +229,7 @@ LESSON_URL=https://apihub.agnes-ai.com/v1
 ./start_server.sh production
 ```
 
-- **Backend**: http://localhost:8000 (local) or https://62.146.234.147 (production with HTTPS)
+- **Backend**: http://localhost:8000 (local) or http://62.146.234.147/finagent/ (production with nginx)
 - **Frontend**: Automatically built and served by backend
 
 ### CLI
