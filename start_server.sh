@@ -21,6 +21,9 @@ cd "$SCRIPT_DIR" || { echo "❌ Failed to change directory"; exit 1; }
 echo ""
 echo "[1/5] Checking conda environment..."
 
+# Ensure required directories exist
+mkdir -p results logs qdrant
+
 CONDA_ENV="finagent"
 CONDA_PYTHON_VERSION="3.12"
 
