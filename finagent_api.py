@@ -50,7 +50,7 @@ if RUN_MODE not in SUPPORTED_MODES:
     raise ValueError(f"Unsupported RUN_MODE '{RUN_MODE}'. Supported modes: {SUPPORTED_MODES}")
 
 SERVER_HOST = os.getenv("SERVER_HOST", "0.0.0.0" if RUN_MODE == "production" else "localhost")
-PRODUCTION_HOST = os.getenv("PRODUCTION_HOST", "5ngc.s.time4vps.cloud")
+PRODUCTION_HOST = os.getenv("PRODUCTION_HOST", "62.146.234.147")
 UVICORN_PORT = os.getenv("UVICORN_PORT")
 logger.info(f"RUN_MODE:{RUN_MODE}, SERVER_HOST:{SERVER_HOST}, PRODUCTION_HOST:{PRODUCTION_HOST}, UVICORN_PORT:{UVICORN_PORT}")
 try:

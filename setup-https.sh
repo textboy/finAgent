@@ -3,7 +3,7 @@
 # HTTPS Setup with Let's Encrypt for FinAgent
 # Run on production server as root
 
-DOMAIN="${1:-5ngc.s.time4vps.cloud}"
+DOMAIN="${1:-62.146.234.147}"
 EMAIL="${2:-}"
 
 echo "=================================== HTTPS Setup ($DOMAIN) ==================================="
