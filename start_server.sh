@@ -299,14 +299,14 @@ if [ "$RUN_MODE" = "production" ]; then
     if grep -q "ssl_certificate" /etc/nginx/sites-available/finagent 2>/dev/null || \
        grep -q "ssl_certificate" /etc/nginx/sites-enabled/finagent 2>/dev/null; then
         echo ""
-        echo "  🌐 Access URL: https://${PRODUCTION_HOST}"
-        echo "  📊 API Docs: https://${PRODUCTION_HOST}/docs"
+        echo "  🌐 Access URL: https://${PRODUCTION_HOST}/finagent/"
+        echo "  📊 API Docs: https://${PRODUCTION_HOST}/finagent/docs"
         echo ""
         echo "  ℹ️  Gunicorn binds to 127.0.0.1:8000 (nginx proxies HTTPS → HTTP)"
     else
         echo ""
-        echo "  🌐 Access URL: http://${PRODUCTION_HOST}:8000"
-        echo "  📊 API Docs: http://${PRODUCTION_HOST}:8000/docs"
+        echo "  🌐 Access URL: http://${PRODUCTION_HOST}/finagent/"
+        echo "  📊 API Docs: http://${PRODUCTION_HOST}/finagent/docs"
     fi
     echo ""
 
