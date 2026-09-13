@@ -141,9 +141,9 @@ server {
     listen 80;
     server_name 62.146.234.147;
 
-    # Proxy to FinAgent backend
+    # Proxy to FinAgent backend (strip /finagent/ prefix)
     location /finagent/ {
-        proxy_pass http://127.0.0.1:8000/finagent/;
+        proxy_pass http://127.0.0.1:8000/;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
