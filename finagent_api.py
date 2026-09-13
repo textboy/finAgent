@@ -53,6 +53,7 @@ SERVER_HOST = os.getenv("SERVER_HOST", "0.0.0.0" if RUN_MODE == "production" els
 PRODUCTION_HOST = os.getenv("PRODUCTION_HOST", "62.146.234.147")
 API_PREFIX = os.getenv("API_PREFIX", "/finagent" if RUN_MODE == "production" else "")
 logger.info(f"RUN_MODE:{RUN_MODE}, SERVER_HOST:{SERVER_HOST}, PRODUCTION_HOST:{PRODUCTION_HOST}, API_PREFIX:{API_PREFIX}")
+UVICORN_PORT = os.getenv("UVICORN_PORT")
 try:
     UVICORN_PORT = int(UVICORN_PORT)
 except (ValueError, TypeError) as e:
