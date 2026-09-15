@@ -307,6 +307,8 @@ if [ "$RUN_MODE" = "production" ]; then
         echo ""
         echo "  🌐 Access URL: http://${PRODUCTION_HOST}/finagent/"
         echo "  📊 API Docs: http://${PRODUCTION_HOST}/finagent/docs"
+        echo ""
+        echo "  ℹ️  Gunicorn binds to 127.0.0.1:8000 (nginx proxies HTTP)"
     fi
     echo ""
 

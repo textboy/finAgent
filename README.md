@@ -137,9 +137,20 @@ sudo nano /etc/nginx/sites-available/finagent
 
 Add the following configuration:
 ```nginx
+# HTTP → HTTPS redirect
 server {
     listen 80;
     server_name 62.146.234.147;
+    return 301 https://$host$request_uri;
+}
+
+# HTTPS server
+server {
+    listen 443 ssl;
+    server_name 62.146.234.147;
+
+    ssl_certificate /etc/ssl/certs/nginx-ip.crt;
+    ssl_certificate_key /etc/ssl/private/nginx-ip.key;
 
     # Proxy to FinAgent backend
     location /finagent/ {
@@ -170,7 +181,7 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-Access: http://62.146.234.147/finagent/
+Access: https://62.146.234.147/finagent/
 # Requires Docker
 docker run -d --name qdrant-finagent -p 6333:6333 qdrant/qdrant:1.16.0
 ```
