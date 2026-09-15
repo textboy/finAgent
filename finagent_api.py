@@ -58,7 +58,7 @@ try:
     UVICORN_PORT = int(UVICORN_PORT)
 except (ValueError, TypeError) as e:
     logger.error(f"Error converting UVICORN_PORT to an integer: {e}")
-    UVICORN_PORT = 8000
+    UVICORN_PORT = 8001
 
 app = FastAPI(title="FinAgent API", redirect_slashes=False)
 

@@ -260,16 +260,16 @@ if pgrep -f uvicorn > /dev/null 2>&1; then
     sleep 1
 fi
 
-# Kill anything on port 8000 (multiple methods for reliability)
-if lsof -Pi :8000 -sTCP:LISTEN -t >/dev/null 2>&1 ; then
-    echo "  Killing processes on port 8000..."
-    lsof -ti :8000 | xargs kill -9 2>/dev/null || true
+# Kill anything on port 8001 (multiple methods for reliability)
+if lsof -Pi :8001 -sTCP:LISTEN -t >/dev/null 2>&1 ; then
+    echo "  Killing processes on port 8001..."
+    lsof -ti :8001 | xargs kill -9 2>/dev/null || true
     sleep 1
 fi
 
 # Backup: use fuser if available
 if command -v fuser > /dev/null 2>&1; then
-    fuser -k 8000/tcp 2>/dev/null || true
+    fuser -k 8001/tcp 2>/dev/null || true
     sleep 1
 fi
 
@@ -278,9 +278,9 @@ pkill -9 -f "finagent_api" 2>/dev/null || true
 
 # Verify port is free
 sleep 2
-if lsof -Pi :8000 -sTCP:LISTEN -t >/dev/null 2>&1; then
-    echo "  ❌ Port 8000 still in use after cleanup!"
-    lsof -i :8000
+if lsof -Pi :8001 -sTCP:LISTEN -t >/dev/null 2>&1; then
+    echo "  ❌ Port 8001 still in use after cleanup!"
+    lsof -i :8001
     exit 1
 fi
 
@@ -302,13 +302,13 @@ if [ "$RUN_MODE" = "production" ]; then
         echo "  🌐 Access URL: https://${PRODUCTION_HOST}/finagent/"
         echo "  📊 API Docs: https://${PRODUCTION_HOST}/finagent/docs"
         echo ""
-        echo "  ℹ️  Gunicorn binds to 127.0.0.1:8000 (nginx proxies HTTPS → HTTP)"
+        echo "  ℹ️  Gunicorn binds to 127.0.0.1:8001 (nginx proxies HTTPS → HTTP)"
     else
         echo ""
         echo "  🌐 Access URL: http://${PRODUCTION_HOST}/finagent/"
         echo "  📊 API Docs: http://${PRODUCTION_HOST}/finagent/docs"
         echo ""
-        echo "  ℹ️  Gunicorn binds to 127.0.0.1:8000 (nginx proxies HTTP)"
+        echo "  ℹ️  Gunicorn binds to 127.0.0.1:8001 (nginx proxies HTTP)"
     fi
     echo ""
 
@@ -326,7 +326,7 @@ if [ "$RUN_MODE" = "production" ]; then
             echo "  Stop: sudo systemctl stop finagent"
         else
             echo "  Starting in background with nohup..."
-            nohup gunicorn -w 2 -k uvicorn.workers.UvicornWorker finagent_api:app --bind 0.0.0.0:8000 --timeout 480 --log-level info > /var/log/finagent.log 2>&1 &
+            nohup gunicorn -w 2 -k uvicorn.workers.UvicornWorker finagent_api:app --bind 0.0.0.0:8001 --timeout 480 --log-level info > /var/log/finagent.log 2>&1 &
             echo "  ✅ Server started in background"
             echo "  PID: $!"
             echo "  Logs: tail -f /var/log/finagent.log"
@@ -336,7 +336,7 @@ if [ "$RUN_MODE" = "production" ]; then
     else
         # Not running as root - use nohup
         echo "  Starting in background with nohup..."
-        nohup gunicorn -w 2 -k uvicorn.workers.UvicornWorker finagent_api:app --bind 0.0.0.0:8000 --timeout 480 --log-level info > /tmp/finagent.log 2>&1 &
+        nohup gunicorn -w 2 -k uvicorn.workers.UvicornWorker finagent_api:app --bind 0.0.0.0:8001 --timeout 480 --log-level info > /tmp/finagent.log 2>&1 &
         echo "  ✅ Server started in background"
         echo "  PID: $!"
         echo "  Logs: tail -f /tmp/finagent.log"
@@ -345,8 +345,8 @@ if [ "$RUN_MODE" = "production" ]; then
     fi
 else
     echo "=================================== Starting Local Server ==================================="
-    echo "  🌐 Access URL: http://localhost:8000"
-    echo "  📊 API Docs: http://localhost:8000/docs"
+    echo "  🌐 Access URL: http://localhost:8001"
+    echo "  📊 API Docs: http://localhost:8001/docs"
     echo "  Press Ctrl+C to stop"
     echo ""
 
