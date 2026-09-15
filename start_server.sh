@@ -290,7 +290,9 @@ if [ "$RUN_MODE" = "production" ]; then
     PRODUCTION_HOST="${PRODUCTION_HOST:-62.146.234.147}"
 
     # Detect if HTTPS is configured (check for SSL certificate via nginx)
-    if grep -q "ssl_certificate" /etc/nginx/sites-available/finagent 2>/dev/null || \
+    if grep -q "ssl_certificate" /etc/nginx/sites-available/default-server 2>/dev/null || \
+       grep -q "ssl_certificate" /etc/nginx/sites-enabled/default-server 2>/dev/null || \
+       grep -q "ssl_certificate" /etc/nginx/sites-available/finagent 2>/dev/null || \
        grep -q "ssl_certificate" /etc/nginx/sites-enabled/finagent 2>/dev/null; then
         echo ""
         echo "  🌐 Access URL: https://${PRODUCTION_HOST}/finagent/"
