@@ -130,21 +130,20 @@ npm run build
 ```
 
 #### Nginx Setup (Production)
+
+**Option A: Single project (standalone)**
+
 ```shell
-# Create nginx config
 sudo nano /etc/nginx/sites-available/finagent
 ```
 
-Add the following configuration:
 ```nginx
-# HTTP → HTTPS redirect
 server {
     listen 80;
     server_name 62.146.234.147;
     return 301 https://$host$request_uri;
 }
 
-# HTTPS server
 server {
     listen 443 ssl;
     server_name 62.146.234.147;
@@ -152,7 +151,6 @@ server {
     ssl_certificate /etc/ssl/certs/nginx-ip.crt;
     ssl_certificate_key /etc/ssl/private/nginx-ip.key;
 
-    # Proxy to FinAgent backend
     location /finagent/ {
         proxy_pass http://127.0.0.1:8000/finagent/;
         proxy_set_header Host $host;
@@ -166,17 +164,69 @@ server {
         proxy_send_timeout 600s;
     }
 
-    # Redirect /finagent to /finagent/ (add trailing slash)
     location = /finagent {
         return 301 /finagent/;
     }
 }
 ```
 
-Enable the site and reload nginx:
 ```shell
 sudo ln -sf /etc/nginx/sites-available/finagent /etc/nginx/sites-enabled/
 sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+**Option B: Multiple projects (snippet-based)**
+
+Create a snippet for each project:
+```shell
+sudo nano /etc/nginx/snippets/finagent.conf
+```
+
+```nginx
+# FinAgent
+location /finagent/ {
+    proxy_pass http://127.0.0.1:8000/finagent/;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_read_timeout 600s;
+    proxy_send_timeout 600s;
+}
+
+location = /finagent {
+    return 301 /finagent/;
+}
+```
+
+Main server block (`/etc/nginx/sites-available/default-server`):
+```nginx
+server {
+    listen 80;
+    server_name 62.146.234.147;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name 62.146.234.147;
+
+    ssl_certificate /etc/ssl/certs/nginx-ip.crt;
+    ssl_certificate_key /etc/ssl/private/nginx-ip.key;
+
+    include /etc/nginx/snippets/finagent.conf;
+    # include /etc/nginx/snippets/other-project.conf;
+}
+```
+
+```shell
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo ln -sf /etc/nginx/sites-available/default-server /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl reload nginx
 ```
