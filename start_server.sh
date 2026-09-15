@@ -246,30 +246,24 @@ if systemctl is-active --quiet finagent 2>/dev/null; then
     systemctl disable finagent 2>/dev/null || true
 fi
 
-# Kill ALL gunicorn processes (not just finagent-specific)
-if pgrep -f gunicorn > /dev/null 2>&1; then
-    echo "  Killing all gunicorn processes..."
-    pkill -9 -f gunicorn 2>/dev/null || true
+# Kill finagent-specific gunicorn processes only
+if pgrep -f "gunicorn.*finagent_api" > /dev/null 2>&1; then
+    echo "  Killing finagent gunicorn processes..."
+    pkill -9 -f "gunicorn.*finagent_api" 2>/dev/null || true
     sleep 1
 fi
 
-# Kill ALL uvicorn processes (leftover from direct python runs)
-if pgrep -f uvicorn > /dev/null 2>&1; then
-    echo "  Killing all uvicorn processes..."
-    pkill -9 -f uvicorn 2>/dev/null || true
+# Kill finagent-specific uvicorn processes only
+if pgrep -f "uvicorn.*finagent_api" > /dev/null 2>&1; then
+    echo "  Killing finagent uvicorn processes..."
+    pkill -9 -f "uvicorn.*finagent_api" 2>/dev/null || true
     sleep 1
 fi
 
-# Kill anything on port 8001 (multiple methods for reliability)
+# Kill anything on port 8001 (finagent-specific port)
 if lsof -Pi :8001 -sTCP:LISTEN -t >/dev/null 2>&1 ; then
     echo "  Killing processes on port 8001..."
     lsof -ti :8001 | xargs kill -9 2>/dev/null || true
-    sleep 1
-fi
-
-# Backup: use fuser if available
-if command -v fuser > /dev/null 2>&1; then
-    fuser -k 8001/tcp 2>/dev/null || true
     sleep 1
 fi
 
