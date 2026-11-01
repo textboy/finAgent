@@ -77,7 +77,7 @@ function Introduction() {
                 <StepCard number="3" name="Technical" source="yfinance" color="purple" details="SMA/EMA/RSI/MACD/BB/VWAP/Volume" />
                 <StepCard number="4" name="Market Overview" source="yfinance" color="orange" />
                 <StepCard number="5" name="Global Economy" source="World Bank API" color="cyan" />
-                <StepCard number="6" name="Fund Holdings" source="LLM (agnes-2.0-flash)" color="teal" />
+                <StepCard number="6" name="Fund Holdings" source="LLM (sapiens-ai/agnes-2.5-flash)" color="teal" />
                 <StepCard number="7" name="Past Lessons" source="Qdrant DB" color="yellow" />
               </div>
               <div className="mt-4 text-center text-slate-500 text-sm">
@@ -94,7 +94,7 @@ function Introduction() {
                     <span className="text-2xl">🐂</span>
                     <span className="font-bold text-green-400">Step 8.1: Bull Analysis</span>
                   </div>
-                  <p className="text-sm text-slate-400">Model: xiaomi/mimo-v2.5</p>
+                  <p className="text-sm text-slate-400">Model: xiaomi/mimo-v2.6-flash</p>
                   <p className="text-xs text-slate-500">Source: zenmux.ai</p>
                 </div>
                 <div className="bg-gradient-to-br from-red-500/20 to-rose-500/20 rounded-lg p-4 border border-red-500/30">
@@ -102,7 +102,7 @@ function Introduction() {
                     <span className="text-2xl">🐻</span>
                     <span className="font-bold text-red-400">Step 8.2: Bear Analysis</span>
                   </div>
-                  <p className="text-sm text-slate-400">Model: minimax/minimax-m3</p>
+                  <p className="text-sm text-slate-400">Model: minimax/minimax-h3</p>
                   <p className="text-xs text-slate-500">Source: zenmux.ai</p>
                 </div>
                 <div className="bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-lg p-4 border border-cyan-500/30">
@@ -128,8 +128,8 @@ function Introduction() {
                   <span className="text-2xl">⚖️</span>
                   <span className="font-bold text-amber-400">Step 8.3: Research Debate</span>
                 </div>
-                <p className="text-sm text-slate-400">Model: z-ai/glm-5.2</p>
-                <p className="text-xs text-slate-500">Source: bigmodel</p>
+                <p className="text-sm text-slate-400">Model: openai/gpt-6-luna</p>
+                <p className="text-xs text-slate-500">Source: azure</p>
                 <p className="text-xs text-cyan-400 mt-1">+ Warren Buffett principles (long period)</p>
               </div>
               <div className="mt-4 text-center text-slate-500 text-sm">
@@ -145,8 +145,8 @@ function Introduction() {
                   <span className="text-2xl">🎯</span>
                   <span className="font-bold text-indigo-400">Step 9: Trading Plan</span>
                 </div>
-                <p className="text-sm text-slate-400">Model: z-ai/glm-5.2</p>
-                <p className="text-xs text-slate-500">Source: bigmodel</p>
+                <p className="text-sm text-slate-400">Model: openai/gpt-6-luna</p>
+                <p className="text-xs text-slate-500">Source: azure</p>
                 <p className="text-xs text-emerald-400 mt-1">Output: BUY/SELL/HOLD, Target Price</p>
                 <p className="text-xs text-cyan-400 mt-1">Integrates: Debate + Quant + Technical</p>
                 <p className="text-xs text-amber-400 mt-1">Exit Strategy: FTA / Time Stop / 0.9R Rule</p>
@@ -164,8 +164,8 @@ function Introduction() {
                   <span className="text-2xl">📝</span>
                   <span className="font-bold text-emerald-400">Step 10: Lesson Summary</span>
                 </div>
-                <p className="text-sm text-slate-400">Model: agnes-2.0-flash</p>
-                <p className="text-xs text-slate-500">Source: agnes-ai.com</p>
+                <p className="text-sm text-slate-400">Model: sapiens-ai/agnes-2.5-flash</p>
+                <p className="text-xs text-slate-500">Source: zenmux.ai</p>
                 <p className="text-xs text-purple-400 mt-1">Stores lesson in Qdrant DB for future reference</p>
               </div>
             </div>
@@ -190,19 +190,19 @@ function Introduction() {
               <tbody>
                 <tr className="border-b border-slate-800">
                   <td className="py-3 px-4 text-slate-300">6. Fund Holdings</td>
-                  <td className="py-3 px-4 text-cyan-400">agnes-2.0-flash</td>
-                  <td className="py-3 px-4 text-slate-400">Agnes AI</td>
-                  <td className="py-3 px-4 text-slate-500 text-xs">apihub.agnes-ai.com</td>
+                  <td className="py-3 px-4 text-cyan-400">sapiens-ai/agnes-2.5-flash</td>
+                  <td className="py-3 px-4 text-slate-400">ZenMux</td>
+                  <td className="py-3 px-4 text-slate-500 text-xs">zenmux.ai</td>
                 </tr>
                 <tr className="border-b border-slate-800">
                   <td className="py-3 px-4 text-slate-300">8.1 Bull Analysis</td>
-                  <td className="py-3 px-4 text-green-400">xiaomi/mimo-v2.5</td>
+                  <td className="py-3 px-4 text-green-400">xiaomi/mimo-v2.6-flash</td>
                   <td className="py-3 px-4 text-slate-400">ZenMux</td>
                   <td className="py-3 px-4 text-slate-500 text-xs">zenmux.ai</td>
                 </tr>
                 <tr className="border-b border-slate-800">
                   <td className="py-3 px-4 text-slate-300">8.2 Bear Analysis</td>
-                  <td className="py-3 px-4 text-red-400">minimax/minimax-m3</td>
+                  <td className="py-3 px-4 text-red-400">minimax/minimax-h3</td>
                   <td className="py-3 px-4 text-slate-400">ZenMux</td>
                   <td className="py-3 px-4 text-slate-500 text-xs">zenmux.ai</td>
                 </tr>
@@ -214,21 +214,21 @@ function Introduction() {
                 </tr>
                 <tr className="border-b border-slate-800">
                   <td className="py-3 px-4 text-slate-300">8.3 Research Debate</td>
-                  <td className="py-3 px-4 text-amber-400">z-ai/glm-5.2</td>
-                  <td className="py-3 px-4 text-slate-400">BigModel</td>
-                  <td className="py-3 px-4 text-slate-500 text-xs">open.bigmodel.cn</td>
+                  <td className="py-3 px-4 text-amber-400">openai/gpt-6-luna</td>
+                  <td className="py-3 px-4 text-slate-400">Azure</td>
+                  <td className="py-3 px-4 text-slate-500 text-xs">zenmux.ai</td>
                 </tr>
                 <tr className="border-b border-slate-800">
                   <td className="py-3 px-4 text-slate-300">9. Trading Plan</td>
-                  <td className="py-3 px-4 text-indigo-400">z-ai/glm-5.2</td>
-                  <td className="py-3 px-4 text-slate-400">BigModel</td>
-                  <td className="py-3 px-4 text-slate-500 text-xs">open.bigmodel.cn</td>
+                  <td className="py-3 px-4 text-indigo-400">openai/gpt-6-luna</td>
+                  <td className="py-3 px-4 text-slate-400">Azure</td>
+                  <td className="py-3 px-4 text-slate-500 text-xs">zenmux.ai</td>
                 </tr>
                 <tr>
                   <td className="py-3 px-4 text-slate-300">10. Lesson Summary</td>
-                  <td className="py-3 px-4 text-emerald-400">agnes-2.0-flash</td>
-                  <td className="py-3 px-4 text-slate-400">Agnes AI</td>
-                  <td className="py-3 px-4 text-slate-500 text-xs">apihub.agnes-ai.com</td>
+                  <td className="py-3 px-4 text-emerald-400">sapiens-ai/agnes-2.5-flash</td>
+                  <td className="py-3 px-4 text-slate-400">ZenMux</td>
+                  <td className="py-3 px-4 text-slate-500 text-xs">zenmux.ai</td>
                 </tr>
               </tbody>
             </table>

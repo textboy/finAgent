@@ -29,13 +29,13 @@ FinAgents is a multi-agent trading framework that mirrors real-world trading fir
 | 3 | Technical | yfinance (SMA/EMA/RSI/MACD/BB/VWAP/Volume) | - |
 | 4 | Market Overview | yfinance | - |
 | 5 | Global Economy | World Bank API | - |
-| 6 | Fund Holdings | - | agnes-2.0-flash (Agnes AI) |
+| 6 | Fund Holdings | - | sapiens-ai/agnes-2.5-flash (ZenMux) |
 | 7 | Past Lessons | Qdrant DB | - |
-| 8.1 | Bull Analysis | - | xiaomi/mimo-v2.5 (ZenMux) |
-| 8.2 | Bear Analysis | - | minimax/minimax-m3 (ZenMux) |
-| 8.3 | Research Debate | - | z-ai/glm-5.2 (ZenMux) |
-| 9 | Trading Plan | - | z-ai/glm-5.2 (ZenMux) |
-| 10 | Lesson Summary | - | agnes-2.0-flash (Agnes AI, background) |
+| 8.1 | Bull Analysis | - | xiaomi/mimo-v2.6-flash (ZenMux) |
+| 8.2 | Bear Analysis | - | minimax/minimax-h3 (ZenMux) |
+| 8.3 | Research Debate | - | openai/gpt-6-luna (Azure) |
+| 9 | Trading Plan | - | openai/gpt-6-luna (Azure) |
+| 10 | Lesson Summary | - | sapiens-ai/agnes-2.5-flash (ZenMux, background) |
 
 #### Technical Indicators (Step 3)
 - **Trend**: SMA-50, SMA-100, EMA-10
@@ -303,28 +303,28 @@ Each step can use different models and providers:
 
 ```env
 # Step 6: Fund Holdings
-FUND_HOLDING_MODEL=agnes-2.0-flash
-FUND_HOLDING_URL=https://apihub.agnes-ai.com/v1
+FUND_HOLDING_MODEL=sapiens-ai/agnes-2.5-flash
+FUND_HOLDING_URL=https://zenmux.ai/api/v1
 
 # Step 8.1: Bull Analysis
-BULL_MODEL=xiaomi/mimo-v2.5
+BULL_MODEL=xiaomi/mimo-v2.6-flash
 BULL_URL=https://zenmux.ai/api/v1
 
 # Step 8.2: Bear Analysis
-BEAR_MODEL=minimax/minimax-m3
+BEAR_MODEL=minimax/minimax-h3
 BEAR_URL=https://zenmux.ai/api/v1
 
 # Step 8.3: Research Debate
-DEBATE_MODEL=z-ai/glm-5.2
+DEBATE_MODEL=openai/gpt-6-luna
 DEBATE_URL=https://zenmux.ai/api/v1
 
 # Step 9: Trading Plan
-TRADING_MODEL=z-ai/glm-5.2
+TRADING_MODEL=openai/gpt-6-luna
 TRADING_URL=https://zenmux.ai/api/v1
 
 # Step 10: Lesson Summary
-LESSON_MODEL=agnes-2.0-flash
-LESSON_URL=https://apihub.agnes-ai.com/v1
+LESSON_MODEL=sapiens-ai/agnes-2.5-flash
+LESSON_URL=https://zenmux.ai/api/v1
 ```
 
 ## Execution
