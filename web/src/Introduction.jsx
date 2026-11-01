@@ -102,7 +102,7 @@ function Introduction() {
                     <span className="text-2xl">🐻</span>
                     <span className="font-bold text-red-400">Step 8.2: Bear Analysis</span>
                   </div>
-                  <p className="text-sm text-slate-400">Model: minimax/minimax-h3</p>
+                  <p className="text-sm text-slate-400">Model: minimax/minimax-m3.1-flash</p>
                   <p className="text-xs text-slate-500">Source: zenmux.ai</p>
                 </div>
                 <div className="bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-lg p-4 border border-cyan-500/30">
@@ -202,7 +202,7 @@ function Introduction() {
                 </tr>
                 <tr className="border-b border-slate-800">
                   <td className="py-3 px-4 text-slate-300">8.2 Bear Analysis</td>
-                  <td className="py-3 px-4 text-red-400">minimax/minimax-h3</td>
+                  <td className="py-3 px-4 text-red-400">minimax/minimax-m3.1-flash</td>
                   <td className="py-3 px-4 text-slate-400">ZenMux</td>
                   <td className="py-3 px-4 text-slate-500 text-xs">zenmux.ai</td>
                 </tr>
