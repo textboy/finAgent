@@ -1083,5 +1083,23 @@ async def get_history_reports():
     return {"reports": reports[:50]}  # Limit to 50 most recent
 
 
+# SPA fallback for client-side routes (deep links like /introduction,
+# /app/introduction) so React Router can handle them. Registered last so it
+# never shadows the API, static, or analyze routes above.
+@app.get(f"{API_PREFIX}/{{full_path:path}}")
+async def serve_spa_fallback(full_path: str):
+    first = full_path.split("/", 1)[0]
+    # API & resource namespaces must 404 as themselves, not return the HTML shell.
+    if first in {"api", "assets", "static", "health", "docs", "openapi.json", "redoc"} or first.startswith("analyze"):
+        raise HTTPException(status_code=404, detail="Not found")
+    # Requests for files (e.g. missing assets) shouldn't get the HTML shell either.
+    if "." in full_path.rsplit("/", 1)[-1]:
+        raise HTTPException(status_code=404, detail="Not found")
+    if not os.path.exists(WEB_DIST_DIR):
+        raise HTTPException(status_code=404, detail="Frontend not built")
+    from fastapi.responses import FileResponse
+    return FileResponse(os.path.join(WEB_DIST_DIR, "index.html"))
+
+
 if __name__ == "__main__":
     uvicorn.run(app, host=SERVER_HOST, port=UVICORN_PORT)
