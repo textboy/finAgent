@@ -32,7 +32,7 @@ FinAgents is a multi-agent trading framework that mirrors real-world trading fir
 | 6 | Fund Holdings | - | sapiens-ai/agnes-2.5-flash (ZenMux) |
 | 7 | Past Lessons | Qdrant DB | - |
 | 8.1 | Bull Analysis | - | xiaomi/mimo-v2.6-flash (ZenMux) |
-| 8.2 | Bear Analysis | - | minimax/minimax-m3.1-flash (ZenMux) |
+| 8.2 | Bear Analysis | - | deepseek/deepseek-v4.1-flash (ZenMux) |
 | 8.3 | Research Debate | - | openai/gpt-6-luna (Azure) |
 | 9 | Trading Plan | - | openai/gpt-6-luna (Azure) |
 | 10 | Lesson Summary | - | sapiens-ai/agnes-2.5-flash (ZenMux, background) |
@@ -311,7 +311,7 @@ BULL_MODEL=xiaomi/mimo-v2.6-flash
 BULL_URL=https://zenmux.ai/api/v1
 
 # Step 8.2: Bear Analysis
-BEAR_MODEL=minimax/minimax-m3.1-flash
+BEAR_MODEL=deepseek/deepseek-v4.1-flash
 BEAR_URL=https://zenmux.ai/api/v1
 
 # Step 8.3: Research Debate

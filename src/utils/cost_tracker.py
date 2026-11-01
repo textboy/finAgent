@@ -6,7 +6,7 @@ LLM Cost Tracker - Tracks token usage and calculates costs per analysis.
 MODEL_PRICING = {
     # ZenMux models
     "xiaomi/mimo-v2.6-flash": (0.10, 0.30),
-    "minimax/minimax-m3.1-flash": (0.10, 0.30),
+    "deepseek/deepseek-v4.1-flash": (0.10, 0.30),
     "openai/gpt-6-luna": (0.15, 0.45),
     # agnes-2.5-flash now served via ZenMux (paid), not the free Agnes API
     "sapiens-ai/agnes-2.5-flash": (0.10, 0.30),
