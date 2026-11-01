@@ -54,9 +54,32 @@ else
     echo "  ✅ Conda environment created"
 fi
 
-# Activate conda environment
+# Ensure the 'finagent' conda environment is active.
+# Detect the env this script was launched from and switch cleanly:
+#   - already in finagent   -> proceed
+#   - in base / no env      -> activate finagent
+#   - in a different env    -> deactivate back to root (base), then activate finagent
+launched_env="${CONDA_DEFAULT_ENV:-}"
+
+# Initialize conda shell functions (needed for conda activate/deactivate in this subshell)
 eval "$(conda shell.bash hook)" || { echo "❌ Failed to initialize conda shell"; exit 1; }
-conda activate "$CONDA_ENV" || { echo "❌ Failed to activate conda environment"; exit 1; }
+
+if [ "$launched_env" = "$CONDA_ENV" ]; then
+    echo "  ✅ Already in '$CONDA_ENV' environment"
+else
+    if [ -n "$launched_env" ] && [ "$launched_env" != "base" ]; then
+        # In a different virtual environment: exit back to the root (base) env first
+        echo "  ⏏️  Launched from '$launched_env', returning to root (base) env first..."
+        while [ -n "${CONDA_DEFAULT_ENV:-}" ] && [ "${CONDA_DEFAULT_ENV}" != "base" ]; do
+            conda deactivate 2>/dev/null || break
+        done
+    else
+        echo "  ℹ️  Not in a virtual environment (root/base)"
+    fi
+    echo "  → Activating '$CONDA_ENV' environment..."
+    conda activate "$CONDA_ENV" || { echo "❌ Failed to activate conda environment '$CONDA_ENV'"; exit 1; }
+fi
+echo "  ✅ Using '$CONDA_ENV' (Python: $(python --version 2>&1))"
 
 # ==================================== 2. Install/Update Dependencies ====================================
 echo ""
