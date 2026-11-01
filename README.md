@@ -137,7 +137,7 @@ sudo nano /etc/nginx/snippets/finagent.conf
 ```
 
 ```nginx
-# FinAgent
+# FinAgent — streams analysis logs over Server-Sent Events (EventSource)
 location /finagent/ {
     proxy_pass http://127.0.0.1:8001/finagent/;
     proxy_set_header Host $host;
@@ -145,8 +145,15 @@ location /finagent/ {
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
     proxy_http_version 1.1;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection "upgrade";
+
+    # SSE: don't buffer/gzip the stream or events arrive in bursts.
+    # (Eggplant uses a WebSocket for the mic and needs Connection "upgrade";
+    #  FinAgent uses SSE and wants Connection ''.)
+    proxy_buffering off;
+    proxy_cache off;
+    gzip off;
+    proxy_set_header Connection '';
+
     proxy_read_timeout 600s;
     proxy_send_timeout 600s;
 }
@@ -201,6 +208,75 @@ Access: https://62.146.234.147/finagent/
 > When hosting multiple projects on the same server, add each project's snippet
 > (`include /etc/nginx/snippets/<project>.conf;`) to **both** the `80` and `443`
 > blocks so every project is reachable over HTTPS.
+
+##### Hardening (optional)
+
+Enable HTTP/2 and add TLS/security-header hardening in the `443` block:
+
+```nginx
+server {
+    listen 443 ssl http2;   # nginx >= 1.25.1: use "listen 443 ssl;" + "http2 on;"
+    server_name 62.146.234.147;
+
+    ssl_certificate     /etc/letsencrypt/live/62.146.234.147/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/62.146.234.147/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache   shared:SSL:10m;
+    ssl_session_timeout 1d;
+    ssl_session_tickets off;
+
+    add_header X-Content-Type-Options nosniff                         always;
+    add_header X-Frame-Options        SAMEORIGIN                      always;
+    add_header Referrer-Policy        strict-origin-when-cross-origin always;
+    # HSTS is ignored by browsers on a bare-IP host; enable once on a domain:
+    # add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+
+    server_tokens off;
+
+    include /etc/nginx/snippets/finagent.conf;
+    include /etc/nginx/snippets/eggplant.conf;
+}
+```
+
+To force all HTTP (except ACME) to HTTPS, replace the app includes in the `80`
+block with:
+
+```nginx
+location / { return 301 https://$host$request_uri; }
+```
+
+Enable gzip in `http {}` (e.g. `/etc/nginx/conf.d/gzip.conf`). Keep
+`text/event-stream` out of `gzip_types` so SSE isn't buffered:
+
+```nginx
+gzip on;
+gzip_vary on;
+gzip_proxied any;
+gzip_comp_level 5;
+gzip_min_length 1024;
+gzip_types text/plain text/css application/json application/javascript text/xml application/xml image/svg+xml;
+```
+
+Rate-limit login brute-force attempts. In `http {}`:
+
+```nginx
+limit_req_zone $binary_remote_addr zone=login_limit:10m rate=5r/m;
+```
+
+then in the `443` block, before `include finagent.conf;`:
+
+```nginx
+location = /finagent/api/login {
+    limit_req zone=login_limit burst=5 nodelay;
+    proxy_pass http://127.0.0.1:8001/finagent/api/login;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+```
+
+> **Note:** on a bare-IP host, browsers ignore HSTS and OCSP stapling adds little.
+> A real domain name unlocks auto-renewing Let's Encrypt certs, HSTS, and OCSP.
 
 #### Qdrant (Optional)
 FinAgent uses a lightweight file-based Qdrant by default (no Docker needed).
