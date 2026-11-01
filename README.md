@@ -156,11 +156,33 @@ location = /finagent {
 }
 ```
 
-Main server block (`/etc/nginx/sites-available/default-server`):
+Main server block (`/etc/nginx/sites-available/default-server`).
+TLS is terminated by nginx (Let's Encrypt certificates); FinAgent is proxied to
+Gunicorn on `127.0.0.1:8001` over both HTTP and HTTPS:
+
 ```nginx
+# HTTP: ACME challenge (cert issuance/renewal) + FinAgent
 server {
     listen 80;
     server_name 62.146.234.147;
+
+    # Let's Encrypt ACME challenge
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/html;
+    }
+
+    include /etc/nginx/snippets/finagent.conf;
+    # include /etc/nginx/snippets/other-project.conf;
+}
+
+# HTTPS: FinAgent served over TLS
+server {
+    listen 443 ssl;
+    server_name 62.146.234.147;
+
+    ssl_certificate     /etc/letsencrypt/live/62.146.234.147/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/62.146.234.147/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
 
     include /etc/nginx/snippets/finagent.conf;
     # include /etc/nginx/snippets/other-project.conf;
@@ -174,7 +196,16 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-Access: http://62.146.234.147/finagent/
+Access: https://62.146.234.147/finagent/
+
+> When hosting multiple projects on the same server, add each project's snippet
+> (`include /etc/nginx/snippets/<project>.conf;`) to **both** the `80` and `443`
+> blocks so every project is reachable over HTTPS.
+
+#### Qdrant (Optional)
+FinAgent uses a lightweight file-based Qdrant by default (no Docker needed).
+To run a standalone Qdrant server instead:
+```shell
 # Requires Docker
 docker run -d --name qdrant-finagent -p 6333:6333 qdrant/qdrant:1.16.0
 ```
@@ -233,7 +264,7 @@ LESSON_URL=https://apihub.agnes-ai.com/v1
 ./start_server.sh production
 ```
 
-- **Backend**: http://localhost:8000 (local) or http://62.146.234.147/finagent/ (production with nginx)
+- **Backend**: http://localhost:8001 (local) or https://62.146.234.147/finagent/ (production with nginx)
 - **Frontend**: Automatically built and served by backend
 
 ### CLI

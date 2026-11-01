@@ -289,11 +289,23 @@ if [ "$RUN_MODE" = "production" ]; then
     PRODUCTION_HOST=$(grep -E "^PRODUCTION_HOST=" "$SCRIPT_DIR/config/.env" 2>/dev/null | cut -d'=' -f2)
     PRODUCTION_HOST="${PRODUCTION_HOST:-62.146.234.147}"
 
-    echo ""
-    echo "  🌐 Access URL: http://${PRODUCTION_HOST}/finagent/"
-    echo "  📊 API Docs: http://${PRODUCTION_HOST}/finagent/docs"
-    echo ""
-    echo "  ℹ️  Gunicorn binds to 127.0.0.1:8001 (nginx proxies HTTP)"
+    # Detect if HTTPS is configured (TLS terminated at nginx; cert present in default-server or finagent)
+    if grep -q "ssl_certificate" /etc/nginx/sites-available/default-server 2>/dev/null || \
+       grep -q "ssl_certificate" /etc/nginx/sites-enabled/default-server 2>/dev/null || \
+       grep -q "ssl_certificate" /etc/nginx/sites-available/finagent 2>/dev/null || \
+       grep -q "ssl_certificate" /etc/nginx/sites-enabled/finagent 2>/dev/null; then
+        echo ""
+        echo "  🌐 Access URL: https://${PRODUCTION_HOST}/finagent/"
+        echo "  📊 API Docs: https://${PRODUCTION_HOST}/finagent/docs"
+        echo ""
+        echo "  ℹ️  Gunicorn binds to 127.0.0.1:8001 (nginx proxies HTTPS → HTTP)"
+    else
+        echo ""
+        echo "  🌐 Access URL: http://${PRODUCTION_HOST}/finagent/"
+        echo "  📊 API Docs: http://${PRODUCTION_HOST}/finagent/docs"
+        echo ""
+        echo "  ℹ️  Gunicorn binds to 127.0.0.1:8001 (nginx proxies HTTP)"
+    fi
     echo ""
 
     # Check if we should run as systemd service or directly

@@ -85,8 +85,19 @@ class LoginRequest(BaseModel):
     username: str
     password: str
 
+
+def _request_is_https(request: Request) -> bool:
+    """Detect HTTPS, honoring X-Forwarded-Proto set by the nginx TLS proxy.
+
+    Gunicorn receives plain HTTP from nginx, so request.url.scheme is "http"
+    even on an HTTPS request; the forwarded header is the reliable signal.
+    """
+    forwarded_proto = request.headers.get("x-forwarded-proto", "")
+    return forwarded_proto.lower() == "https" or request.url.scheme == "https"
+
+
 @app.post(f"{API_PREFIX}/api/login")
-async def login(req: LoginRequest, response: Response):
+async def login(req: LoginRequest, request: Request, response: Response):
     """Login with hardcoded credentials. Sets session cookie."""
     if req.username == VALID_USERNAME and req.password == VALID_PASSWORD:
         session_token = str(uuid.uuid4())
@@ -96,6 +107,7 @@ async def login(req: LoginRequest, response: Response):
             max_age=SESSION_EXPIRY_DAYS * 24 * 3600,  # 30 days
             httponly=True,
             samesite="lax",
+            secure=_request_is_https(request),
             path=f"{API_PREFIX}/" if API_PREFIX else "/",
         )
         return {"status": "ok", "username": req.username}
@@ -110,9 +122,13 @@ async def get_session(request: Request):
     raise HTTPException(status_code=401, detail="Not logged in")
 
 @app.post(f"{API_PREFIX}/api/logout")
-async def logout(response: Response):
+async def logout(request: Request, response: Response):
     """Clear session cookie."""
-    response.delete_cookie(key=SESSION_COOKIE_NAME, path=f"{API_PREFIX}/" if API_PREFIX else "/")
+    response.delete_cookie(
+        key=SESSION_COOKIE_NAME,
+        path=f"{API_PREFIX}/" if API_PREFIX else "/",
+        secure=_request_is_https(request),
+    )
     return {"status": "ok"}
 
 app.mount(f"{API_PREFIX}/static", StaticFiles(directory="results"), name="static")
@@ -234,7 +250,7 @@ async def root():
             "static_reports": f"{API_PREFIX}/static/",
             "frontend": f"{API_PREFIX}/app" if os.path.exists(WEB_DIST_DIR) else None
         },
-        "production_url": f"http://{PRODUCTION_HOST}/finagent" if RUN_MODE == "production" else None
+        "production_url": f"https://{PRODUCTION_HOST}/finagent" if RUN_MODE == "production" else None
     }
 
 
