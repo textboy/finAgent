@@ -5,12 +5,12 @@ LLM Cost Tracker - Tracks token usage and calculates costs per analysis.
 # Pricing per 1M tokens (USD) - {model_prefix: (input_price, output_price)}
 MODEL_PRICING = {
     # ZenMux models
-    "xiaomi/mimo-v2.5": (0.10, 0.30),
-    "minimax/minimax-m3": (0.20, 0.60),
-    "z-ai/glm-5.2": (0.15, 0.45),
+    "xiaomi/mimo-v2.6-flash": (0.10, 0.30),
+    "minimax/minimax-h3": (0.20, 0.60),
+    "openai/gpt-6-luna": (0.15, 0.45),
+    # agnes-2.5-flash now served via ZenMux (paid), not the free Agnes API
+    "sapiens-ai/agnes-2.5-flash": (0.10, 0.30),
     "x-ai/grok-beta": (0.10, 0.30),
-    # Agnes AI models (free)
-    "agnes-2.0-flash": (0.0, 0.0),
     # Default fallback
     "default": (0.10, 0.30),
 }
